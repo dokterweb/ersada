@@ -17,13 +17,25 @@ class Santri extends Model
         return $this->belongsTo(Kelasnya::class, 'kelas_id', 'id');
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
     public function kelompok()
     {
         return $this->belongsTo(Kelompok::class, 'kelompok_id', 'id');
     }
 
-    public function user()
+    public function ustadz()
     {
-        return $this->belongsTo(User::class, 'user_id', 'id');
+        return $this->hasOneThrough(
+            Ustadz::class,   // model tujuan
+            Kelompok::class,// model perantara
+            'id',           // FK di Kelompok (primary key)
+            'kelompok_id',  // FK di Ustadz
+            'kelompok_id',  // FK di Santri
+            'id'            // PK di Kelompok
+        );
     }
 }

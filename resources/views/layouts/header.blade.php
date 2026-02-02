@@ -37,7 +37,7 @@
           <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
             <a href="./profile.html" class="dropdown-item">Profile</a>
             <div class="dropdown-divider"></div>
-              <a href="./settings.html" class="dropdown-item">Settings</a>
+              <a href="{{route('password.change')}}" class="dropdown-item">Settings</a>
               {{-- <a href="./sign-in.html" class="dropdown-item">Logout</a> --}}
               <form action="{{route('logout')}}" method="POST">
                 @csrf
@@ -46,6 +46,7 @@
           </div>
         </div>
       </div>
+      @role('admin')
       <div class="collapse navbar-collapse" id="navbar-menu">
         <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
           <ul class="navbar-nav">
@@ -70,7 +71,49 @@
                 </span>
               </a>
             </li>
-            
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#navbar-help" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">Murojaah</span>
+              </a>
+              <div class="dropdown-menu">
+                <a class="dropdown-item {{request()->routeIs('murojaahs')?'active':''}}" href="{{route('murojaahs')}}">
+                  Data
+                </a>
+                <a class="dropdown-item {{request()->routeIs('murojaahs.create')?'active':''}}" href="{{route('murojaahs.create')}}">
+                  Create
+                </a>
+                <a class="dropdown-item {{request()->routeIs('murojaahs.rekap')?'active':''}}" href="{{route('murojaahs.rekap')}}">
+                  Rekap
+                </a>
+              </div>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#navbar-help" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">Absen</span>
+              </a>
+              <div class="dropdown-menu">
+                <a class="dropdown-item {{request()->routeIs('absensisantris.index')?'active':''}}" href="{{route('absensisantris.index')}}">
+                  Data Absen Santri
+                </a>
+                <a class="dropdown-item {{request()->routeIs('absensisantris.create')?'active':''}}" href="{{route('absensisantris.create')}}">
+                  Create Absen Santri
+                </a>
+                <a class="dropdown-item {{request()->routeIs('absensisantris.rekapabsen')?'active':''}}" href="{{route('absensisantris.rekapabsen')}}">
+                  Rekap Absen Santri
+                </a>
+                <a class="dropdown-item {{request()->routeIs('absensiustadzs.index')?'active':''}}" href="{{route('absensiustadzs.index')}}">
+                  Data Absen Ustadz
+                </a>
+              
+                
+              </div>
+            </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#navbar-help" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false" >
                 <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -91,10 +134,94 @@
                 <a class="dropdown-item {{request()->routeIs('santris')?'active':''}}" href="{{route('santris')}}">
                   Santri
                 </a>
+                <a class="dropdown-item {{request()->routeIs('hariliburs')?'active':''}}" href="{{route('hariliburs')}}">
+                  Hari Libur
+                </a>
               </div>
             </li>
           </ul>
         </div>
       </div>
+      @endrole
+      @role('ustadz')
+      <div class="collapse navbar-collapse" id="navbar-menu">
+        <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link" href="{{route('ustadz.dashboard')}}" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block"> 
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">
+                  Home
+                </span>
+              </a>
+            </li>
+
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#navbar-help" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">Murojaah</span>
+              </a>
+              <div class="dropdown-menu">
+                <a class="dropdown-item {{request()->routeIs('murojaahs')?'active':''}}" href="{{route('murojaahs')}}">
+                  Data
+                </a>
+                <a class="dropdown-item {{request()->routeIs('murojaahs.create')?'active':''}}" href="{{route('murojaahs.create')}}">
+                  Create
+                </a>
+                
+                
+              </div>
+            </li>
+           
+            <li class="nav-item">
+              <a class="nav-link" href="{{route('absensiustadzs.rekapabsenustadz')}}" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">
+                  Rekap Absen
+                </span>
+              </a>
+            </li>
+
+          </ul>
+        </div>
+      </div>
+      @endrole
+
+      @role('santri')
+      <div class="collapse navbar-collapse" id="navbar-menu">
+        <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link" href="{{route('santri.dashboard')}}" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block"> 
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">
+                  Home
+                </span>
+              </a>
+            </li>
+            
+            <li class="nav-item">
+              <a class="nav-link" href="{{route('absensisantris.rekapabsensantri')}}" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">
+                  Rekap Absen
+                </span>
+              </a>
+            </li>
+           
+          </ul>
+        </div>
+      </div>
+      @endrole
     </div>
   </header>

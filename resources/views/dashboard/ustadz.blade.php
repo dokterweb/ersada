@@ -111,7 +111,6 @@
                     <tr>
                         <th>Tgl Murojaah</th>
                         <th>Nama Siswa</th>
-                        <th>Nama Ustadz</th>
                         <th>Kelas</th>
                         <th>Kelamin</th>
                         <th>Ayat</th>
@@ -122,7 +121,6 @@
                           <tr>
                             <td>{{ \Carbon\Carbon::parse($m->tgl_murojaah)->format('d-m-Y') }}</td>
                             <td>{{ $m->santri->user->name }}</td>
-                            <td>{{ $m->ustadz->user->name }}</td>
                             <td>{{ $m->santri->kelasnya->nama_kelas ?? '-' }}</td>
                             <td>{{ $m->santri->kelamin ?? '-' }}</td>
                             <td>{{ $m->dariayat.' - '.$m->sampaiayat }}</td>

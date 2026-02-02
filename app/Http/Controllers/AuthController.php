@@ -34,7 +34,7 @@ class AuthController extends Controller
              } else if ($user->hasRole('ustadz')) {
                 return redirect()->route('ustadz.dashboard');
              } else {
-                 return redirect()->route('siswa.dashboard');
+                 return redirect()->route('santri.dashboard');
              }
          }
          return back()->withErrors([
@@ -43,6 +43,83 @@ class AuthController extends Controller
          
      }
  
+     public function changePasswordForm()
+     {
+         $user = auth()->user();
+         return view('auth.change-password', compact('user'));
+     }
+ 
+     public function updatePassword(Request $request)
+     {
+         $user = auth()->user();
+         $request->validate([
+            'name'              => 'nullable|min:6',
+             'email'            => 'nullable|email|unique:users,email,' . $user->id,
+             'current_password'  => 'nullable|required_with:new_password',
+             'new_password'      => 'nullable|min:6|confirmed',
+             'avatar'            => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+         ]);
+         
+           /** ======================
+          *  UPDATE EMAIL (opsional)
+          *  ====================== */
+         if ($request->filled('email')) {
+             $user->email = $request->email;
+         }
+         
+         /** ======================
+          *  GANTI PASSWORD (opsional)
+          *  ====================== */
+         if ($request->filled('new_password')) {
+     
+             // cek password lama
+             if (! Hash::check($request->current_password, $user->password)) {
+                 return back()->withErrors([
+                     'current_password' => 'Password lama salah!',
+                 ])->withInput();
+             }
+     
+             // update password
+             $user->password = Hash::make($request->new_password);
+         }
+     
+         /** ======================
+          *  GANTI AVATAR (opsional)
+          *  ====================== */
+         if ($request->hasFile('avatar')) {
+             $file = $request->file('avatar');
+         
+             $filename = time().'_'.$file->getClientOriginalName();
+         
+             // path menuju public_html/images/avatars
+             $uploadPath = $_SERVER['DOCUMENT_ROOT'].'/images/avatars/';
+         
+             // pastikan folder ada
+             if (!file_exists($uploadPath)) {
+                 mkdir($uploadPath, 0775, true);
+             }
+         
+             // pindahkan file
+             $file->move($uploadPath, $filename);
+         
+             // hapus foto lama
+             if ($user->avatar && $user->avatar !== 'images/default-avatar.png') {
+                 $oldPath = $_SERVER['DOCUMENT_ROOT'].'/'.$user->avatar;
+                 if (file_exists($oldPath)) {
+                     @unlink($oldPath);
+                 }
+             }
+         
+             // simpan path baru
+             $user->avatar = 'images/avatars/'.$filename;
+         }
+     
+         $user->save();
+     
+         return redirect()->route('dashboard')->with('success', 'Data akun berhasil diperbarui!');
+     }
+
+     
      public function logout(Request $request)
      {
          Auth::logout();
