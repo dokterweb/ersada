@@ -29,13 +29,11 @@ class AuthController extends Controller
              // dd('berhasil login');
              $request->session()->regenerate();
              $user = Auth::user();
-             if ($user->hasRole('admin')) {
-                 return redirect()->route('admin.dashboard');
-             } else if ($user->hasRole('ustadz')) {
-                return redirect()->route('ustadz.dashboard');
-             } else {
-                 return redirect()->route('santri.dashboard');
-             }
+             if ($user->hasRole('superadmin')) {
+                 return redirect()->route('superadmin.dashboard');
+             }else {
+                return redirect()->route('marketing.dashboard');
+            }
          }
          return back()->withErrors([
              'email'     => 'Tidak sesuai dengan database',

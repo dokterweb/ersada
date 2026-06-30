@@ -45,7 +45,7 @@
                 @csrf
               <div class="mb-3">
                 <label class="form-label">Email address</label>
-                <input type="email" class="form-control" id="email" name="email" required value="{{ old('email') }}" placeholder="your@email.com" autocomplete="off">
+                <input type="email" class="form-control" id="email" name="email" required value="superadmin@email.com" placeholder="your@email.com" autocomplete="off">
               </div>
               <div class="mb-2">
                 <label class="form-label">

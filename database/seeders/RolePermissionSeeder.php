@@ -13,19 +13,23 @@ class RolePermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminRole = Role::create(['name'=> 'admin']);
+        $superadminRole     = Role::create(['name'=> 'superadmin']);
 
-        $ustadzRole = Role::create(['name'=> 'ustadz']);
-
-        $siswaRole = Role::create(['name'=> 'siswa']);
+        $komisarisRole      = Role::create(['name'=> 'komisaris']);
+        $direkturRole       = Role::create(['name'=> 'direktur']);
+        $kacabRole          = Role::create(['name'=> 'kacab']);
+        $spvmarketingRole   = Role::create(['name'=> 'spvmarketing']);
+        $marketingRole      = Role::create(['name'=> 'marketing']);
+        $spvsurveyorRole    = Role::create(['name'=> 'spvsurveyor']);
+        $surveyorRole       = Role::create(['name'=> 'surveyor']);
 
         $userOwner =  User::create([
-            'name'  => 'Fulan',
-            'avatar'  => 'images/default-avatar.png',
-            'email'  => 'admin@email.com',
+            'name'      => 'Superadmin',
+            'avatar'    => 'images/default-avatar.png',
+            'email'     => 'superadmin@email.com',
             'password'  => bcrypt('123123123'),
         ]);
 
-        $userOwner->assignRole($adminRole);
+        $userOwner->assignRole($superadminRole);
     }
 }
