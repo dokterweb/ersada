@@ -7,6 +7,7 @@ use App\Http\Requests\PengajuanStep1Request;
 use App\Http\Requests\PengajuanStep3Request;
 use App\Http\Requests\PengajuanStep4Request;
 use App\Models\AnalisaPengajuan;
+use App\Models\ApprovalPengajuan;
 use App\Models\Cabang;
 use App\Models\Dokumen_pengajuan;
 use App\Models\JaminanPengajuan;
@@ -19,9 +20,32 @@ use App\Models\Referensi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class PengajuanController extends Controller
 {
+    public function index()
+    {
+        $user = Auth::user();
+        $karyawan = $user->karyawan;
+        if (!$karyawan) {
+            abort(403, 'Data karyawan tidak ditemukan.');
+        }
+
+        $query = Pengajuan::with(['nasabah','marketing.user','cabang',]);
+
+        /*
+        * Direktur bisa melihat semua cabang
+        */
+        if (!$user->hasRole('DIREKTUR')) {
+            $query->where('cabang_id', $karyawan->cabang_id);
+        }
+
+        $pengajuans = $query->latest()->paginate(15);
+
+        return view('pengajuans.index',compact('pengajuans'));
+    }
+
     public function createStep1()
     {
         return view('pengajuans.step1');
@@ -575,7 +599,7 @@ class PengajuanController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('pengajuan.review', $pengajuan->id)->with('success', 'Dokumen berhasil disimpan');
+            return redirect()->route('pengajuan.reviewData ', $pengajuan->id)->with('success', 'Dokumen berhasil disimpan');
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -584,7 +608,7 @@ class PengajuanController extends Controller
     }
 
 
-    public function review(Pengajuan $pengajuan)
+    public function reviewData(Pengajuan $pengajuan)
     {
 
         if (!$pengajuan->documents_completed) {
@@ -603,7 +627,7 @@ class PengajuanController extends Controller
         // ambil saudara (collection)
         $saudaras = $pengajuan->referensis->where('jenis','saudara');
 
-        return view('pengajuans.review',compact('pengajuan','pasangan','penjamin','saudaras'));
+        return view('pengajuans.reviewdata',compact('pengajuan','pasangan','penjamin','saudaras'));
     }
 
     public function analisa(Pengajuan $pengajuan)
@@ -723,18 +747,24 @@ class PengajuanController extends Controller
     public function storeKapital(Request $request,Pengajuan $pengajuan)
     {
         $validated = $request->validate([
-            'omzet_harian' => 'nullable|integer',
-            'laba_harian' => 'nullable|integer',
-            'pendapatan_lain' => 'nullable|integer',
-            'pendapatan_pasangan' => 'nullable|integer',
-            'biaya_rumah_tangga' => 'nullable|integer',
-            'biaya_motor' => 'nullable|integer',
-            'biaya_koperasi' => 'nullable|integer',
-            'angsuran_lain' => 'nullable|integer',
-            'biaya_kontrak_rumah' => 'nullable|integer',
-            'biaya_tempat_usaha' => 'nullable|integer'
+
+            'omzet_harian'         => 'nullable|integer|min:0',
+            'laba_harian'          => 'nullable|integer|min:0',
+            'gaji_debitur'         => 'nullable|integer|min:0',
+            'pendapatan_pasangan'  => 'nullable|integer|min:0',
+        
+            'biaya_rumah_tangga'   => 'nullable|integer|min:0',
+            'biaya_motor'          => 'nullable|integer|min:0',
+            'biaya_koperasi'       => 'nullable|integer|min:0',
+            'angsuran_lain'        => 'nullable|integer|min:0',
+            'biaya_kontrak_rumah'  => 'nullable|integer|min:0',
+            'biaya_tempat_usaha'   => 'nullable|integer|min:0',
+        
+            'catatan'              => 'nullable|string'
         ]);
     
+        $labaBulanan = ($request->laba_harian ?? 0) * 30;
+
         $totalPengeluaran =
             ($request->biaya_rumah_tangga ?? 0)
             + ($request->biaya_motor ?? 0)
@@ -743,26 +773,135 @@ class PengajuanController extends Controller
             + ($request->biaya_kontrak_rumah ?? 0)
             + ($request->biaya_tempat_usaha ?? 0);
     
-        $totalPendapatan =
-            ($request->laba_harian ?? 0)
-            + ($request->pendapatan_lain ?? 0)
+       $totalPendapatan =
+            $labaBulanan
+            + ($request->gaji_debitur ?? 0)
             + ($request->pendapatan_pasangan ?? 0);
     
         $sisaPendapatan = $totalPendapatan - $totalPengeluaran;
     
-        KapitalPengajuan::updateOrCreate(
-            [
-                'pengajuan_id' => $pengajuan->id
-            ],
-            [
-                ...$validated,
-                'total_pengeluaran'     => $totalPengeluaran,
-                'sisa_pendapatan'       => $sisaPendapatan,
-                'created_by'            => auth()->id()
-            ]
-        );
+        $data = array_merge($validated, [
+            'total_pengeluaran' => $totalPengeluaran,
+            'sisa_pendapatan'   => $sisaPendapatan,
+            'created_by'        => optional($pengajuan->kapital)->created_by ?? auth()->id(),
+            'updated_by'        => auth()->id(),
+        ]);
     
-        return redirect()->route('pengajuan.surveyNotes',$pengajuan->id);
+        DB::transaction(function () use ($pengajuan, $data) {
+    
+            KapitalPengajuan::updateOrCreate(
+                ['pengajuan_id' => $pengajuan->id],
+                $data
+            );
+    
+        });
+    
+        return redirect()->route('pengajuan.reviewFinal', $pengajuan->id)
+        ->with('success','Analisa kapital berhasil disimpan. Silakan lakukan Review Final.');
     }
     
+    public function reviewFinal(Pengajuan $pengajuan)
+    {
+        if ($pengajuan->status != 'draft') {
+            abort(403);
+        }
+    
+        $pengajuan->load(['nasabah','nasabah.pekerjaan','referensis','referensis.pekerjaan','dokumenPengajuans',
+        'marketing','cabang','analisa','jaminans','kapital',]);
+    
+        $referensis = $pengajuan->referensis;
+    
+        $pasangan = $referensis->firstWhere('jenis', 'pasangan');
+    
+        $penjamin = $referensis->firstWhere('jenis', 'penjamin');
+    
+        $saudaras = $referensis->where('jenis', 'saudara');
+    
+        return view('pengajuans.review-final', [
+            'pengajuan' => $pengajuan,
+            'pasangan' => $pasangan,
+            'penjamin' => $penjamin,
+            'saudaras' => $saudaras,
+            'mode' => 'review',
+        ]);
+    }
+
+    public function saveReviewFinal(Request $request, Pengajuan $pengajuan)
+    {
+        if ($pengajuan->status != 'draft') {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'catatan_marketing' => 'nullable|string|max:5000',
+        ]);
+
+        DB::transaction(function () use ($pengajuan, $validated) {
+            $pengajuan->update([
+                'catatan_marketing' => $validated['catatan_marketing'] ?? null,
+            ]);
+        });
+
+        return back()->with('success','Draft Review Final berhasil disimpan.');
+    }
+
+    public function submitReviewFinal(Request $request, Pengajuan $pengajuan)
+    {
+        if ($pengajuan->status != 'draft') {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'confirm_submit'     => 'accepted',
+            'catatan_marketing'  => 'nullable|string|max:5000',
+        ]);
+
+        DB::transaction(function () use ($pengajuan, $validated) {
+            $statusSebelumnya = $pengajuan->status;
+
+            $statusSesudahnya = 'menunggu_pimpinan';
+        
+            $pengajuan->update([
+                'catatan_marketing' => $validated['catatan_marketing']?? null,
+                'submitted_at'      => now(),
+                'status'            => $statusSesudahnya,
+            ]);
+
+            ApprovalPengajuan::create([
+                'pengajuan_id'      => $pengajuan->id,
+                'user_id'           => auth()->id(),
+                'role_name'         =>auth()->user()->getRoleNames()->first(),
+                'aksi'              => 'submit',
+                'status_sebelumnya' => $statusSebelumnya,
+                'status_sesudahnya' => $statusSesudahnya,
+                'catatan'           => $validated['catatan_marketing'],
+            ]);
+        });
+        return redirect()->route('pengajuan.index')->with('success','Pengajuan berhasil diajukan ke Pimpinan');
+    }
+
+    public function show(Pengajuan $pengajuan)
+    {
+        $pengajuan->load(['nasabah','nasabah.pekerjaan','referensis','referensis.pekerjaan','dokumenPengajuans','marketing.user',
+        'cabang','analisa','jaminans','kapital','approvals.user',]);
+
+        $referensis = $pengajuan->referensis;
+
+        $pasangan = $referensis->firstWhere('jenis', 'pasangan');
+
+        $penjamin = $referensis->firstWhere('jenis', 'penjamin');
+
+        $saudaras = $referensis->where('jenis', 'saudara');
+
+        // dd($pengajuan->catatan_marketing);
+
+        return view('pengajuans.review-final', [
+            'pengajuan' => $pengajuan,
+            'pasangan' => $pasangan,
+            'penjamin' => $penjamin,
+            'saudaras' => $saudaras,
+            'mode' => 'show',
+        ]);
+    }
+
 }

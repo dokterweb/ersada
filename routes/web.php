@@ -5,6 +5,8 @@ use App\Http\Controllers\CabangController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\PengajuanController;
+use App\Http\Controllers\PimpinanController;
+use App\Http\Controllers\SurveyController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -40,7 +42,7 @@ Route::delete('karyawans/{karyawan}',[KaryawanController::class, 'destroy'])->mi
 
 
 Route::prefix('pengajuans')->middleware('role:marketing')->group(function () {
-
+    Route::get('/', [PengajuanController::class, 'index'])->name('pengajuan.index');
     // STEP 1 (CREATE NEW)
     // halaman create pertama kali
     Route::get('/create', [PengajuanController::class, 'createStep1'])->name('pengajuan.create');
@@ -61,7 +63,7 @@ Route::prefix('pengajuans')->middleware('role:marketing')->group(function () {
     Route::get('/{pengajuan}/step4', [PengajuanController::class, 'step4'])->name('pengajuan.step4');
     Route::post('/{pengajuan}/step4', [PengajuanController::class, 'storeStep4'])->name('pengajuan.storeStep4');
 
-    Route::get('/{pengajuan}/review', [PengajuanController::class, 'review'])->name('pengajuan.review');
+    Route::get('/{pengajuan}/reviewdata', [PengajuanController::class, 'reviewData'])->name('pengajuan.reviewData');
     Route::post('/{pengajuan}/submit', [PengajuanController::class, 'submit'])->name('pengajuan.submit');
 
     Route::get('/{pengajuan}/analisa',[PengajuanController::class, 'analisa'])->name('pengajuan.analisa');
@@ -72,4 +74,28 @@ Route::prefix('pengajuans')->middleware('role:marketing')->group(function () {
 
     Route::get('/{pengajuan}/kapital',[PengajuanController::class,'kapital'])->name('pengajuan.kapital');
     Route::post('/{pengajuan}/kapital',[PengajuanController::class,'storeKapital'])->name('pengajuan.storeKapital');
+    Route::get('/{pengajuan}/review-final',[PengajuanController::class, 'reviewFinal'])->name('pengajuan.reviewFinal');
+    Route::post('/{pengajuan}/review-final/save',[PengajuanController::class, 'saveReviewFinal'])->name('pengajuan.reviewFinal.save');
+    Route::post('/{pengajuan}/review-final/submit',[PengajuanController::class, 'submitReviewFinal'])->name('pengajuan.reviewFinal.submit');
+
+    Route::get('/{pengajuan}',[PengajuanController::class,'show'])->name('pengajuan.show');
 });
+
+Route::prefix('pimpinan')
+    ->middleware(['auth','role:komisaris|direktur|kacab'])
+    ->group(function () {
+        Route::get('/dashboard',[PimpinanController::class,'dashboard'])->name('pimpinan.dashboard');
+        Route::get('/',[PimpinanController::class,'index'])->name('pimpinan.index');
+        Route::get('/{pengajuan}',[PimpinanController::class,'show'])->name('pimpinan.show');
+        Route::post('/{pengajuan}/submit',[PimpinanController::class,'submit'])->name('pimpinan.submit');
+    });
+
+    Route::middleware(['auth','role:spvsurveyor|surveyor'])->prefix('survey')->name('survey.')
+      ->group(function(){
+        Route::get('/', [SurveyController::class,'index'])->name('index');
+        Route::get('/create/{pengajuan}', [SurveyController::class, 'create'])->name('create');
+        Route::post('/store/{pengajuan}', [SurveyController::class, 'store'])->name('store');
+        Route::post('/{survey}/assign',[SurveyController::class,'assign'])->name('assign');
+        Route::post('/{survey}/accept',[SurveyController::class,'accept'])->name('accept');
+        Route::post('/{survey}/start',[SurveyController::class,'start'])->name('start');
+    });

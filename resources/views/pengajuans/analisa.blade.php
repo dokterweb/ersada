@@ -169,7 +169,7 @@
                         </div>
                     </div>
                     <div class="card-footer text-end">
-                        <a href="{{ route('pengajuan.review',$pengajuan->id) }}" class="btn btn-warning">
+                        <a href="{{ route('pengajuan.reviewData',$pengajuan->id) }}" class="btn btn-warning">
                              Previous
                          </a>
                          <button type="submit" class="btn btn-primary">

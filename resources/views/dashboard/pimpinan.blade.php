@@ -28,7 +28,7 @@
         <div class="row row-deck row-cards">
           <div class="col-12">
             <div class="row row-cards">
-              <div class="col-sm-6 col-lg-3">
+              <div class="col-sm-6 col-lg-4">
                 <div class="card card-sm">
                   <div class="card-body">
                     <div class="row align-items-center">
@@ -39,17 +39,17 @@
                       </div>
                       <div class="col">
                         <div class="font-weight-medium">
-                          Draft
+                          Menunggu Review
                         </div>
                         <div class="text-muted">
-                          {{$draft}}
+                          {{$menungguReview}}
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="col-sm-6 col-lg-3">
+              <div class="col-sm-6 col-lg-4">
                 <div class="card card-sm">
                   <div class="card-body">
                     <div class="row align-items-center">
@@ -60,38 +60,17 @@
                       </div>
                       <div class="col">
                         <div class="font-weight-medium">
-                          Menunggu Pimpinan
+                          Disposisi
                         </div>
                         <div class="text-muted">
-                          {{$menungguPimpinan}}
+                          {{$didisposisi}}
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                  <div class="card-body">
-                    <div class="row align-items-center">
-                      <div class="col-auto">
-                        <span class="bg-danger text-white avatar">
-                          <i class="fa-solid fa-plane" style="font-size: 24px;"></i>
-                        </span>
-                      </div>
-                      <div class="col">
-                        <div class="font-weight-medium">
-                          Revisi
-                        </div>
-                        <div class="text-muted">
-                          {{$revisi}}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-sm-6 col-lg-3">
+              <div class="col-sm-6 col-lg-4">
                 <div class="card card-sm">
                   <div class="card-body">
                     <div class="row align-items-center">
@@ -102,10 +81,10 @@
                       </div>
                       <div class="col">
                         <div class="font-weight-medium">
-                          Disetujui
+                          Ditolak
                         </div>
                         <div class="text-muted">
-                          {{$disetujui}}
+                          {{$ditolak}}
                         </div>
                       </div>
                     </div>
@@ -119,66 +98,56 @@
             <div class="row row-cards">
               <div class="card mt-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">
-                        Pengajuan Terbaru
-                    </h3>
-                    <a href="{{ route('pengajuan.index') }}" class="btn btn-primary btn-sm">
-                        Lihat Semua
-                    </a>
+                  <h3 class="card-title">
+                      Pengajuan Menunggu Review
+                  </h3>
+          
+                  <a href="{{ route('pimpinan.index') }}" class="btn btn-primary btn-sm">
+                      <i class="fa fa-list"></i>
+                      Lihat Semua
+                  </a>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-vcenter table-hover card-table">
                         <thead>
-                            <tr>
-                                <th width="5%">No</th>
-                                <th>No Pengajuan</th>
-                                <th>Tanggal</th>
-                                <th>Nasabah</th>
-                                <th class="text-end">Plafond</th>
-                                <th>Status</th>
-                                <th width="120">Aksi</th>
-                            </tr>
+                          <tr>
+                            <th width="50">No</th>
+                            <th>No Pengajuan</th>
+                            <th>Tanggal</th>
+                            <th>Cabang</th>
+                            <th>Marketing</th>
+                            <th>Nasabah</th>
+                            <th class="text-end">Nominal</th>
+                            <th width="120">Aksi</th>
+                          </tr>
                         </thead>
                         <tbody>
-                        @forelse($pengajuanTerbaru as $item)
-                            <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td><strong>{{ $item->nomor_pengajuan }}</strong></td>
-                                <td>{{ \Carbon\Carbon::parse($item->tgl_pengajuan)->format('d/m/Y') }}</td>
-                                <td>{{ $item->nasabah?->nama }}</td>
-                                <td class="text-end">Rp {{ number_format($item->plafond,0,',','.') }}</td>
-                               <td>
-                                  <span class="badge {{ $item->status_badge['class'] }}">
-                                    {{ $item->status_badge['label'] }}
-                                  </span>
-                               </td>
-                                <td>
-                                    @if($item->status == 'draft')
-                                        <a href="{{ route('pengajuan.reviewFinal',$item->id) }}"
-                                           class="btn btn-primary btn-sm">
-                                            Lanjut
-                                        </a>
-                                    @else
-                                        {{-- <a href="pengajuan.show" class="btn btn-info btn-sm">Detail</a> --}}
-                                        <a href="{{ route('pengajuan.show', $item) }}"
-                                          class="btn btn-info btn-sm">
-                                            Detail
-                                        </a>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-            
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
-                                    Belum ada data pengajuan.
-                                </td>
-                            </tr>
-            
-                        @endforelse
-            
+                          @forelse($pengajuanTerbaru as $item)
+                          <tr>
+                              <td>{{ $loop->iteration }}</td>
+                              <td><strong>{{ $item->nomor_pengajuan }}</strong></td>
+                              <td>{{ \Carbon\Carbon::parse($item->tanggal_pengajuan)->format('d/m/Y') }}</td>
+                              <td>{{ $item->cabang->nama }}</td>
+                              <td>{{ $item->marketing?->user?->name }}</td>
+                              <td>{{ $item->nasabah?->nama }}</td>
+                              <td class="text-end">Rp {{ number_format($item->nominal_pengajuan,0,',','.') }}</td>
+                              <td>
+                                  <a href="{{ route('pimpinan.show',$item->id) }}"
+                                     class="btn btn-primary btn-sm"><i class="fa fa-eye"></i>
+                                      Review
+                                  </a>
+                              </td>
+                          </tr>
+                      @empty
+                          <tr>
+                              <td colspan="8" class="text-center text-muted py-4">
+                                  <i class="fa fa-folder-open fa-2x mb-2"></i>
+                                  <br>
+                                  Tidak ada pengajuan yang menunggu review.
+                              </td>
+                          </tr>
+                      @endforelse
                         </tbody>
-            
                     </table>
                 </div>
               </div>

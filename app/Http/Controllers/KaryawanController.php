@@ -35,10 +35,10 @@ class KaryawanController extends Controller
     public function store(KaryawanCreateRequest $request)
     {
         // dd($request->all());
-        dd(
+       /*  dd(
             $request->hasFile('avatar'),
             $request->file('avatar')
-        );
+        ); */
 
         DB::beginTransaction();
 

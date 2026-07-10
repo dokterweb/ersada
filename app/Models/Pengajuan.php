@@ -10,7 +10,8 @@ class Pengajuan extends Model
 {
     use HasFactory, SoftDeletes;
     
-    protected $fillable = ['nomor_pengajuan', 'cabang_id', 'marketing_id', 'status', 'current_step','tanggal_pengajuan', 'nominal_pengajuan', 'tenor', 'tujuan_pinjaman','kategori_nasabah', 'catatan'];
+    protected $fillable = ['nomor_pengajuan', 'cabang_id', 'marketing_id', 'status', 'current_step','tanggal_pengajuan', 'nominal_pengajuan', 
+    'tenor', 'tujuan_pinjaman','kategori_nasabah', 'catatan','catatan_marketing','submitted_at'];
 
    // cabang pengajuan
    public function cabang()
@@ -77,4 +78,50 @@ class Pengajuan extends Model
             Referensi::class
         )->where('jenis','saudara');
     }
+
+    public function approvals()
+    {
+        return $this->hasMany(ApprovalPengajuan::class)->latest();
+    }
+
+    public function getStatusBadgeAttribute()
+    {
+        return match ($this->status) {
+            'draft' => [
+                'class' => 'bg-secondary',
+                'label' => 'Draft',
+            ],
+
+            'menunggu_pimpinan' => [
+                'class' => 'bg-warning text-dark',
+                'label' => 'Menunggu Pimpinan',
+            ],
+
+            'revisi_marketing' => [
+                'class' => 'bg-orange',
+                'label' => 'Revisi',
+            ],
+
+            'disetujui_direktur' => [
+                'class' => 'bg-success',
+                'label' => 'Disetujui',
+            ],
+
+            'ditolak_direktur' => [
+                'class' => 'bg-danger',
+                'label' => 'Ditolak',
+            ],
+
+            default => [
+                'class' => 'bg-blue-lt',
+                'label' => ucwords(str_replace('_', ' ', $this->status)),
+            ],
+        };
+    }
+
+    public function survey()
+    {
+        return $this->hasOne(Survey::class);
+    }
+
 }

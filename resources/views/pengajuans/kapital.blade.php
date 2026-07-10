@@ -47,8 +47,8 @@
                             <input type="number" name="laba_harian" class="form-control" value="{{ old('laba_harian', $kapital?->laba_harian) }}">
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label>Pendapatan Lain</label>
-                            <input type="number" name="pendapatan_lain" class="form-control" value="{{ old('pendapatan_lain', $kapital?->pendapatan_lain) }}">
+                            <label>Gaji Debitur</label>
+                            <input type="number" name="gaji_debitur" class="form-control" value="{{ old('gaji_debitur', $kapital?->gaji_debitur) }}">
                         </div>
                         <div class="col-md-3 mb-3">
                             <label>Pendapatan Pasangan</label>

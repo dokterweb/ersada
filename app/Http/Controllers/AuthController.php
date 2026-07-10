@@ -12,41 +12,68 @@ class AuthController extends Controller
          return view('auth.login');
      }
  
-     public function handleLogin(Request $request)
-     {
-         $credential = $request->validate([
-             'email' => 'required|email|exists:users,email',
-             'password' => 'required|string|min:8', // Set password minimum 8 karakter
-         ],[
-             'email.required'    => 'Email harus di isi',
-             'email.email'       => 'Email tidak valid',
-             'password.required' => 'Password harus di isi',
-             'password.min'      => 'Password harus memiliki minimal 8 karakter',
-         ]);
-         
- 
-         if (Auth::attempt($credential)) {
-             // dd('berhasil login');
-             $request->session()->regenerate();
-             $user = Auth::user();
-             if ($user->hasRole('superadmin')) {
-                 return redirect()->route('superadmin.dashboard');
-             }else {
+    public function handleLogin(Request $request)
+    {
+        $credential = $request->validate([
+            'email'    => 'required|email|exists:users,email',
+            'password' => 'required|string|min:8',
+        ],[
+            'email.required'    => 'Email harus di isi',
+            'email.email'       => 'Email tidak valid',
+            'password.required' => 'Password harus di isi',
+            'password.min'      => 'Password harus memiliki minimal 8 karakter',
+        ]);
+    
+        if (!Auth::attempt($credential)) {
+    
+            return back()->withErrors([
+                'email' => 'Email atau Password tidak sesuai.',
+            ])->onlyInput('email');
+    
+        }
+    
+        $request->session()->regenerate();
+    
+        $user = Auth::user();
+    
+        switch (true) {
+    
+            case $user->hasRole('superadmin'):
+                return redirect()->route('superadmin.dashboard');
+    
+            case $user->hasRole('marketing'):
                 return redirect()->route('marketing.dashboard');
-            }
-         }
-         return back()->withErrors([
-             'email'     => 'Tidak sesuai dengan database',
-         ])->onlyInput('email');
-         
-     }
+    
+            case $user->hasAnyRole(['komisaris', 'direktur', 'kacab']):
+                return redirect()->route('pimpinan.dashboard');
+
+            case $user->hasAnyRole(['spvsurveyor', 'surveyor']):
+            return redirect()->route('survey.index');
+    
+            /*case $user->hasRole('spvmarketing'):
+                return redirect()->route('spvmarketing.dashboard');
+    
+            case $user->hasRole('surveyor'):
+                return redirect()->route('surveyor.dashboard');
+    
+            case $user->hasRole('spvsurveyor'):
+                return redirect()->route('spvsurveyor.dashboard'); */
+    
+            default:
+                Auth::logout();
+    
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Role pengguna belum memiliki dashboard.',
+                ]);
+        }
+    }
  
-     public function changePasswordForm()
-     {
-         $user = auth()->user();
-         return view('auth.change-password', compact('user'));
-     }
- 
+    public function changePasswordForm()
+    {
+        $user = auth()->user();
+        return view('auth.change-password', compact('user'));
+    }
+
      public function updatePassword(Request $request)
      {
          $user = auth()->user();
