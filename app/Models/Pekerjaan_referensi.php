@@ -16,4 +16,9 @@ class Pekerjaan_referensi extends Model
     {
         return $this->belongsTo(Referensi::class);
     }
+
+    public function pengajuan()
+    {
+        return $this->belongsTo(Pengajuan::class);
+    }
 }

@@ -115,6 +115,22 @@
                 <span class="nav-link-title">Pengajuan</span>
               </a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ route('pembiayaan.index') }}" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">Pembiayaan</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ route('angsuran.index') }}" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">Angsuran</span>
+              </a>
+            </li>
            
           </ul>
         </div>
@@ -143,6 +159,14 @@
                 <span class="nav-link-title">Pengajuan</span>
               </a>
             </li>
+           {{--  <li class="nav-item">
+              <a class="nav-link" href="{{ route('approval-survey') }}" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">Approval</span>
+              </a>
+            </li>  --}}
            
           </ul>
         </div>

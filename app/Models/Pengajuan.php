@@ -10,8 +10,13 @@ class Pengajuan extends Model
 {
     use HasFactory, SoftDeletes;
     
-    protected $fillable = ['nomor_pengajuan', 'cabang_id', 'marketing_id', 'status', 'current_step','tanggal_pengajuan', 'nominal_pengajuan', 
-    'tenor', 'tujuan_pinjaman','kategori_nasabah', 'catatan','catatan_marketing','submitted_at'];
+    protected $fillable = [    'nomor_pengajuan', 'cabang_id', 'marketing_id', 'status', 'current_step', 'tanggal_pengajuan', 'nominal_pengajuan', 'tenor', 'angsuran', 'tujuan_pinjaman', 'kategori_nasabah', 'status_customer', 'documents_completed', 'catatan', 'catatan_marketing', 'submitted_at', 'plafond_disetujui', 'tenor_disetujui'];
+
+
+    protected $casts = [
+        'tanggal_pengajuan' => 'date',
+        'submitted_at'  => 'datetime',
+    ];
 
    // cabang pengajuan
    public function cabang()
@@ -31,6 +36,7 @@ class Pengajuan extends Model
        return $this->hasOne(Nasabah::class);
    }
 
+
    // semua referensi (pasangan, penjamin, saudara)
    public function referensis()
    {
@@ -48,10 +54,10 @@ class Pengajuan extends Model
         return $this->hasOne(AnalisaPengajuan::class);
     }
 
-    public function jaminans()
+   /*  public function jaminans()
     {
         return $this->hasMany(JaminanPengajuan::class);
-    }
+    } */
 
     public function kapital()
     {
@@ -60,23 +66,17 @@ class Pengajuan extends Model
 
    public function pasangan()
     {
-        return $this->hasOne(
-            Referensi::class
-        )->where('jenis','pasangan');
+        return $this->hasOne(Referensi::class)->where('jenis','pasangan');
     }
 
     public function penjamin()
     {
-        return $this->hasOne(
-            Referensi::class
-        )->where('jenis','penjamin');
+        return $this->hasOne(Referensi::class)->where('jenis','penjamin');
     }
 
     public function saudaras()
     {
-        return $this->hasMany(
-            Referensi::class
-        )->where('jenis','saudara');
+        return $this->hasMany(Referensi::class)->where('jenis','saudara');
     }
 
     public function approvals()
@@ -122,6 +122,16 @@ class Pengajuan extends Model
     public function survey()
     {
         return $this->hasOne(Survey::class);
+    }
+
+    public function pembiayaan()
+    {
+        return $this->hasOne(Pembiayaan::class);
+    }
+
+    public function jaminanPengajuans()
+    {
+        return $this->hasMany(JaminanPengajuan::class);
     }
 
 }

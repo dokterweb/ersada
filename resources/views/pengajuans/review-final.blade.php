@@ -762,7 +762,7 @@
                                     <button
                                         type="submit" class="btn btn-success">
                                         <i class="fa-solid fa-paper-plane"></i>
-                                        Kirim ke SPV Marketing
+                                        Kirim ke Pimpinan
                                     </button>
                                 </div>
                             </form>

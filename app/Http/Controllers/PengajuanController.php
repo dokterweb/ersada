@@ -69,6 +69,7 @@ class PengajuanController extends Controller
                 'nominal_pengajuan'     => $request->nominal_pengajuan,
                 'tenor'                 => $request->tenor,
                 'kategori_nasabah'      => $request->kategori_nasabah,
+                'status_customer'       => $request->status_customer,
                 'tujuan_pinjaman'       => $request->tujuan_pinjaman,
                 'catatan'               => $request->catatan,
             ]);
@@ -592,14 +593,13 @@ class PengajuanController extends Controller
                 }
             }
 
-            // update current step
-            
-            if ($pengajuan->current_step < 5) {
-                $pengajuan->update(['current_step' => 5,'documents_completed' => true]);
-            }
+            $pengajuan->update([
+                'documents_completed' => true,
+                'current_step' => max($pengajuan->current_step,5)
+            ]);
 
             DB::commit();
-            return redirect()->route('pengajuan.reviewData ', $pengajuan->id)->with('success', 'Dokumen berhasil disimpan');
+            return redirect()->route('pengajuan.reviewData', $pengajuan->id)->with('success', 'Dokumen berhasil disimpan');
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -610,23 +610,24 @@ class PengajuanController extends Controller
 
     public function reviewData(Pengajuan $pengajuan)
     {
-
+        /*
+        jangan boleh masuk review
+        jika dokumen belum selesai
+        */
+    
         if (!$pengajuan->documents_completed) {
-            return redirect()->route('pengajuan.step4',$pengajuan->id)
-                ->with('warning','Dokumen belum lengkap');
+    
+            return redirect()
+                ->route('pengajuan.step4',$pengajuan->id)
+                ->with('warning','Silakan lengkapi dokumen terlebih dahulu.');
         }
-
-        $pengajuan->load(['nasabah','nasabah.pekerjaan','referensis','referensis.pekerjaan','dokumenPengajuans','marketing','cabang',]);
-
-        // ambil pasangan
+    
+        $pengajuan->load(['nasabah','nasabah.pekerjaan','referensis','referensis.pekerjaan','dokumenPengajuans','marketing','cabang']);
+    
         $pasangan = $pengajuan->referensis->where('jenis','pasangan')->first();
-        
-        // ambil penjamin
         $penjamin = $pengajuan->referensis->where('jenis','penjamin')->first();
-
-        // ambil saudara (collection)
         $saudaras = $pengajuan->referensis->where('jenis','saudara');
-
+        
         return view('pengajuans.reviewdata',compact('pengajuan','pasangan','penjamin','saudaras'));
     }
 

@@ -19,6 +19,7 @@ class PengajuanStep1Request extends FormRequest
             'nominal_pengajuan' => 'required|numeric|min:1000000',
             'tenor'             => 'required|integer|min:1',
             'kategori_nasabah'  => 'required',
+            'status_customer'   => 'required|in:walk_in,baru,repeat_order',
             'tujuan_pinjaman'   => 'required|string|max:1000',
             'catatan'           => 'nullable|string|max:1000',
         ];

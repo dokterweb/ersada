@@ -18,10 +18,14 @@ return new class extends Migration
             $table->foreignId('assigned_by')->nullable()->constrained('users')->nullOnDelete();
             // Yang mengerjakan (SPV atau Surveyor)
             $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
-            $table->enum('status',['waiting','accepted','progress','finished',])->default('waiting');
+            $table->enum('status',['waiting','accepted','progress','submitted','approved','revision','rejected',])->default('waiting');
+            $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->text('review_note')->nullable();
             $table->timestamp('accepted_at')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
+            $table->timestamp('submitted_at')->nullable();
             $table->timestamps();
         });
     }

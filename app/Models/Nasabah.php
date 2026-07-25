@@ -18,9 +18,8 @@ class Nasabah extends Model
         return $this->belongsTo(Pengajuan::class);
     }
 
-     // pekerjaan nasabah (wajib)
-     public function pekerjaan()
-     {
-         return $this->hasOne(Pekerjaan_nasabah::class);
-     }
+    public function pekerjaanNasabah()
+    {
+        return $this->hasOne(Pekerjaan_nasabah::class);
+    }
 }

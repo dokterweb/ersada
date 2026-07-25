@@ -8,17 +8,10 @@
         <div class="row g-2 align-items-center">
           <div class="col">
             <h2 class="page-title">
-              Data Karyawan
+              Create Survey
             </h2>
           </div>
-          <!-- Page title actions -->
-          <div class="col-auto ms-auto d-print-none">
-            <div class="btn-list">
-              <a href="{{route('karyawans.create')}}" class="btn btn-primary">
-                Tambah Karyawan
-            </a>
-            </div>
-          </div>
+          
         </div>
       </div>
     </div>
@@ -35,7 +28,9 @@
                 <form action="{{ route('survey.store',$pengajuan->id) }}" method="POST">
                 @csrf
                 <div class="card-body">
-                    <table class="table table-bordered">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <table class="table table-bordered">
                         <tr>
                             <th width="220">No Pengajuan</th>
                             <td>{{ $pengajuan->nomor_pengajuan }}</td>
@@ -53,31 +48,48 @@
                             <td>{{ optional($pengajuan->cabang)->nama_cabang }}</td>
                         </tr>
                     </table>
+                    </div>
+                    <div class="col-md-6">
+                      <table class="table table-bordered">
+                        <tr>
+                            <td>Tanggal Pengajuan</td>
+                            <td>{{ $pengajuan->tanggal_pengajuan }}</td>
+                        </tr>
+                        <tr>
+                            <td>Nominal</td>
+                            <td>{{ number_format($pengajuan->nominal_pengajuan) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Tenor</td>
+                            <td>{{ $pengajuan->tenor }} Bulan</td>
+                        </tr>
+                        <tr>
+                            <td>Pekerjaan</td>
+                            <td>{{ $pengajuan->kategori_nasabah }}</td>
+                        </tr>
+                        <tr>
+                            <td>Tujuan Pinjaman</td>
+                            <td>{{ $pengajuan->tujuan_pinjaman }}</td>
+                        </tr>
+                    </table>
+                    </div>
+                  </div>
+                    
                     <hr>
-    
                     <div class="mb-3">
-
                       <label class="form-label">Jenis Penugasan</label>
-                  
                       <select name="jenis" id="jenis" class="form-select">
                           <option value="sendiri" {{ old('jenis')=='sendiri' ? 'selected':'' }}>
                               Survey Saya Sendiri
                           </option>
-                          <option value="assign"
-                              {{ old('jenis')=='assign' ? 'selected':'' }}>
+                          <option value="assign" {{ old('jenis')=='assign' ? 'selected':'' }}>
                               Tugaskan Surveyor
                           </option>
-                  
                       </select>
-                  
                   </div>
-                  
                   <div class="mb-3" id="surveyor-area">
-                  
                       <label class="form-label">
-                  
                           Pilih Surveyor
-                  
                       </label>
                   
                       <select name="surveyor_id" id="surveyor_id" class="form-select">
@@ -104,11 +116,7 @@
                     <button class="btn btn-success">Simpan Penugasan</button>
                 </div>
             </form>
-    
             </div>
-    
-           
-            
             </div>
           </div>
         </div>
@@ -118,7 +126,7 @@
 </div>
 @endsection
 
-@push('scripts')
+@section('scripts')
 
 <script>
 
@@ -158,4 +166,4 @@ $(function(){
 
 </script>
 
-@endpush
+@endsection

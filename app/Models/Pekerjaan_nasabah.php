@@ -17,4 +17,9 @@ class Pekerjaan_nasabah extends Model
     {
         return $this->belongsTo(Nasabah::class);
     }
+
+    public function pengajuan()
+    {
+        return $this->belongsTo(Pengajuan::class);
+    }
 }

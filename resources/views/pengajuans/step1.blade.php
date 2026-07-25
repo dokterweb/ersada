@@ -66,14 +66,23 @@
                                 <option value="non_payroll" @if(old('kategori_nasabah',$pengajuan->kategori_nasabah ?? '') == 'non_payroll') selected @endif>Umum (Tanpa ATM)</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Status Customer</label>
+                            <select name="status_customer" class="form-select" required>
+                                <option value="">-- Pilih --</option>
+                                <option value="walk_in">Walk In</option>
+                                <option value="baru">Baru</option>
+                                <option value="repeat_order">Repeat Order</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
                             <label class="form-label">Tujuan Pinjaman</label>
                             <input type="text" name="tujuan_pinjaman" class="form-control" value="{{ old('tujuan_pinjaman',$pengajuan->tujuan_pinjaman ?? '') }}">
                             @error('tujuan_pinjaman')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
-                        <div class="col-md-8 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">Catatan</label>
                             <input type="text" name="catatan" class="form-control" value="{{ old('catatan',$pengajuan->catatan ?? '') }}">
                             @error('catatan')

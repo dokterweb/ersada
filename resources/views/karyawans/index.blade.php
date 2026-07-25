@@ -37,9 +37,11 @@
                     <tr>
                       <th>#</th>
                       <th>Nama Karyawan</th>
+                      <th>Email</th>
                       <th>NIK</th>
                       <th>No. HP</th>
                       <th>Cabang</th>
+                      <th>Jabatan</th>
                       <th class="w-1">Action</th>
                     </tr>
                   </thead>
@@ -48,9 +50,23 @@
                             <tr>
                               <td>{{$loop->iteration}}</td>
                               <td>{{ $k->user->name }}</td>
+                              <td>{{ $k->user->email }}</td>
                               <td>{{ $k->nik }}</td>
                               <td>{{ $k->no_hp }}</td>
                               <td>{{ $k->cabang->nama_cabang}}</td>
+                              <td>
+                                @php
+                                  $role = $k->user->getRoleNames()->first();
+                                  $label = match($role) {
+                                      'kacab'         => 'Kepala Cabang',
+                                      'spvmarketing'  => 'SPV Marketing',
+                                      'marketing'     => 'Marketing',
+                                      'spvsurveyor'   => 'SPV Surveyor',
+                                      default => ucfirst($role ?? '-'),
+                                  };
+                                @endphp
+                                {{ $label }}
+                              </td>
                               <td>
                                   <div class="btn-list flex-nowrap">
                                     <a href="{{route('karyawans.edit',$k->id)}}" class="btn btn-sm btn-info"><i class="far fa-edit"></i></a>

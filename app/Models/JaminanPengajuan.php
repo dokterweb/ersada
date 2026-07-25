@@ -12,4 +12,9 @@ class JaminanPengajuan extends Model
     {
         return $this->belongsTo(Pengajuan::class);
     }
+
+    public function dokumentasis()
+    {
+        return $this->hasMany(SurveyDokumentasi::class,'jaminan_pengajuan_id');
+    }
 }

@@ -41,19 +41,21 @@
                                 </td>
                                 <td>
                                     @if($survey->status=='waiting')
-                                        <form action="{{ route('survey.accept',$survey->id) }}" method="POST">
-                                            @csrf
-                                            <button class="btn btn-success btn-sm"><i class="fa fa-check"></i>
-                                                Terima
-                                            </button>
-                                        </form>
+                                        <button class="btn btn-success btn-sm btn-accept"
+                                            data-id="{{ $survey->id }}"
+                                            data-pengajuan="{{ $survey->pengajuan->nomor_pengajuan }}"
+                                            data-nasabah="{{ optional($survey->pengajuan->nasabah)->nama }}"
+                                            data-marketing="{{ optional($survey->pengajuan->marketing->user)->name }}">Terima
+                                        </button>
                                     @elseif($survey->status=='accepted')
-                                        <form action="{{ route('survey.start',$survey->id) }}" method="POST">
-                                            @csrf
-                                            <button class="btn btn-primary btn-sm"><i class="fa fa-play"></i>
-                                                Mulai Survey
-                                            </button>
-                                        </form>
+                                        <button class="btn btn-primary btn-sm btn-start"
+                                            data-id="{{ $survey->id }}"
+                                            data-pengajuan="{{ $survey->pengajuan->nomor_pengajuan }}"
+                                            data-nasabah="{{ optional($survey->pengajuan->nasabah)->nama }}"
+                                            data-marketing="{{ optional($survey->pengajuan->marketing)->nama }}"
+                                            data-cabang="{{ optional($survey->pengajuan->cabang)->nama }}">
+                                            <i class="fa fa-play"></i>Mulai Survey
+                                        </button>
                                     @elseif($survey->status=='progress')
                                         <a href="#" class="btn btn-warning btn-sm">
                                             Lanjut Survey

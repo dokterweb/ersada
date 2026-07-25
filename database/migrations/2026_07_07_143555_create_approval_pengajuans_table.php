@@ -27,6 +27,8 @@ return new class extends Migration
             $table->string('aksi',50);
             $table->string('status_sebelumnya');
             $table->string('status_sesudahnya');
+            $table->decimal('plafond_disetujui',18,2)->nullable();
+            $table->unsignedTinyInteger('tenor_disetujui')->nullable();
             $table->text('catatan')->nullable();
             $table->timestamps();
         });

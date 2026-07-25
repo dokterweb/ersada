@@ -1,9 +1,15 @@
 <?php
 
+use App\Http\Controllers\AkadController;
+use App\Http\Controllers\AngsuranController;
+use App\Http\Controllers\ApprovalSurveyController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CabangController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KaryawanController;
+use App\Http\Controllers\PembayaranAngsuranController;
+use App\Http\Controllers\PembiayaanController;
+use App\Http\Controllers\PencairanController;
 use App\Http\Controllers\PengajuanController;
 use App\Http\Controllers\PimpinanController;
 use App\Http\Controllers\SurveyController;
@@ -81,8 +87,7 @@ Route::prefix('pengajuans')->middleware('role:marketing')->group(function () {
     Route::get('/{pengajuan}',[PengajuanController::class,'show'])->name('pengajuan.show');
 });
 
-Route::prefix('pimpinan')
-    ->middleware(['auth','role:komisaris|direktur|kacab'])
+Route::prefix('pimpinan')->middleware(['auth','role:komisaris|direktur|kacab'])
     ->group(function () {
         Route::get('/dashboard',[PimpinanController::class,'dashboard'])->name('pimpinan.dashboard');
         Route::get('/',[PimpinanController::class,'index'])->name('pimpinan.index');
@@ -90,12 +95,75 @@ Route::prefix('pimpinan')
         Route::post('/{pengajuan}/submit',[PimpinanController::class,'submit'])->name('pimpinan.submit');
     });
 
-    Route::middleware(['auth','role:spvsurveyor|surveyor'])->prefix('survey')->name('survey.')
-      ->group(function(){
-        Route::get('/', [SurveyController::class,'index'])->name('index');
-        Route::get('/create/{pengajuan}', [SurveyController::class, 'create'])->name('create');
-        Route::post('/store/{pengajuan}', [SurveyController::class, 'store'])->name('store');
-        Route::post('/{survey}/assign',[SurveyController::class,'assign'])->name('assign');
-        Route::post('/{survey}/accept',[SurveyController::class,'accept'])->name('accept');
-        Route::post('/{survey}/start',[SurveyController::class,'start'])->name('start');
+Route::middleware(['auth','role:spvsurveyor|surveyor'])->prefix('survey')->name('survey.')
+    ->group(function(){
+    Route::get('/', [SurveyController::class,'index'])->name('index');
+    Route::get('/create/{pengajuan}', [SurveyController::class, 'create'])->name('create');
+    Route::post('/store/{pengajuan}', [SurveyController::class, 'store'])->name('store');
+    Route::post('/{survey}/accept',[SurveyController::class,'accept'])->name('accept');
+    Route::post('/{survey}/start',[SurveyController::class,'start'])->name('start');
+    Route::get('/{survey}/berkas', [SurveyController::class, 'stepBerkas'])->name('berkas');
+    Route::post('/{survey}/berkas', [SurveyController::class, 'storeStepBerkas'])->name('storeBerkas');
+    Route::get('/{survey}/dokumentasi',[SurveyController::class,'stepDokumentasi'])->name('dokumentasi');
+    Route::post('/{survey}/upload',[SurveyController::class,'uploadDokumentasi'])->name('uploadDokumentasi');
+    
+    Route::post('/{survey}/review-check',[SurveyController::class,'checkDokumentasi'])->name('reviewCheck');
+    Route::get('/{survey}/review',[SurveyController::class,'review'])->name('review');
+    Route::post('/{survey}/submit',[SurveyController::class,'submit'])->name('submit');
+    Route::get('/{survey}/review-spv', [SurveyController::class,'reviewSpv'])->name('reviewSpv');
+    Route::post('/{survey}/review-spv', [SurveyController::class,'submitReviewSpv'])->name('submitReviewSpv');
+});
+
+Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-survey')->name('approvalSurvey.')
+    ->group(function () {
+        Route::get('/', [ApprovalSurveyController::class, 'index'])->name('index');
+       Route::get('/{pengajuan}', [ApprovalSurveyController::class, 'show'])->name('show');
+       Route::post('/{pengajuan}', [ApprovalSurveyController::class, 'store'])->name('store');
+    });
+
+    Route::middleware(['auth'])->prefix('pembiayaan')->name('pembiayaan.')
+    ->group(function () {
+        Route::get('/',[PembiayaanController::class,'index'])->name('index');
+        Route::get('/create/{pengajuan}',[PembiayaanController::class,'create'])->name('create');
+        Route::post('/store/{pengajuan}',[PembiayaanController::class,'store'])->name('store');
+        Route::get('/{pembiayaan}/edit',[PembiayaanController::class,'edit'])->name('edit');
+        Route::put('/{pembiayaan}',[PembiayaanController::class,'update'])->name('update');
+        Route::get('/{pembiayaan}/review',[PembiayaanController::class,'review'])->name('review');
+        // Route::post('/{pembiayaan}/review',[PembiayaanController::class,'submitReview'])->name('submitReview');
+        Route::get('/{pembiayaan}/generate-jadwal',[PembiayaanController::class,'generateJadwal'])->name('generateJadwal');
+        Route::post('/{pembiayaan}/generate-jadwal',[PembiayaanController::class,'storeJadwal'])->name('storeJadwal');
+        Route::get('/{pembiayaan}/jadwal',[PembiayaanController::class,'jadwal'])->name('jadwal');
+    });
+
+    
+    Route::prefix('akad')->name('akad.')->group(function(){
+        Route::get('/create/{pembiayaan}',[AkadController::class,'create'])->name('create');
+        Route::post('/store/{pembiayaan}',[AkadController::class,'store'])->name('store');
+        Route::get('/{akad}',[AkadController::class,'show'])->name('show');
+        Route::get('/{akad}/edit',[AkadController::class,'edit'])->name('edit');
+        Route::put('/{akad}',[AkadController::class,'update'])->name('update');
+        Route::get('/{akad}/generate',[AkadController::class,'generate'])->name('generate');
+        Route::get('/{akad}/download-word',[AkadController::class,'downloadWord'])->name('downloadWord');
+    });
+
+
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/pencairan', [PencairanController::class,'index'])->name('pencairan.index');
+        Route::get('/akad/{akad}/pencairan/create', [PencairanController::class,'create'])->name('pencairan.create');
+        Route::post('/akad/{akad}/pencairan', [PencairanController::class,'store'])->name('pencairan.store');
+        Route::get('/pencairan/{pencairan}', [PencairanController::class,'show'])->name('pencairan.show');
+    });
+
+
+    Route::prefix('angsuran')->group(function () {
+        Route::get('/', [AngsuranController::class,'index'])->name('angsuran.index');
+        Route::get('/{pembiayaan}', [AngsuranController::class,'show'])->name('angsuran.show');
+        Route::get('/{angsuran}/bayar', [AngsuranController::class,'create'])->name('angsuran.create');
+        Route::post('/{angsuran}/bayar', [AngsuranController::class,'store'])->name('angsuran.store');
+        // Route::get('/{angsuran}/history', [AngsuranController::class,'history'])->name('angsuran.history');
+        Route::get('/jadwal/{angsuran}/history',[AngsuranController::class, 'getHistory'])->name('angsuran.history');
+        Route::get('/jadwal/{angsuran}/json',[AngsuranController::class,'getAngsuran'])->name('angsuran.json');
+        Route::post('/jadwal/{angsuran}/bayar',[AngsuranController::class,'store'])->name('angsuran.store');
+        Route::get('/pembayaran/{pembayaran}/cetak',[PembayaranAngsuranController::class,'cetak'])->name('pembayaran.cetak');
+        Route::get('/angsuran/{angsuran}/history/cetak',[AngsuranController::class,'cetakHistory'])->name('angsuran.history.cetak');
     });
