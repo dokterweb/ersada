@@ -7,11 +7,14 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CabangController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KaryawanController;
+use App\Http\Controllers\OperasionalController;
+use App\Http\Controllers\PelunasanController;
 use App\Http\Controllers\PembayaranAngsuranController;
 use App\Http\Controllers\PembiayaanController;
 use App\Http\Controllers\PencairanController;
 use App\Http\Controllers\PengajuanController;
 use App\Http\Controllers\PimpinanController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SurveyController;
 use Illuminate\Support\Facades\Route;
 
@@ -166,4 +169,40 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
         Route::post('/jadwal/{angsuran}/bayar',[AngsuranController::class,'store'])->name('angsuran.store');
         Route::get('/pembayaran/{pembayaran}/cetak',[PembayaranAngsuranController::class,'cetak'])->name('pembayaran.cetak');
         Route::get('/angsuran/{angsuran}/history/cetak',[AngsuranController::class,'cetakHistory'])->name('angsuran.history.cetak');
+    });
+
+    Route::prefix('operasional')->middleware(['auth'])->name('operasional.')->group(function () {
+        Route::get('/pembiayaan',[OperasionalController::class,'index'])->name('index');
+        Route::get('/pembiayaan/{pembiayaan}',[OperasionalController::class,'show'])->name('show');
+    });
+
+    Route::prefix('pelunasan')->name('pelunasan.')->group(function () {
+        Route::get('/{pembiayaan}/create', [PelunasanController::class,'create'])->name('create');
+        Route::post('/{pembiayaan}', [PelunasanController::class,'store'])->name('store');
+        Route::get('/{pelunasan}', [PelunasanController::class,'show'])->name('show');
+        Route::get('/{pelunasan}/cetak',[PelunasanController::class,'cetak'])->name('cetak');
+    });    
+
+    Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function () {
+        Route::get('/pembiayaan', [ReportController::class,'pembiayaan'])->name('pembiayaan');
+        Route::get('/pencairan', [ReportController::class,'pencairan'])->name('pencairan');
+        Route::get('/angsuran', [ReportController::class,'angsuran'])->name('angsuran');
+        Route::get('/pelunasan', [ReportController::class,'pelunasan'])->name('pelunasan');
+        Route::get('/outstanding', [ReportController::class,'outstanding'])->name('outstanding');
+        Route::get('/jatuh-tempo', [ReportController::class,'jatuhTempo'])->name('jatuhTempo');
+        Route::get('/npl', [ReportController::class,'npl'])->name('npl');
+        Route::get('/pembiayaan/excel',[ReportController::class,'exportPembiayaanExcel'])->name('pembiayaan.excel');
+        Route::get('/pembiayaan/pdf',[ReportController::class,'exportPembiayaanPdf'])->name('pembiayaan.pdf');
+        Route::get('/pencairan/excel',[ReportController::class,'exportPencairanExcel'])->name('pencairan.excel');
+        Route::get('/pencairan/pdf',[ReportController::class,'exportPencairanPdf'])->name('pencairan.pdf');
+        Route::get('/angsuran/excel', [ReportController::class,'exportAngsuranExcel'])->name('angsuran.excel');
+        Route::get('/angsuran/pdf',[ReportController::class,'exportAngsuranPdf'])->name('angsuran.pdf');
+        Route::get('/pelunasan/excel', [ReportController::class,'exportPelunasanExcel'])->name('pelunasan.excel');
+        Route::get('/pelunasan/pdf',[ReportController::class,'exportPelunasanPdf'])->name('pelunasan.pdf');
+        Route::get('/outstanding/excel', [ReportController::class,'exportOutstandingExcel'])->name('outstanding.excel');
+        Route::get('/outstanding/pdf',[ReportController::class,'exportOutstandingPdf'])->name('outstanding.pdf');
+        Route::get('/jatuh-tempo/excel', [ReportController::class, 'exportJatuhTempoExcel'])->name('jatuhtempo.excel');
+        Route::get('/jatuh-tempo/pdf', [ReportController::class, 'exportJatuhTempoPdf'])->name('jatuhtempo.pdf');
+        Route::get('/npl/excel', [ReportController::class, 'exportNplExcel'])->name('npl.excel');
+        Route::get('/npl/pdf', [ReportController::class, 'exportNplPdf'])->name('npl.pdf');
     });

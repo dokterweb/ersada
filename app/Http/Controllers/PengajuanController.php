@@ -38,7 +38,7 @@ class PengajuanController extends Controller
         * Direktur bisa melihat semua cabang
         */
         if (!$user->hasRole('DIREKTUR')) {
-            $query->where('cabang_id', $karyawan->cabang_id);
+            $query->where('cabang_id', auth()->user()->getCabangId());
         }
 
         $pengajuans = $query->latest()->paginate(15);

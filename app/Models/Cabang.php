@@ -17,4 +17,9 @@ class Cabang extends Model
     {
         return $this->hasMany(Cabang::class,'cabang_id');
     }
+
+    public function pengajuans()
+    {
+        return $this->hasMany(Pengajuan::class);
+    }
 }

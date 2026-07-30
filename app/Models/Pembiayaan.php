@@ -37,4 +37,26 @@ class Pembiayaan extends Model
     {
         return $this->hasOne(Akad::class);
     }
+
+    public function pelunasan()
+    {
+        return $this->hasOne(Pelunasan::class);
+    }
+
+    public function auditTrails()
+    {
+        return $this->hasMany(AuditTrail::class);
+    }
+
+    public function getStatusBadgeAttribute(): string
+    {
+        return match ($this->status) {
+            'draft' => '<span class="badge bg-secondary">Draft</span>',
+            'review' => '<span class="badge bg-warning">Review</span>',
+            'akad' => '<span class="badge bg-info">Akad</span>',
+            'dicairkan' => '<span class="badge bg-primary">Aktif</span>',
+            'lunas' => '<span class="badge bg-success">Lunas</span>',
+            default => '<span class="badge bg-dark">'.$this->status.'</span>',
+        };
+    }    
 }

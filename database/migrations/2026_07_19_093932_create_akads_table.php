@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('file_pdf')->nullable();
             $table->timestamp('generated_at')->nullable();
             $table->foreignId('created_by')->constrained('users');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

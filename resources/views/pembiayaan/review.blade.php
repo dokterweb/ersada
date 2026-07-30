@@ -39,11 +39,11 @@
                                         </tr>
                                         <tr>
                                             <th>Marketing</th>
-                                            <td>{{ optional($pembiayaan->pengajuan->marketing)->nama }}</td>
+                                            <td>{{ optional($pembiayaan->pengajuan->marketing)->user->name }}</td>
                                         </tr>
                                         <tr>
                                             <th>Cabang</th>
-                                            <td>{{ optional($pembiayaan->pengajuan->cabang)->nama }}</td>
+                                            <td>{{ optional($pembiayaan->pengajuan->cabang)->nama_cabang }}</td>
                                         </tr>
                                     </table>
                                 </div>

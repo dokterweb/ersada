@@ -3,10 +3,17 @@
 namespace App\Services;
 
 use App\Models\Akad;
+use App\Services\AuditTrailService;
 use Carbon\Carbon;
 
 class AkadService
 {
+    public function __construct(
+        AuditTrailService $auditTrail
+    ) {
+        $this->auditTrail = $auditTrail;
+    }
+
     public function templateData(Akad $akad): array
     {
         $akad->load([
@@ -50,6 +57,13 @@ class AkadService
         $jaminan1 = $jaminans->get(0);
         $jaminan2 = $jaminans->get(1);
         $jaminan3 = $jaminans->get(2);
+
+        $this->auditTrail->log(
+            $pembiayaan,
+            'Akad',
+            'Generate Akad',
+            'Nomor Akad : '.$akad->nomor_akad
+        );
 
         return [
             // COMPANY
@@ -168,6 +182,7 @@ class AkadService
             'potongan_kredit_format' => number_format(optional($angsuranPertama)->total_angsuran ?? 0,0,',','.'),
             'potongan_kredit_terbilang' => $this->terbilang(optional($angsuranPertama)->total_angsuran ?? 0),
         ];
+
     }
 
     /**

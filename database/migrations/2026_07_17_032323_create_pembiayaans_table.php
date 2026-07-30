@@ -27,8 +27,9 @@ return new class extends Migration
             $table->date('tanggal_akad')->nullable();
             $table->date('tanggal_pencairan')->nullable();
             $table->date('tanggal_jatuh_tempo_pertama')->nullable();
-            $table->enum('status', ['draft','review','siap_generate_jadwal','akad','dicairkan'])->default('draft');
+            $table->enum('status', ['draft','review','siap_generate_jadwal','akad','dicairkan','lunas'])->default('draft');
             $table->foreignId('created_by')->constrained('users');
+            $table->softDeletes();
             $table->timestamps();
         });
     }

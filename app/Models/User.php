@@ -59,4 +59,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(Pembayaran_angsuran::class,'created_by');
     }
+
+    public function auditTrails()
+    {
+        return $this->hasMany(AuditTrail::class);
+    }
+
+    public function getCabangId(): ?int
+    {
+        return $this->karyawan?->cabang_id;
+    }
+
+    public function getMarketingId(): ?int
+    {
+        return $this->karyawan?->id;
+    }
 }

@@ -89,7 +89,7 @@
                         
                                         <div class="mb-3">
                                             <label>Biaya Survey</label>
-                                            <input type="number" class="form-control hitung" id="biaya_survey" name="biaya_survey" value="0">
+                                            <input type="number" class="form-control hitung" id="biaya_survei" name="biaya_survei" value="0">
                                         </div>
                         
                                         <div class="mb-3">
@@ -194,7 +194,7 @@
 <script>
 $(function(){
     hitungPembiayaan();
-    $('#materai,#biaya_survey').on('keyup change',function(){
+    $('#materai,#biaya_survei').on('keyup change',function(){
         hitungPembiayaan();
     });
 });
@@ -203,7 +203,7 @@ function hitungPembiayaan(){
     let plafond = parseFloat($('#plafond').val()) || 0;
     let tenor = parseInt($('#tenor').val()) || 0;
     let materai = parseFloat($('#materai').val()) || 0;
-    let survey = parseFloat($('#biaya_survey').val()) || 0;
+    let survey = parseFloat($('#biaya_survei').val()) || 0;
     let bunga = 0;
     let admin = plafond * 3 / 100;
     let diterima = plafond - admin - materai - survey;

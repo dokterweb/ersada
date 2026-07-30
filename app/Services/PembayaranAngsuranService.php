@@ -19,12 +19,6 @@ class PembayaranAngsuranService
             // Reload data terbaru
             $angsuran->refresh();
 
-            /*
-            |--------------------------------------------------------------------------
-            | Validasi
-            |--------------------------------------------------------------------------
-            */
-
             if ($angsuran->status === 'dibayar') {
                 throw new \Exception('Angsuran ini sudah lunas.');
             }
@@ -42,30 +36,9 @@ class PembayaranAngsuranService
                 );
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Denda
-            |--------------------------------------------------------------------------
-            | Sprint berikutnya akan dihitung otomatis.
-            */
-
             $denda = 0;
             $diskon = 0;
-
-            /*
-            |--------------------------------------------------------------------------
-            | Total transaksi pembayaran
-            |--------------------------------------------------------------------------
-            */
-
             $totalTransaksi = $jumlahBayar + $denda - $diskon;
-
-            /*
-            |--------------------------------------------------------------------------
-            | Simpan History Pembayaran
-            |--------------------------------------------------------------------------
-            */
-
             $pembayaran = PembayaranAngsuran::create([
                 'angsuran_id'      => $angsuran->id,
                 'nomor_pembayaran' => $this->generateNomor(),
@@ -79,12 +52,6 @@ class PembayaranAngsuranService
                 'created_by'       => Auth::id(),
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Hitung Progress Angsuran
-            |--------------------------------------------------------------------------
-            */
-
             // $totalTerbayar = $angsuran->total_terbayar + $jumlahBayar;
             $totalTerbayar  = $angsuran->pembayaranAngsurans()->sum('jumlah_bayar');
             // $sisaTagihan = $angsuran->total_angsuran - $totalTerbayar;
@@ -94,24 +61,14 @@ class PembayaranAngsuranService
                 $sisaTagihan = 0;
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Status Angsuran
-            |--------------------------------------------------------------------------
-            */
-
             $status = $angsuran->status;
 
             $tanggalBayar = null;
 
             if ($sisaTagihan == 0) {
-
                 $status = 'dibayar';
-
                 $tanggalBayar = $data['tanggal_bayar'];
-
             } else {
-
                 if (now()->toDateString() >= $angsuran->tanggal_jatuh_tempo->toDateString()) {
                     $status = 'jatuh_tempo';
                 } else {
@@ -120,42 +77,19 @@ class PembayaranAngsuranService
 
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | Update Angsuran
-            |--------------------------------------------------------------------------
-            */
-
             $angsuran->update([
-
                 'status'          => $status,
-
                 'tanggal_bayar'   => $tanggalBayar,
-
                 'denda'           => $denda,
-
                 'total_terbayar'  => $totalTerbayar,
-
                 'sisa_tagihan'    => $sisaTagihan,
-
             ]);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Summary Card
-            |--------------------------------------------------------------------------
-            */
-
-            $angsurans = $angsuran->pembiayaan
-                ->angsurans()
-                ->orderBy('angsuran_ke')
-                ->get();
+            $angsurans = $angsuran->pembiayaan->angsurans()->orderBy('angsuran_ke')->get();
 
             $totalAngsuran = $angsurans->count();
 
-            $sudahDibayar = $angsurans
-                ->where('status', 'dibayar')
-                ->count();
+            $sudahDibayar = $angsurans->where('status', 'dibayar')->count();
 
             $sisaAngsuran = $totalAngsuran - $sudahDibayar;
 
@@ -164,12 +98,14 @@ class PembayaranAngsuranService
                 ->sortBy('angsuran_ke')
                 ->first()?->sisa_pokok ?? 0;
 
-            /*
-            |--------------------------------------------------------------------------
-            | Response AJAX
-            |--------------------------------------------------------------------------
-            */
-
+            $this->auditTrail->log(
+                $angsuran->pembiayaan,
+                'Angsuran',
+                'Pembayaran Angsuran',
+                'Angsuran Ke-'.$angsuran->angsuran_ke.
+                ' | Total : Rp '.number_format($angsuran->jumlah_bayar,0,',','.')
+            );
+            
             return [
                 'pembayaran' => $pembayaran,
                 'row' => [
@@ -192,29 +128,17 @@ class PembayaranAngsuranService
                     'sisa_angsuran'         => $sisaAngsuran,
                     'outstanding'           => $outstanding,
                     'outstanding_format'    => number_format($outstanding,0,',','.'),
-
                 ]
-
             ];
-
         });
     }
 
-    /**
-     * Generate Nomor Pembayaran
-     */
     protected function generateNomor(): string
     {
         $tahun = date('Y');
 
-        $last = PembayaranAngsuran::whereYear('created_at', $tahun)
-            ->lockForUpdate()
-            ->count() + 1;
+        $last = PembayaranAngsuran::whereYear('created_at', $tahun)->lockForUpdate()->count() + 1;
 
-        return sprintf(
-            'BYR/%s/%05d',
-            $tahun,
-            $last
-        );
+        return sprintf('BYR/%s/%05d',$tahun,$last);
     }
 }
