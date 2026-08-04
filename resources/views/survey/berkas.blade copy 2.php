@@ -4,6 +4,7 @@
 <h3 class="mb-4">
     <i class="fa fa-folder-open text-primary"></i>
     Step 1 - Pemeriksaan Berkas
+
 </h3>
 
 @php
@@ -184,7 +185,7 @@
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
                     <strong>Nama Pasangan Penjamin</strong>
-                    <span id="badgePasanganPenjamin" class="badge bg-yellow-lt">Belum Lengkap</span>
+                    <span id="badgePasangan" class="badge bg-yellow-lt">Belum Lengkap</span>
                 </div>
 
                 <div class="card-body">
@@ -468,10 +469,17 @@
                 }
             });
             if(lengkap){
-                $('#badgeDebitur').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
+                $('#badgeDebitur')
+                    .removeClass('bg-yellow-lt')
+                    .addClass('bg-green-lt')
+                    .text('Lengkap');
             }else{
-                $('#badgeDebitur').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
+                $('#badgeDebitur')
+                    .removeClass('bg-green-lt')
+                    .addClass('bg-yellow-lt')
+                    .text('Belum Lengkap');
             }
+
         }
 
         function badgePasangan(){
@@ -485,207 +493,78 @@
                 }
             });
             if(lengkap){
-                $('#badgePasangan').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
-            }else{
-                $('#badgePasangan').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
-            }
-
-        }
-
-        function badgePenjamin(){
-            if($('#badgePenjamin').length == 0){
-                return;
-            }
-
-            let lengkap = true;
-            $('input[name=ktp_penjamin], input[name=kk_penjamin]').each(function(){
-                if(!$(this).is(':checked')){
-                    lengkap = false;
-                }
-            });
-            if(lengkap){
-                $('#badgePenjamin').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
-            }else{
-                $('#badgePenjamin').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
-            }
-
-        }
-
-        function badgePasanganPenjamin(){
-            if($('#badgePasanganPenjamin').length == 0){
-                return;
-            }
-
-            let lengkap = true;
-            // Nama pasangan penjamin wajib diisi
-            if($('#nama_pasangan_penjamin').val().trim() == ''){
-                lengkap = false;
-            }
-
-            // KTP & KK pasangan penjamin wajib dicentang
-            $('input[name=ktp_pasangan_penjamin], input[name=kk_pasangan_penjamin]').each(function(){
-                if(!$(this).is(':checked')){
-                    lengkap = false;
-                }
-            });
-
-            if(lengkap){
-                $('#badgePasanganPenjamin').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
-            }else{
-                $('#badgePasanganPenjamin').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
-            }
-        }
-
-        function updateBadgePekerjaan(){
-
-            if($('#badgePekerjaan').length == 0){
-                return;
-            }
-
-            // Default = belum lengkap
-            let lengkap = false;
-
-            // Harus checklist Slip Gaji
-            if($('#slip_gaji').is(':checked')){
-
-                // Semua field wajib terisi
-                if(
-                    $('#no_id_karyawan').val().trim() != '' &&
-                    $('#lama_bekerja').val().trim() != '' &&
-                    $('#no_telp_karyawan').val().trim() != ''
-                ){
-                    lengkap = true;
-                }
-
-            }
-
-            if(lengkap){
-
-                $('#badgePekerjaan')
+                $('#badgePasangan')
                     .removeClass('bg-yellow-lt')
                     .addClass('bg-green-lt')
                     .text('Lengkap');
-
             }else{
-
-                $('#badgePekerjaan')
+                $('#badgePasangan')
                     .removeClass('bg-green-lt')
                     .addClass('bg-yellow-lt')
                     .text('Belum Lengkap');
-
-            }
-
-            }
-        function updateBadgeBPJS(){
-
-            if($('#badgeBPJS').length == 0){
-                return;
-            }
-
-            let lengkap = false;
-            // Harus dicentang
-            if($('#bpjs').is(':checked')){
-                // Dan nomor BPJS harus diisi
-                if($('#no_bpjs').val().trim() != ''){
-                    lengkap = true;
-                }
-            }
-
-            if(lengkap){
-                $('#badgeBPJS').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
-            }else{
-                $('#badgeBPJS').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
-            }
-        }
-
-
-        function updateBadgeRekening(){
-
-            if($('#badgeRekening').length == 0){
-                return;
-            }
-
-            let lengkap = true;
-            // Buku Tabungan wajib dicentang
-            if(!$('#buku_tabungan').is(':checked')){
-                lengkap = false;
-            }
-
-            // Nama Bank wajib diisi
-            if($('#nama_bank').val().trim() == ''){
-                lengkap = false;
-            }
-
-            // Kartu ATM wajib dicentang
-            if(!$('#kartu_atm').is(':checked')){
-                lengkap = false;
-            }
-
-            // PIN ATM wajib diisi
-            if($('#pin_atm').val().trim() == ''){
-                lengkap = false;
-            }
-
-            if(lengkap){
-                $('#badgeRekening').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
-            }else{
-                $('#badgeRekening').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
             }
 
         }
+
         //---------------------------------------------------
         // EVENT
         //---------------------------------------------------
 
         $('#status_peminjam').change(toggleStatusPeminjam);
-
         $('#slip_gaji').change(function(){
             togglePekerjaan();
-            updateBadgePekerjaan();
+            badgePekerjaan();
         });
 
         $('#bpjs').change(function(){
             toggleBPJS();
-            updateBadgeBPJS();
+            badgeBPJS();
         });
 
         $('#buku_tabungan').change(function(){
             toggleTabungan();
-            updateBadgeRekening();
+            badgeRekening();
         });
 
         $('#kartu_atm').change(function(){
             toggleATM();
-            updateBadgeRekening();
+            badgeRekening();
         });
 
         $('input[type=checkbox]').change(function(){
             badgeDebitur();
             badgePasangan();
             badgePenjamin();
-            badgePasanganPenjamin();
         });
 
         $('input[type=text]').keyup(function(){
-            badgePasanganPenjamin();
-            updateBadgePekerjaan();
-            updateBadgeBPJS();
-            updateBadgeRekening();
+            badgePekerjaan();
+            badgeBPJS();
+            badgeRekening();
         });
 
 
         toggleStatusPeminjam();
+
         togglePekerjaan();
+
         toggleBPJS();
+
         toggleTabungan();
+
         toggleATM();
+
         badgeDebitur();
+
         badgePasangan();
+
         badgePenjamin();
-        badgePasanganPenjamin();
-        updateBadgePekerjaan();
-        updateBadgeBPJS();
-        updateBadgeRekening();
+
+        badgePekerjaan();
+
+        badgeBPJS();
+
+        badgeRekening();
 
     }); 
 </script>

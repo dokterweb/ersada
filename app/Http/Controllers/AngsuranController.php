@@ -81,7 +81,6 @@ class AngsuranController extends Controller
         ]);
 
         try {
-
             $result = $this->service->bayar(
                 $angsuran,
                 $request->all()
@@ -90,17 +89,16 @@ class AngsuranController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Pembayaran berhasil.',
+                'nominal' => number_format($request->jumlah_bayar,0,',','.'),
                 'row'     => $result['row'],
                 'summary' => $result['summary'],
             ]);
 
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
-
         }
     }
 

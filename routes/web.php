@@ -142,6 +142,8 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
     Route::prefix('akad')->name('akad.')->group(function(){
         Route::get('/create/{pembiayaan}',[AkadController::class,'create'])->name('create');
         Route::post('/store/{pembiayaan}',[AkadController::class,'store'])->name('store');
+        
+        Route::post('/{akad}/sign', [AkadController::class,'sign'])->name('sign');
         Route::get('/{akad}',[AkadController::class,'show'])->name('show');
         Route::get('/{akad}/edit',[AkadController::class,'edit'])->name('edit');
         Route::put('/{akad}',[AkadController::class,'update'])->name('update');

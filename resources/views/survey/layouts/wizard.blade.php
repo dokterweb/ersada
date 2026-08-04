@@ -33,12 +33,13 @@
                             <a href="{{ route('survey.berkas',$survey) }}" class="list-group-item">
                                 📁 Pemeriksaan Berkas
                             </a>
-                         {{--  <a href="{{ route('survey.lapangan',$survey) }}" class="list-group-item">
-                                🏠 Survey Lapangan
-                            </a>
                             <a href="{{ route('survey.dokumentasi',$survey) }}" class="list-group-item">
                                 📷 Dokumentasi
                             </a>
+                         {{--  <a href="{{ route('survey.lapangan',$survey) }}" class="list-group-item">
+                                🏠 Survey Lapangan
+                            </a>
+                            
                             <a href="{{ route('survey.kesimpulan',$survey) }}" class="list-group-item">
                                 📝 Kesimpulan
                             </a>
@@ -70,11 +71,11 @@
                                         </tr>
                                         <tr>
                                             <th>Marketing</th>
-                                            <td>{{ optional($survey->pengajuan->marketing)->nama }}</td>
+                                            <td>{{ optional($survey->pengajuan->marketing)->user->name }}</td>
                                         </tr>
                                         <tr>
                                             <th>Cabang</th>
-                                            <td>{{ optional($survey->pengajuan->cabang)->nama }}</td>
+                                            <td>{{ optional($survey->pengajuan->cabang)->nama_cabang }}</td>
                                         </tr>
                                     </table>
                                 </div>

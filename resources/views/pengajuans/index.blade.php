@@ -54,10 +54,9 @@
                         <td>{{ $item->marketing?->user?->name }}</td>
                         <td><span class="badge bg-primary">{{ str_replace('_',' ',$item->status) }}</span></td>
                         <td>
-                          {{-- <a href="{{ route('pengajuan.show',$item->id) }}" class="btn btn-primary btn-sm">
+                          <a href="{{ route('pengajuan.show',$item->id) }}" class="btn btn-primary btn-sm">
                             Detail
-                          </a> --}}
-                          Act
+                          </a>
                         </td>
                     </tr>
                     @empty

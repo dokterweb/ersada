@@ -406,10 +406,13 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header bg-info text-white d-flex justify-content-between">
-                        <h3 class="card-title">DATA DOKUMEN</h3>
-                        @if($mode == 'review')
-                            <a href="{{ route('pengajuan.step4', $pengajuan->id) }}"class="btn btn-light">Edit</a>
-                        @endif
+                        <h3 class="card-title">
+                            DATA DOKUMEN
+                        </h3>
+                        <a href="{{ route('pengajuan.step4', $pengajuan->id) }}"
+                           class="btn btn-light">
+                            Edit
+                        </a>
                     </div>
                     <div class="card-body">
                        <div class="row">
@@ -430,10 +433,16 @@
             </div>
             <div class="col-md-12">
                 <div class="card">
+                    
                     <div class="card-header bg-info text-white d-flex justify-content-between">
-                        <h3 class="card-title">HASIL ANALISA</h3>
+                        <h3 class="card-title">
+                            HASIL ANALISA
+                        </h3>
                         @if($mode == 'review')
-                            <a href="{{ route('pengajuan.analisa',$pengajuan->id) }}" class="btn btn-light">Edit</a>
+                        <a href="{{ route('pengajuan.analisa',$pengajuan->id) }}"
+                           class="btn btn-light">
+                            Edit
+                        </a>
                         @endif
                     </div>
                     <div class="card-body">
@@ -761,7 +770,7 @@
                                     </button>
                                 </div>
                             </form>
-                            @elseif($mode == 'approval')
+                            @elseif($pengajuan->status)
                                 <form action="{{ route('pimpinan.submit',$pengajuan->id) }}" method="POST">
                                     @csrf
                                     <div class="mb-3">

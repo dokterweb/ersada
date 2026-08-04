@@ -27,6 +27,10 @@
                         <li class="step-item">STEP 3</li>
                         <li class="step-item active">STEP 4</li>
                         <li class="step-item">REVIEW</li>
+                        <li class="step-item">ANALISA</li>
+                        <li class="step-item">JAMINAN</li>
+                        <li class="step-item">ANALISA KAPITAL</li>
+                        <li class="step-item">REVIEW FINAL</li>
                     </ul>
                 </div>
                 <div class="alert alert-info">Jenis Pengajuan :
@@ -49,7 +53,7 @@
           
                   <div class="row">
           
-                      @foreach($docs['required'] as $doc)
+                      @foreach($documents['required'] as $doc)
           
                           <div class="col-md-4 mb-4">
           
@@ -122,7 +126,7 @@
           
                   <div class="row">
           
-                      @foreach($docs['one_of'] as $doc)
+                      @foreach($documents['one_of'] as $doc)
           
                           <div class="col-md-6 mb-4">
           
@@ -144,69 +148,6 @@
                                       Uploaded :
                                          <a href="{{ asset('storage/'.$uploaded[$doc['code']]->file_path) }}" target="_blank">
                                             {{ $uploaded[$doc['code']]->nama_file }}
-                                        </a>
-          
-                                  </small>
-          
-                                  <br>
-          
-                                  <small>
-          
-                                      Status :
-                                      {{ $uploaded[$doc['code']]->status }}
-          
-                                  </small>
-          
-                              @endif
-          
-                          </div>
-          
-                      @endforeach
-          
-                  </div>
-          
-              </div>
-          
-          
-              {{-- ========================================================= --}}
-              {{-- OPTIONAL --}}
-              {{-- ========================================================= --}}
-              <div class="card-header bg-secondary text-white">
-                  <h3 class="card-title">
-          
-                      DOKUMEN TAMBAHAN (OPTIONAL)
-          
-                  </h3>
-              </div>
-          
-              <div class="card-body">
-          
-                  <div class="row">
-          
-                      @foreach($optionalDocs as $doc)
-          
-                          <div class="col-md-6 mb-4">
-          
-                              <label class="form-label">
-          
-                                  {{ $doc['label'] }}
-          
-                              </label>
-          
-                              <input type="file"
-                                     name="documents[{{ $doc['code'] }}]"
-                                     class="form-control">
-          
-          
-                              @if(isset($uploaded[$doc['code']]))
-          
-                                  <small class="text-success">
-          
-                                      Uploaded :
-                                         <a href="{{ asset('storage/'.$uploaded[$doc['code']]->file_path) }}"target="_blank">
-
-                                            {{ $uploaded[$doc['code']]->nama_file }}
-
                                         </a>
           
                                   </small>

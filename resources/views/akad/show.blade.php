@@ -120,7 +120,7 @@
             {{-- JADWAL ANGSURAN --}}
             {{-- ========================================================= --}}
         
-            <div class="col-lg-12">
+            <div class="col-lg-6">
                 <div class="card mb-3">
                     <div class="card-header bg-warning">
                         <strong>RINGKASAN ANGSURAN</strong>
@@ -131,13 +131,13 @@
                             $angsuranTerakhir = $akad->pembiayaan->angsurans->sortByDesc('angsuran_ke')->first();
                         @endphp
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="mb-3">
                                 <div class="small text-secondary">
                                     Total Angsuran
                                 </div>
                                 <strong>{{ $akad->pembiayaan->angsurans->count() }} Kali</strong>
                             </div>
-                            <div class="col-md-3">
+                            <div class="mb-3">
                                 <div class="small text-secondary">
                                     Angsuran / Bulan
                                 </div>
@@ -145,27 +145,111 @@
                                     Rp {{ number_format(optional($angsuranPertama)->total_angsuran,0,',','.') }}
                                 </strong>
                             </div>
-                            <div class="col-md-3">
+                            <div class="mb-3">
                                 <div class="small text-secondary">
                                     Jatuh Tempo Pertama
                                 </div>
-                                <strong>{{ optional($angsuranPertama)->tanggal_jatuh_tempo }}</strong>
+                                <strong>{{ \Carbon\Carbon::parse(optional($angsuranPertama)->tanggal_jatuh_tempo)->format('d M Y') }}</strong>
                             </div>
-                            <div class="col-md-3">
+                            <div class="mb-3">
                                 <div class="small text-secondary">
                                     Jatuh Tempo Terakhir
                                 </div>
-                                <strong>{{ optional($angsuranTerakhir)->tanggal_jatuh_tempo }}</strong>
+                                <strong>{{ \Carbon\Carbon::parse(optional($angsuranTerakhir)->tanggal_jatuh_tempo)->format('d M Y') }}</strong>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         
-            {{-- ========================================================= --}}
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-danger">
+                        <strong>STATUS AKAD</strong>
+                    </div>
+                    <div class="card-body">
+                        @if($akad->status=='draft')
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    <span class="badge bg-warning p-3 rounded-circle">
+                                        <i class="ti ti-clock fs-4"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <h5 class="text-warning mb-1">Draft</h5>
+                                    <p class="mb-2 text-muted">
+                                        Dokumen akad telah dibuat dan siap dicetak.
+                                        Menunggu proses tanda tangan nasabah.
+                                    </p>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr>
+                                            <td width="140">Dibuat</td>
+                                            <td>{{ $akad->created_at->format('d M Y H:i') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Nomor Akad</td>
+                                            <td>{{ $akad->nomor_akad }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        @elseif($akad->status=='signed')
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    <span class="badge bg-success p-3 rounded-circle">
+                                        <i class="ti ti-circle-check fs-4"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <h5 class="text-success mb-1">Akad Sudah Ditandatangani</h5>
+                                    <p class="mb-2 text-muted">
+                                        Dokumen akad telah selesai ditandatangani.
+                                        Pembiayaan siap diproses ke tahap pencairan.
+                                    </p>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr>
+                                            <td width="140">Tanggal Akad</td>
+                                            <td>{{ \Carbon\Carbon::parse($akad->tanggal_akad)->format('d M Y') }}</td>
+                                        </tr>
+                                        @if(isset($akad->signed_at))
+                                        <tr>
+                                            <td>Ditandatangani</td>
+                                            <td>{{ $akad->signed_at->format('d M Y H:i') }}</td>
+                                        </tr>
+                                        @endif
+                                        @if(isset($akad->signedBy))
+                                        <tr>
+                                            <td>Dikonfirmasi Oleh</td>
+                                            <td>{{ $akad->signedBy->name }}</td>
+                                        </tr>
+                                        @endif
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
+                        <hr>
+                        <div class="row text-center">
+                            <div class="col">
+                                <div class="fw-bold {{ in_array($akad->status,['draft','signed']) ? 'text-success' : 'text-muted' }}">
+                                    ✓ Akad Dibuat
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="fw-bold {{ $akad->status=='signed' ? 'text-success' : 'text-muted' }}">
+                                    ✓ Ditandatangani
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="fw-bold {{ optional($akad->pembiayaan)->status=='dicairkan' ? 'text-success' : 'text-muted' }}">
+                                    ✓ Pencairan
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- DOKUMEN --}}
-            {{-- ========================================================= --}}
-        
             <div class="col-lg-12">
                 <div class="card">
                     <div class="card-header">
@@ -191,10 +275,10 @@
                                     <i class="ti ti-download"></i>
                                     Download Word
                                 </a>
-                                <a href="#" class="btn btn-danger"> 
+                               {{--  <a href="#" class="btn btn-danger"> 
                                     <i class="ti ti-file-type-pdf"></i>
                                     Generate PDF
-                                </a>
+                                </a> --}}
                             @endif
                         
                         </div>
@@ -203,7 +287,7 @@
             </div>
         </div>
         
-        <div class="mt-4 d-flex justify-content-between">
+       {{--  <div class="mt-4 d-flex justify-content-between">
             <a href="{{ route('pembiayaan.index') }}" class="btn btn-secondary">
                 Kembali
             </a>
@@ -220,42 +304,39 @@
                     Lihat Pencairan
                 </a>
             @endif
+        </div> --}}
+
+        <div class="mt-4 d-flex justify-content-between">
+            <a href="{{ route('pembiayaan.index') }}"class="btn btn-secondary">
+                Kembali
+            </a>
+            <div>
+                {{-- <a href="{{ route('akad.cetak', $akad->id) }}" class="btn btn-primary">
+                    <i class="ti ti-printer"></i>
+                    Cetak Akad
+                </a> --}}
+                @if($akad->status=='draft')
+                    <form action="{{ route('akad.sign',$akad) }}" method="POST" class="d-inline">
+                        @csrf
+                        <button class="btn btn-warning" onclick="return confirm('Pastikan akad sudah ditandatangani?')">
+                            <i class="ti ti-check"></i>
+                            Akad Ditandatangani
+                        </button>
+                    </form>
+                @elseif(!$akad->pembiayaan->pencairan)
+                    <a href="{{ route('pencairan.create',$akad) }}" class="btn btn-success">
+                        <i class="ti ti-cash"></i>
+                        Pencairan
+                    </a>
+                @else
+                    <a href="{{ route('pencairan.show',$akad->pembiayaan->pencairan) }}" class="btn btn-info">
+                        <i class="ti ti-eye"></i>
+                        Lihat Pencairan
+                    </a>
+                @endif
+            </div>
         </div>
       </div>
     </div>
 </div>
-@endsection
-
-@section('scripts')
-
-<script>
-
-$(document).ready(function() {
-    // Inisialisasi DataTables
-    $('#mytable').DataTable({
-        "processing": true,   // Menampilkan loading saat memproses data
-        "serverSide": false,  // Tentukan apakah menggunakan server-side processing
-        "paging": true,       // Menampilkan pagination
-        "lengthChange": false // Menonaktifkan pengaturan jumlah baris per halaman
-    });
-});
-
-    function deleteConfirmation(id) {
-        // SweetAlert2 konfirmasi
-        Swal.fire({
-            title: 'Apakah Anda yakin?',
-            text: "Data ini akan dihapus secara permanen!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Hapus',
-            cancelButtonText: 'Batal',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Kirimkan form untuk menghapus data jika dikonfirmasi
-                document.getElementById('delete-form-' + id).submit();
-            }
-        });
-    }
-</script>
 @endsection

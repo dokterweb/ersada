@@ -6,12 +6,17 @@ use App\Models\Angsuran;
 use App\Models\PembayaranAngsuran;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\AuditTrailService;
 
 class PembayaranAngsuranService
 {
-    /**
-     * Proses pembayaran angsuran
-     */
+    protected AuditTrailService $auditTrail;
+
+    public function __construct(AuditTrailService $auditTrail)
+    {
+        $this->auditTrail = $auditTrail;
+    }
+    
     public function bayar(Angsuran $angsuran, array $data): array
     {
         return DB::transaction(function () use ($angsuran, $data) {

@@ -43,10 +43,7 @@ class GenerateDokumenService
         */
 
         // $filename = sprintf('%s_%s.docx',$akad->nomor_akad,now()->format('YmdHis'));
-        $filename = str($akad->nomor_akad)
-        ->replace('/', '-')
-        ->append('_'.now()->format('YmdHis').'.docx')
-        ->toString();
+        $filename = str($akad->nomor_akad)->replace('/', '-')->append('_'.now()->format('YmdHis').'.docx')->toString();
 
         /*
         |--------------------------------------------------------------------------
@@ -54,11 +51,7 @@ class GenerateDokumenService
         |--------------------------------------------------------------------------
         */
 
-        $result = $this->generateWord(
-            $template,
-            $data,
-            $filename
-        );
+        $result = $this->generateWord($template,$data,$filename);
         
         /*
         |--------------------------------------------------------------------------

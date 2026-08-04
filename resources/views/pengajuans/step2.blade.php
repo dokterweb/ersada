@@ -22,26 +22,15 @@
                 <div class="card">
                     <div class="card-body">
                         <ul class="steps steps-green steps-counter my-4">
-                            <li class="step-item">
-                                STEP 1
-                            </li>
-        
-                            <li class="step-item active">
-                                STEP 2
-                            </li>
-        
-                            <li class="step-item">
-                                STEP 3
-                            </li>
-        
-                            <li class="step-item">
-                                STEP 4
-                            </li>
-        
-                            <li class="step-item">
-                                REVIEW
-                            </li>
-        
+                            <li class="step-item">STEP 1</li>
+                            <li class="step-item active">STEP 2</li>
+                            <li class="step-item">STEP 3</li>
+                            <li class="step-item">STEP 4</li>
+                            <li class="step-item">REVIEW</li>
+                            <li class="step-item">ANALISA</li>
+                            <li class="step-item">JAMINAN</li>
+                            <li class="step-item">ANALISA KAPITAL</li>
+                            <li class="step-item">REVIEW FINAL</li>
                         </ul>
         
                     </div>

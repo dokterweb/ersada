@@ -30,6 +30,7 @@
                             <li class="step-item">ANALISA</li>
                             <li class="step-item">JAMINAN</li>
                             <li class="step-item active">ANALISA KAPITAL</li>
+                            <li class="step-item">REVIEW FINAL</li>
                         </ul>
         
                     </div>

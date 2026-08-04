@@ -29,6 +29,10 @@
                             <li class="step-item">STEP 3</li>
                             <li class="step-item">STEP 4</li>
                             <li class="step-item">REVIEW</li>
+                            <li class="step-item">ANALISA</li>
+                            <li class="step-item">JAMINAN</li>
+                            <li class="step-item">ANALISA KAPITAL</li>
+                            <li class="step-item">REVIEW FINAL</li>
                         </ul>
         
                     </div>

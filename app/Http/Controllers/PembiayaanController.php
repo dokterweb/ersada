@@ -171,6 +171,8 @@ class PembiayaanController extends Controller
                     'bunga_angsuran' => $item['bunga_angsuran'],
                     'total_angsuran' => $item['total_angsuran'],
                     'sisa_pokok' => $item['sisa_pokok'],
+                    'total_terbayar'      => $item['total_terbayar'],
+                    'sisa_tagihan'        => $item['sisa_tagihan'],
                 ]);
             }
     

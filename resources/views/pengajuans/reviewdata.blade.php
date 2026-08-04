@@ -25,6 +25,9 @@
                             <li class="step-item">STEP 3</li>
                             <li class="step-item">STEP 4</li>
                             <li class="step-item active">REVIEW</li>
+                            <li class="step-item">ANALISA</li>
+                            <li class="step-item">JAMINAN</li>
+                            <li class="step-item">REVIEW FINAL</li>
                         </ul>
         
                     </div>
@@ -145,47 +148,47 @@
                                     <table class="table">
                                         <tr>
                                             <td>Jenis Pekerjaan</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->jenis_pekerjaan }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->jenis_pekerjaan }}</td>
                                         </tr>
                                         <tr>
                                             <td>Penghasilan</td>
-                                            <td>{{ number_format($pengajuan->nasabah->pekerjaan->penghasilan) }}</td>
+                                            <td>{{ number_format($pengajuan->nasabah->pekerjaanNasabah->penghasilan) }}</td>
                                         </tr>
                                         <tr>
                                             <td>Nama Usaha</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->nama_usaha }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->nama_usaha }}</td>
                                         </tr>
                                         <tr>
                                             <td>Jenis Usaha</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->jenis_usaha }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->jenis_usaha }}</td>
                                         </tr>
                                         <tr>
                                             <td>Lama Usaha</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->lama_usaha }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->lama_usaha }}</td>
                                         </tr>
                                         <tr>
                                             <td>Jumlah Pegawai</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->jumlah_pegawai }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->jumlah_pegawai }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat Usaha</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->alamat_usaha }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->alamat_usaha }}</td>
                                         </tr>
                                         <tr>
                                             <td>Telp Usaha</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->telpon_usaha }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->telpon_usaha }}</td>
                                         </tr>
                                         <tr>
                                             <td>Bangunan Usaha</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->bangunan_usaha }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->bangunan_usaha }}</td>
                                         </tr>
                                         <tr>
                                             <td>Status Tempat Usaha</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->status_tempat_usaha }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->status_tempat_usaha }}</td>
                                         </tr>
                                         <tr>
                                             <td>Aktifitas Usaha</td>
-                                            <td>{{ $pengajuan->nasabah->pekerjaan->aktivitas_usaha }}</td>
+                                            <td>{{ $pengajuan->nasabah->pekerjaanNasabah->aktivitas_usaha }}</td>
                                         </tr>
                                        
                                     </table>

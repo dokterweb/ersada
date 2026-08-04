@@ -406,6 +406,16 @@ $('#btnSimpanBayar').click(function () {
             $('#card_dibayar').text(r.summary.sudah_dibayar);
             $('#card_sisa').text(r.summary.sisa_angsuran);
             $('#card_outstanding').text('Rp ' + r.summary.outstanding_format);
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                // text: r.message,
+                html: `
+                    <b>Nominal Dibayar</b><br>
+                    Rp ${r.nominal}
+                `,
+                confirmButtonText: 'OK'
+            });
         },
 
         error: function (xhr) {

@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Services\SurveyMediaService;
 
 class SurveyController extends Controller
 {
@@ -204,15 +205,46 @@ class SurveyController extends Controller
     
     }
 
-    public function stepDokumentasi(Survey $survey)
+/*     public function stepDokumentasi(Survey $survey)
     {
         abort_if($survey->assigned_to != auth()->id(),403);
 
         abort_if($survey->status!='progress',403);
 
-        $survey->load(['pengajuan','pengajuan.nasabah','pengajuan.jaminans','dokumentasis',]);
+        $survey->load(['pengajuan','pengajuan.nasabah','pengajuan.jaminanPengajuans','dokumentasis',]);
 
         return view('survey.dokumentasi',compact('survey'));
+    } */
+
+    public function stepDokumentasi(Survey $survey)
+    {
+        abort_if($survey->assigned_to != auth()->id(), 403);
+        abort_if($survey->status != 'progress', 403);
+
+        $survey->load(['pengajuan','pengajuan.nasabah','pengajuan.jaminanPengajuans','dokumentasis',]);
+        $dokumentasi = $survey->dokumentasis;
+
+        // Dokumentasi Rumah
+        $rumahDepan = $dokumentasi->where('kategori', 'rumah')->where('posisi', 'depan')->isNotEmpty();
+        $rumahDalam = $dokumentasi->where('kategori', 'rumah')->where('posisi', 'dalam')->isNotEmpty();
+        $rumahSamping = $dokumentasi->where('kategori', 'rumah')->where('posisi', 'samping')->isNotEmpty();
+
+        // Dokumentasi Usaha
+        $usaha = $dokumentasi->where('kategori', 'usaha')->isNotEmpty();
+
+        // Dokumentasi per Jaminan
+        $statusJaminan = [];
+
+        foreach ($survey->pengajuan->jaminanPengajuans as $jaminan) {
+            $statusJaminan[$jaminan->id] = [
+                'depan' => $dokumentasi->where('kategori', 'jaminan')->where('jaminan_pengajuan_id', $jaminan->id)->where('posisi', 'depan')->isNotEmpty(),
+                'samping' => $dokumentasi->where('kategori', 'jaminan')->where('jaminan_pengajuan_id', $jaminan->id)->where('posisi', 'samping')->isNotEmpty(),
+                'belakang' => $dokumentasi->where('kategori', 'jaminan')->where('jaminan_pengajuan_id', $jaminan->id)->where('posisi', 'belakang')->isNotEmpty(),
+                'dalam' => $dokumentasi->where('kategori', 'jaminan')->where('jaminan_pengajuan_id', $jaminan->id)->where('posisi', 'dalam')->isNotEmpty(),
+                'video' => $dokumentasi->where('kategori', 'video')->where('jaminan_pengajuan_id', $jaminan->id)->isNotEmpty(),
+            ];
+        }
+        return view('survey.dokumentasi', compact('survey','rumahDepan','rumahDalam','rumahSamping','usaha','statusJaminan'));
     }
 
     public function checkDokumentasi(Survey $survey)
@@ -250,7 +282,7 @@ class SurveyController extends Controller
         |--------------------------------------------------------------------------
         */
     
-        foreach($survey->pengajuan->jaminans as $jaminan){
+        foreach($survey->pengajuan->jaminanPengajuans as $jaminan){
     
             $foto = SurveyDokumentasi::where('survey_id',$survey->id)
                         ->where('jaminan_pengajuan_id',$jaminan->id)
@@ -288,7 +320,7 @@ class SurveyController extends Controller
         return redirect()->route('survey.review',$survey);
     }
 
-    public function uploadDokumentasi(Request $request, Survey $survey)
+    public function uploadDokumentasi(Request $request, Survey $survey, SurveyMediaService $mediaService)
     {
         abort_if($survey->assigned_to != auth()->id(),403);
         abort_if($survey->status!='progress',403);
@@ -343,8 +375,8 @@ class SurveyController extends Controller
         else {
             abort(403);
         }
-        $survey->load(['pengajuan','pengajuan.nasabah','pengajuan.nasabah.pekerjaan','pengajuan.marketing',
-            'pengajuan.cabang','pengajuan.jaminans','pengajuan.referensis','berkas','dokumentasis','assignedTo']);
+        $survey->load(['pengajuan','pengajuan.nasabah','pengajuan.nasabah.pekerjaanNasabah','pengajuan.marketing',
+            'pengajuan.cabang','pengajuan.jaminanPengajuans','pengajuan.referensis','berkas','dokumentasis','assignedTo']);
     
         $rumah = $survey->dokumentasis->where('kategori', 'rumah');
         $usaha = $survey->dokumentasis->where('kategori', 'usaha');
@@ -404,8 +436,8 @@ class SurveyController extends Controller
 
         abort_if($survey->status != 'submitted', 403);
 
-        $survey->load(['pengajuan','pengajuan.nasabah','pengajuan.nasabah.pekerjaan','pengajuan.marketing','pengajuan.cabang',
-            'pengajuan.jaminans','pengajuan.referensis','berkas','dokumentasis','assignedTo',]);
+        $survey->load(['pengajuan','pengajuan.nasabah','pengajuan.nasabah.pekerjaanNasabah','pengajuan.marketing','pengajuan.cabang',
+            'pengajuan.jaminanPengajuans','pengajuan.referensis','berkas','dokumentasis','assignedTo',]);
 
         $rumah   = $survey->dokumentasis->where('kategori', 'rumah');
         $usaha   = $survey->dokumentasis->where('kategori', 'usaha');
@@ -446,7 +478,7 @@ class SurveyController extends Controller
                     'review_note' => $validated['catatan'],
                 ]);
 
-                $survey->pengajuan->update(['status' => 'menunggu_pimpinan',]);
+                $survey->pengajuan->update(['status' => 'menunggu_keputusan',]);
             }
         });
 
@@ -505,8 +537,8 @@ class SurveyController extends Controller
 
             if ($request->hasFile('usaha')) {
                 foreach ($request->file('usaha') as $file) {
-                    $path = $file->store("survey/{$survey->id}/usaha",'public');
-    
+                    // $path = $file->store("survey/{$survey->id}/usaha",'public');
+                    $path = $mediaService->store($file,$survey->id);
                     $survey->dokumentasis()->create([
                         'kategori' => 'usaha',
                         'posisi' => 'usaha',

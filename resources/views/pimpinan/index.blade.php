@@ -32,198 +32,90 @@
                 <h3 class="card-title">Data Pengajuan Pembiayaan</h3>
               </div>
               <div class="card-body">
-
                 <form method="GET">
-    
                     <div class="row">
-    
                         <div class="col-md-5">
-    
-                            <input
-                                type="text"
-                                name="search"
-                                class="form-control"
-                                placeholder="Nomor Pengajuan / Nama Nasabah"
-                                value="{{ request('search') }}">
-    
+                            <input type="text" name="search" class="form-control" placeholder="Nomor Pengajuan / Nama Nasabah" value="{{ request('search') }}">
                         </div>
-    
                         <div class="col-md-3">
-    
-                            <select
-                                name="status"
-                                class="form-select">
-    
-                                <option value="">Menunggu Review</option>
-    
-                                <option value="menunggu_pimpinan"
-                                    @selected(request('status')=='menunggu_pimpinan')>
-    
-                                    Menunggu Pimpinan
-    
+                            <select name="status" class="form-select">
+                                <option value="">Semua Antrian</option>
+                                <option value="menunggu_pimpinan"@selected(request('status')=='menunggu_pimpinan')>
+                                    Menunggu Review Awal
                                 </option>
-    
-                                <option value="ditolak_pimpinan"
-                                    @selected(request('status')=='ditolak_pimpinan')>
-    
+                                <option value="menunggu_keputusan"@selected(request('status')=='menunggu_keputusan')>
+                                    Menunggu Keputusan
+                                </option>
+                                <option value="menunggu_survey" @selected(request('status')=='menunggu_survey')>
+                                    Menunggu Survey
+                                </option>
+                                <option value="survey_progress" @selected(request('status')=='survey_progress')>
+                                    Survey Progress
+                                </option>
+                                <option value="disetujui" @selected(request('status')=='disetujui')>
+                                    Disetujui
+                                </option>
+                                <option value="ditolak" @selected(request('status')=='ditolak')>
                                     Ditolak
-    
                                 </option>
-    
-                                <option value="didisposisi_spvmarketing"
-                                    @selected(request('status')=='didisposisi_spvmarketing')>
-    
-                                    Disposisi SPV Marketing
-    
-                                </option>
-    
-                                <option value="didisposisi_surveyor"
-                                    @selected(request('status')=='didisposisi_surveyor')>
-    
-                                    Disposisi Surveyor
-    
-                                </option>
-    
                             </select>
-    
                         </div>
-    
                         <div class="col-md-2">
-    
                             <button class="btn btn-primary w-100">
-    
                                 Cari
-    
                             </button>
-    
                         </div>
-    
                     </div>
-    
                 </form>
-    
             </div>
     
             <div class="table-responsive">
-    
                 <table class="table table-hover table-vcenter">
-    
                     <thead>
-    
                         <tr>
-    
                             <th>No</th>
-    
                             <th>No Pengajuan</th>
-    
                             <th>Nasabah</th>
-    
                             <th>Marketing</th>
-    
                             <th>Cabang</th>
-    
                             <th>Plafond</th>
-    
                             <th>Status</th>
-    
                             <th>Aksi</th>
-    
                         </tr>
-    
                     </thead>
-    
                     <tbody>
-    
                     @forelse($pengajuans as $item)
-    
                         <tr>
-    
+                            <td>{{ $pengajuans->firstItem()+$loop->index }}</td>
+                            <td>{{ $item->nomor_pengajuan }}</td>
+                            <td>{{ $item->nasabah?->nama }}</td>
+                            <td>{{ $item->marketing?->user?->name }}</td>
+                            <td>{{ $item->cabang?->nama_cabang }}</td>
+                            <td>{{ number_format($item->nominal_pengajuan) }}</td>
                             <td>
-    
-                                {{ $pengajuans->firstItem()+$loop->index }}
-    
-                            </td>
-    
-                            <td>
-    
-                                {{ $item->nomor_pengajuan }}
-    
-                            </td>
-    
-                            <td>
-    
-                                {{ $item->nasabah?->nama }}
-    
-                            </td>
-    
-                            <td>
-    
-                                {{ $item->marketing?->user?->name }}
-    
-                            </td>
-    
-                            <td>
-    
-                                {{ $item->cabang?->nama }}
-    
-                            </td>
-    
-                            <td>
-    
-                                {{ number_format($item->plafond) }}
-    
-                            </td>
-    
-                            <td>
-    
                                 <span class="badge {{ $item->status_badge['class'] }}">
-    
                                     {{ $item->status_badge['label'] }}
-    
                                 </span>
-    
                             </td>
-    
                             <td>
-    
-                                <a
-                                    href="{{ route('pimpinan.show',$item) }}"
-                                    class="btn btn-primary btn-sm">
-    
+                                <a href="{{ route('pimpinan.show',$item) }}" class="btn btn-primary btn-sm">
                                     Review
-    
                                 </a>
-    
                             </td>
-    
                         </tr>
-    
                     @empty
-    
                         <tr>
-    
                             <td colspan="8" class="text-center">
-    
                                 Tidak ada data.
-    
                             </td>
-    
                         </tr>
-    
                     @endforelse
-    
                     </tbody>
-    
                 </table>
-    
             </div>
-    
             <div class="card-footer">
-    
                 {{ $pengajuans->links() }}
-    
             </div>
-            
             </div>
           </div>
         </div>

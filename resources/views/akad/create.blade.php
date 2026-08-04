@@ -125,12 +125,12 @@
                                             <span class="form-check-label">Kwitansi</span>
                                         </label>
                                     </div>
-                                    <div class="col-md-3">
+                                   {{--  <div class="col-md-3">
                                         <label class="form-check">
                                             <input type="checkbox" checked disabled class="form-check-input">
                                             <span class="form-check-label">Surat Kuasa</span>
                                         </label>
-                                    </div>
+                                    </div> --}}
                                 </div>
                             </div>
                         </div>
@@ -142,7 +142,7 @@
                         class="btn btn-secondary">
                         Kembali
                     </a>
-                    <button class="btn btn-success">
+                    <button type="submit" class="btn btn-success">
                         Simpan Akad
                     </button>
                 </div>

@@ -26,7 +26,7 @@
                                 <div class="card-body">
                                     <table class="table table-bordered">
                                         <tr>
-                                            <th width="180">Nomor Pengajuan</th>
+                                            <th width="250">Nomor Pengajuan</th>
                                             <td>{{ $pembiayaan->pengajuan->nomor_pengajuan }}</td>
                                         </tr>
                                         <tr>
@@ -59,7 +59,7 @@
                                 <div class="card-body">
                                     <table class="table table-bordered">
                                         <tr>
-                                            <th width="180">Plafond</th>
+                                            <th width="250">Plafond</th>
                                             <td>Rp {{ number_format($pembiayaan->plafond,0,',','.') }}</td>
                                         </tr>
                                         <tr>
@@ -92,7 +92,7 @@
                                 <div class="card-body">
                                     <table class="table table-bordered">
                                         <tr>
-                                            <th width="180">Administrasi</th>
+                                            <th width="250">Administrasi</th>
                                             <td>Rp {{ number_format($pembiayaan->biaya_administrasi,0,',','.') }}</td>
                                         </tr>
                                         <tr>
@@ -114,9 +114,9 @@
                                     <strong>DANA DITERIMA NASABAH</strong>
                                 </div>
                                 <div class="card-body text-center">
-                                    <h2 class="text-success">
+                                    <h1 class="text-success">
                                         Rp {{ number_format($pembiayaan->dana_diterima,0,',','.') }}
-                                    </h2>
+                                    </h1>
                                 </div>
                             </div>
                         </div>

@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Akad;
 use App\Models\Pembiayaan;
+use App\Services\GenerateDokumenService;
+use App\Services\PdfService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Services\GenerateDokumenService;
 
 class AkadController extends Controller
 {
@@ -16,17 +17,12 @@ class AkadController extends Controller
         abort_if($pembiayaan->status != 'jadwal_generated',403,'Pembiayaan belum siap akad.');
 
         if($pembiayaan->akad){
-            return redirect()
-                    ->route('akad.edit',$pembiayaan->akad);
+            return redirect()->route('akad.edit',$pembiayaan->akad);
         }
-
         $pembiayaan->load(['pengajuan.nasabah','pengajuan.marketing','pengajuan.cabang','angsurans',]);
-
         $nomorAkad = $this->generateNomorAkad();
-
         return view('akad.create',compact('pembiayaan','nomorAkad'));
     }
-
    
     public function store(Request $request, Pembiayaan $pembiayaan)
     {
@@ -60,13 +56,14 @@ class AkadController extends Controller
 
     public function show(Akad $akad)
     {
-        $akad->load(['pembiayaan','pembiayaan.pengajuan.nasabah','pembiayaan.pengajuan.marketing.user','pembiayaan.pengajuan.cabang','pembiayaan.angsurans',]);
+        // $akad->load(['pembiayaan','pembiayaan.pengajuan.nasabah','pembiayaan.pengajuan.marketing.user','pembiayaan.pengajuan.cabang','pembiayaan.angsurans',]);
+        // $akad->load(['pembiayaan','pembiayaan.pencairan','pembiayaan.pengajuan.nasabah','pembiayaan.pengajuan.marketing.user','pembiayaan.pengajuan.cabang','pembiayaan.angsurans',]);
 
         $angsuranPertama = $akad->pembiayaan->angsurans->sortBy('angsuran_ke')->first();
         $angsuranTerakhir = $akad->pembiayaan->angsurans->sortByDesc('angsuran_ke')->first();
 
         return view('akad.show', compact('akad','angsuranPertama','angsuranTerakhir'));
-}
+    }
 
     public function edit(Akad $akad)
     {
@@ -95,20 +92,35 @@ class AkadController extends Controller
 
     }
 
+    public function sign(Akad $akad)
+    {
+        abort_if($akad->status != 'draft',403,'Akad sudah ditandatangani.');
+    
+        DB::transaction(function () use ($akad) {
+            $akad->update(['status' => 'signed',]);
+            $akad->pembiayaan->update([
+                'status' => 'signed',
+                'tanggal_akad' => $akad->tanggal_akad,
+            ]);
+        });
+    
+        return redirect()->route('akad.show', $akad)
+                ->with(
+                    'success',
+                    'Akad berhasil dikonfirmasi telah ditandatangani.'
+                );
+    }
+
+   /*  public function cetak(Akad $akad)
+    {
+        return app(PdfService::class)->akad($akad)->stream('Akad-'.$akad->nomor_akad.'.pdf');
+    } */
+
     private function generateNomorAkad()
     {
         $last = Akad::max('id') + 1;
         return 'AKD/' .date('Y') .'/' .str_pad($last,5,'0',STR_PAD_LEFT);
     }
-
-  /*   public function generate(Akad $akad, GenerateDokumenService $generator)
-    {
-        $result = $generator->generateAkad($akad);
-        
-        return redirect()->back()->with('success','Dokumen berhasil dibuat.')
-                        ->with('download',asset($result['public_path']));
-    
-    } */
 
     public function generate(Akad $akad, GenerateDokumenService $generator)
     {

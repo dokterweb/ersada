@@ -2,35 +2,23 @@
 @section('title','Modul Survey')
 @section('content')
 <div class="page-wrapper">
-    <!-- Page header -->
-    <div class="page-header d-print-none">
-      <div class="container-xl">
-        <div class="row g-2 align-items-center">
-          <div class="col">
-            <h2 class="page-title">
-              Data Karyawan
-            </h2>
-          </div>
-        </div>
-      </div>
-    </div>
     <!-- Page body -->
     <div class="page-body">
       <div class="container-xl">
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-                <h4 class="mb-0">
+                <h3 class="mb-0">
                     <i class="fa fa-map-marker-alt"></i>
                     Modul Survey
-                </h4>
-                <small class="text-muted">
+                </h3>
+                <p class="text-muted">
                     @role('spvsurveyor')
                         Daftar pengajuan yang menunggu proses survey
                     @elserole('surveyor')
                         Daftar tugas survey Anda
                     @endrole
-                </small>
+                </p>
             </div>
         </div>
     

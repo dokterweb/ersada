@@ -28,6 +28,8 @@
                             <li class="step-item">STEP 4</li>
                             <li class="step-item">REVIEW</li>
                             <li class="step-item active">ANALISA</li>
+                            <li class="step-item">ANALISA KAPITAL</li>
+                            <li class="step-item">REVIEW FINAL</li>
                         </ul>
         
                     </div>
@@ -132,17 +134,30 @@
                                 </select>
                             </div>
                             {{-- KTP PASANGAN --}}
+                            @if(strtolower($pengajuan->nasabah->status_pernikahan ?? '') === 'menikah')
+
                             <div class="col-md-3 mb-3">
                                 <label>KTP Pasangan</label>
+                            
                                 <select name="ktp_pasangan_valid" class="form-select">
-                                    <option value="1" {{ old('ktp_pasangan_valid', $analisa?->ktp_pasangan_valid) == 1? 'selected':'' }}>
+                            
+                                    <option value="">-- Pilih --</option>
+                            
+                                    <option value="1"
+                                        {{ old('ktp_pasangan_valid', $analisa?->ktp_pasangan_valid) == 1 ? 'selected' : '' }}>
                                         Valid
                                     </option>
-                                    <option value="0" {{ old('ktp_pasangan_valid', $analisa?->ktp_pasangan_valid) == 0 ? 'selected':'' }}>
+                            
+                                    <option value="0"
+                                        {{ old('ktp_pasangan_valid', $analisa?->ktp_pasangan_valid) == 0 ? 'selected' : '' }}>
                                         Tidak Valid
                                     </option>
+                            
                                 </select>
+                            
                             </div>
+                            
+                            @endif
                             {{-- KK --}}
                             <div class="col-md-3 mb-3">
                                 <label>Kartu Keluarga</label>
@@ -157,7 +172,7 @@
                             </div>
                             <div class="col-md-3 mb-3">
                                 <label>Kartu Keluarga</label>
-                                <select name="perbaikan_plafon" class="form-control">
+                                <select name="perbaikan_plafon" class="form-select">
                                     <option value="0"{{ old('perbaikan_plafon',$analisa?->perbaikan_plafon) == 0? 'selected' : '' }}>
                                         Belum
                                     </option>

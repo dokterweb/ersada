@@ -35,6 +35,14 @@ class AngsuranService
         return $tanggal->copy()->addDays(30);
     }
 
+    
+    //  Tanggal akan tetap sama setiap bulan.
+    
+    protected function tambah1Bulan(Carbon $tanggal): Carbon
+    {
+        return $tanggal->copy()->addMonthNoOverflow();
+    }
+
     /**
      * Generate tenor pendek
      */
@@ -81,8 +89,8 @@ class AngsuranService
                 'sisa_tagihan'          => $total,
             ];
 
-            $tanggal = $this->tambah30Hari($tanggal);
-
+            // $tanggal = $this->tambah30Hari($tanggal);
+            $tanggal = $this->tambah1Bulan($tanggal);
         }
 
         return $jadwal;
@@ -135,8 +143,8 @@ class AngsuranService
                 'sisa_tagihan'          => $totalAngsuran,
             ];
 
-            $tanggal = $this->tambah30Hari($tanggal);
-
+            // $tanggal = $this->tambah30Hari($tanggal);
+            $tanggal = $this->tambah1Bulan($tanggal);
         }
 
         return $jadwal;
