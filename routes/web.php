@@ -164,8 +164,6 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
         Route::get('/', [AngsuranController::class,'index'])->name('angsuran.index');
         Route::get('/{pembiayaan}', [AngsuranController::class,'show'])->name('angsuran.show');
         Route::get('/{angsuran}/bayar', [AngsuranController::class,'create'])->name('angsuran.create');
-        Route::post('/{angsuran}/bayar', [AngsuranController::class,'store'])->name('angsuran.store');
-        // Route::get('/{angsuran}/history', [AngsuranController::class,'history'])->name('angsuran.history');
         Route::get('/jadwal/{angsuran}/history',[AngsuranController::class, 'getHistory'])->name('angsuran.history');
         Route::get('/jadwal/{angsuran}/json',[AngsuranController::class,'getAngsuran'])->name('angsuran.json');
         Route::post('/jadwal/{angsuran}/bayar',[AngsuranController::class,'store'])->name('angsuran.store');
