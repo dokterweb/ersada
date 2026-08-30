@@ -18,9 +18,14 @@ return new class extends Migration
             $table->date('tanggal_bayar');
             $table->bigInteger('jumlah_bayar');
             $table->bigInteger('denda')->default(0);
-            $table->bigInteger('diskon')->default(0);
+            $table->unsignedBigInteger('admin_keterlambatan')->default(0);
             $table->bigInteger('total_dibayar');
             $table->enum('metode',['tunai','transfer'])->default('tunai');
+            $table->bigInteger('diskon_denda')->default(0);
+            $table->enum('status_diskon', ['tidak_ada','menunggu','disetujui','ditolak',])->default('tidak_ada');
+            $table->foreignId('diskon_disetujui_oleh')->nullable()->constrained('users');
+            $table->timestamp('diskon_disetujui_at')->nullable();
+            $table->text('alasan_diskon')->nullable();
             $table->text('keterangan')->nullable();
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();

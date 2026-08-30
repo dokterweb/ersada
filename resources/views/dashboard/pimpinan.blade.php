@@ -127,7 +127,7 @@
                               <td>{{ $loop->iteration }}</td>
                               <td><strong>{{ $item->nomor_pengajuan }}</strong></td>
                               <td>{{ \Carbon\Carbon::parse($item->tanggal_pengajuan)->format('d/m/Y') }}</td>
-                              <td>{{ $item->cabang->nama }}</td>
+                              <td>{{ $item->cabang->nama_cabang }}</td>
                               <td>{{ $item->marketing?->user?->name }}</td>
                               <td>{{ $item->nasabah?->nama }}</td>
                               <td class="text-end">Rp {{ number_format($item->nominal_pengajuan,0,',','.') }}</td>

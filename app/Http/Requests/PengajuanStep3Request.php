@@ -40,7 +40,7 @@ class PengajuanStep3Request extends FormRequest
             'pasangan.tempat_lahir' => 'required_if:has_pasangan,1|nullable|string|max:255',
 
             'pasangan.tgl_lahir' => 'required_if:has_pasangan,1|nullable|date',
-
+            'pasangan.foto_pasangan' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
 
             /*
             ============================================

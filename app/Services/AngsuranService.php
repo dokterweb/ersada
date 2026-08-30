@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Pembiayaan;
+use App\Models\Angsuran;
 use Carbon\Carbon;
 
 class AngsuranService
@@ -148,6 +149,24 @@ class AngsuranService
         }
 
         return $jadwal;
+    }
+
+    public function syncStatus(?int $pembiayaanId = null): void
+    {
+        $query = Angsuran::query()
+            ->where('status', '!=', 'dibayar')
+            ->whereDate('tanggal_jatuh_tempo','<=',Carbon::today());
+
+        if ($pembiayaanId) {
+            $query->where(
+                'pembiayaan_id',
+                $pembiayaanId
+            );
+        }
+
+        $query->update([
+            'status' => 'jatuh_tempo',
+        ]);
     }
 
 }

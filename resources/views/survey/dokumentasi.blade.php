@@ -240,55 +240,150 @@ $('.upload-file').change(function(){
 
 
 function updateBadgeRumah(){
+
     if($('#badgeRumah').length == 0){
         return;
     }
-    let lengkap = true;
-    if($('#status-rumah-depan').hasClass('d-none')){
-        lengkap = false;
+
+    let jumlah = 0;
+
+    if(!$('#status-rumah-depan').hasClass('d-none')){
+        jumlah++;
     }
-    if($('#status-rumah-dalam').hasClass('d-none')){
-        lengkap = false;
+
+    if(!$('#status-rumah-dalam').hasClass('d-none')){
+        jumlah++;
     }
-    if($('#status-rumah-samping').hasClass('d-none')){
-        lengkap = false;
+
+    if(!$('#status-rumah-samping').hasClass('d-none')){
+        jumlah++;
     }
-    if(lengkap){
-        $('#badgeRumah').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
-    }else{
-        $('#badgeRumah').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
+
+
+    let badge = $('#badgeRumah');
+
+
+    if(jumlah === 0){
+
+        badge
+            .removeClass('bg-green-lt bg-blue-lt')
+            .addClass('bg-yellow-lt')
+            .text('Belum Ada');
+
     }
+    else if(jumlah < 3){
+
+        badge
+            .removeClass('bg-yellow-lt bg-green-lt')
+            .addClass('bg-blue-lt')
+            .text('Sebagian');
+
+    }
+    else{
+
+        badge
+            .removeClass('bg-yellow-lt bg-blue-lt')
+            .addClass('bg-green-lt')
+            .text('Tersedia');
+
+    }
+
 }
 
 function updateBadgeUsaha(){
+
     if($('#badgeUsaha').length == 0){
         return;
     }
 
-    if($('#status-usaha').hasClass('d-none')){
-        $('#badgeUsaha').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
-    }else{
-        $('#badgeUsaha').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
+
+    let badge = $('#badgeUsaha');
+
+
+    if(
+        $('#status-usaha').hasClass('d-none')
+    ){
+
+        badge
+            .removeClass('bg-green-lt')
+            .addClass('bg-yellow-lt')
+            .text('Belum Ada');
+
     }
+    else{
+
+        badge
+            .removeClass('bg-yellow-lt')
+            .addClass('bg-green-lt')
+            .text('Tersedia');
+
+    }
+
 }
 
 function updateBadgeJaminan(){
+
     $('.badge-jaminan').each(function(){
+
         let badge = $(this);
+
         let id = badge.data('id');
-        let lengkap = true;
-        ['depan','samping','dalam','belakang'].forEach(function(posisi){
-            if($('#status-jaminan-'+id+'-'+posisi).hasClass('d-none')){
-                lengkap = false;
+
+        let jumlah = 0;
+
+
+        [
+            'depan',
+            'samping',
+            'dalam',
+            'belakang'
+        ].forEach(function(posisi){
+
+            if(
+                !$('#status-jaminan-' + id + '-' + posisi)
+                    .hasClass('d-none')
+            ){
+
+                jumlah++;
+
             }
+
         });
 
-        if(lengkap){
-            badge.removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
-        }else{
-            badge.removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
+
+        if(jumlah === 0){
+
+            badge
+                .removeClass(
+                    'bg-green-lt bg-blue-lt'
+                )
+                .addClass('bg-yellow-lt')
+                .text('Belum Ada');
+
         }
+        else if(jumlah < 4){
+
+            badge
+                .removeClass(
+                    'bg-yellow-lt bg-green-lt'
+                )
+                .addClass('bg-blue-lt')
+                .text('Sebagian');
+
+        }
+        else{
+
+            badge
+                .removeClass(
+                    'bg-yellow-lt bg-blue-lt'
+                )
+                .addClass('bg-green-lt')
+                .text('Tersedia');
+
+        }
+
     });
+
 }
 
 </script>

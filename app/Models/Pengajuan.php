@@ -134,4 +134,8 @@ class Pengajuan extends Model
         return $this->hasMany(JaminanPengajuan::class);
     }
 
+    public function dokumenPayrolls()
+    {
+        return $this->hasMany(Dokumen_payroll::class);
+    }
 }

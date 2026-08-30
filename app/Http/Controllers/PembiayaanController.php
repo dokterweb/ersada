@@ -54,6 +54,7 @@ class PembiayaanController extends Controller
             'materai' => 'nullable|numeric|min:0',
             'biaya_survei' => 'nullable|numeric|min:0',
             'tanggal_jatuh_tempo_pertama' => 'required|date',
+            'biaya_notaris' => 'nullable|numeric|min:0',
         ]);
     
         // Hitung ulang menggunakan Service
@@ -61,7 +62,8 @@ class PembiayaanController extends Controller
             $request->plafond,
             $request->tenor,
             $request->materai ?? 0,
-            $request->biaya_survei ?? 0
+            $request->biaya_survei ?? 0,
+            $request->biaya_notaris ?? 0,
         );
     
         $pembiayaan = Pembiayaan::create([
@@ -75,6 +77,7 @@ class PembiayaanController extends Controller
             'biaya_administrasi'    => $hasil['biaya_administrasi'],
             'materai'               => $hasil['materai'],
             'biaya_survei'          => $hasil['biaya_survei'],
+            'biaya_notaris'         => $hasil['biaya_notaris'],
             'dana_diterima'         => $hasil['dana_diterima'],
             'tanggal_jatuh_tempo_pertama' => $request->tanggal_jatuh_tempo_pertama,
             'status'                => 'draft',
@@ -105,13 +108,15 @@ class PembiayaanController extends Controller
             'materai' => 'required|numeric|min:0',
             'biaya_survei' => 'required|numeric|min:0',
             'tanggal_jatuh_tempo_pertama'=>'required|date',
+            'biaya_notaris' => 'nullable|numeric|min:0',
         ]);
 
         $hasil = $this->service->hitung(
             $pembiayaan->plafond,
             $pembiayaan->tenor,
             $request->materai,
-            $request->biaya_survei
+            $request->biaya_survei,
+            $request->biaya_notaris
         );
 
         $pembiayaan->update([
@@ -120,6 +125,7 @@ class PembiayaanController extends Controller
             'biaya_administrasi'=>$hasil['biaya_administrasi'],
             'materai'=>$request->materai,
             'biaya_survei'=>$request->biaya_survei,
+            'biaya_notaris'=>$request->biaya_notaris,
             'dana_diterima'=>$hasil['dana_diterima'],
             'tanggal_jatuh_tempo_pertama'=>$request->tanggal_jatuh_tempo_pertama,
 

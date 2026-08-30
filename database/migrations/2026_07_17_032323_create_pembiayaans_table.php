@@ -23,6 +23,7 @@ return new class extends Migration
             $table->decimal('biaya_administrasi', 18, 2)->default(0);
             $table->decimal('materai', 18, 2)->default(0);
             $table->decimal('biaya_survei', 18, 2)->default(0);
+            $table->decimal('biaya_notaris', 18, 2)->default(0);
             $table->decimal('dana_diterima', 18, 2)->default(0);
             $table->date('tanggal_akad')->nullable();
             $table->date('tanggal_pencairan')->nullable();

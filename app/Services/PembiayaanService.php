@@ -13,7 +13,7 @@ class PembiayaanService
      * @param float $biayaSurvei
      * @return array
      */
-    public function hitung(float $plafond,int $tenor,float $materai = 0,float $biayaSurvei = 0): array {
+    public function hitung(float $plafond,int $tenor,float $materai = 0,float $biayaSurvei = 0, float $biayaNotaris = 0): array {
 
         if ($tenor <= 5) {
             $jenisTenor = 'pendek';
@@ -27,7 +27,7 @@ class PembiayaanService
 
         $biayaAdministrasi = $plafond * ($persenAdministrasi / 100);
 
-        $danaDiterima = $plafond - $biayaAdministrasi - $materai - $biayaSurvei;
+        $danaDiterima = $plafond - $biayaAdministrasi - $materai - $biayaSurvei - $biayaNotaris;
 
         return [
             'jenis_tenor' => $jenisTenor,
@@ -35,6 +35,7 @@ class PembiayaanService
             'persen_administrasi' => $persenAdministrasi,
             'biaya_administrasi' => round($biayaAdministrasi,2),
             'materai' => round($materai,2),
+            'biaya_notaris' => round($biayaNotaris, 2),
             'biaya_survei' => round($biayaSurvei,2),
             'dana_diterima' => round($danaDiterima,2),
         ];

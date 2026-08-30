@@ -47,13 +47,16 @@
                                             data-nasabah="{{ optional($survey->pengajuan->nasabah)->nama }}"
                                             data-marketing="{{ optional($survey->pengajuan->marketing->user)->name }}">Terima
                                         </button>
+                                        <a href="{{ route('survey.pengajuan.show', $survey->pengajuan_id) }}"
+                                            class="btn btn-info btn-sm" target="_blank">Detail
+                                        </a>
                                     @elseif($survey->status=='accepted')
                                         <button class="btn btn-primary btn-sm btn-start"
                                             data-id="{{ $survey->id }}"
                                             data-pengajuan="{{ $survey->pengajuan->nomor_pengajuan }}"
                                             data-nasabah="{{ optional($survey->pengajuan->nasabah)->nama }}"
-                                            data-marketing="{{ optional($survey->pengajuan->marketing)->nama }}"
-                                            data-cabang="{{ optional($survey->pengajuan->cabang)->nama }}">
+                                            data-marketing="{{ optional($survey->pengajuan->marketing->user)->name }}"
+                                            data-cabang="{{ optional($survey->pengajuan->cabang)->nama_cabang }}">
                                             <i class="fa fa-play"></i>Mulai Survey
                                         </button>
                                     @elseif($survey->status=='progress')

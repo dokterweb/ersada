@@ -7,19 +7,24 @@ use App\Http\Requests\PengajuanStep1Request;
 use App\Http\Requests\PengajuanStep3Request;
 use App\Models\AnalisaPengajuan;
 use App\Models\ApprovalPengajuan;
+use App\Models\Dokumen_payroll;
 use App\Models\Dokumen_pengajuan;
+use App\Models\DokumenJaminan;
 use App\Models\JaminanPengajuan;
 use App\Models\KapitalPengajuan;
+use App\Models\Karyawan;
 use App\Models\Nasabah;
 use App\Models\Pekerjaan_nasabah;
 use App\Models\Pekerjaan_referensi;
 use App\Models\Pengajuan;
 use App\Models\Referensi;
+use App\Services\DocumentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
-use App\Services\DocumentService;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PengajuanController extends Controller
 {
@@ -36,7 +41,7 @@ class PengajuanController extends Controller
         /*
         * Direktur bisa melihat semua cabang
         */
-        if (!$user->hasRole('DIREKTUR')) {
+        if (!$user->hasRole('direktur')) {
             $query->where('cabang_id', auth()->user()->getCabangId());
         }
 
@@ -45,9 +50,17 @@ class PengajuanController extends Controller
         return view('pengajuans.index',compact('pengajuans'));
     }
 
-    public function createStep1()
+  public function createStep1()
     {
-        return view('pengajuans.step1');
+        $marketingOptions = $this->getMarketingOptionsForUser();
+
+        return view(
+            'pengajuans.step1',
+            [
+                'pengajuan' => null,
+                'marketingOptions' => $marketingOptions,
+            ]
+        );
     }
 
     public function storeStep1(PengajuanStep1Request $request)
@@ -55,251 +68,1162 @@ class PengajuanController extends Controller
         DB::beginTransaction();
 
         try {
-            $marketing = auth()->user()->karyawan;
+
+            $user = auth()->user();
+
+            /*
+            |--------------------------------------------------------------------------
+            | DATA KARYAWAN USER YANG LOGIN
+            |--------------------------------------------------------------------------
+            */
+
+            $karyawanUser = $user->karyawan;
+
+            if (!$karyawanUser) {
+                abort(403, 'Data karyawan tidak ditemukan.');
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | TENTUKAN MARKETING & CABANG
+            |--------------------------------------------------------------------------
+            */
+
+            if ($user->hasRole('admincabang')) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | ADMIN CABANG
+                |--------------------------------------------------------------------------
+                | marketing_id berasal dari select di Blade
+                |--------------------------------------------------------------------------
+                */
+
+                if (!$karyawanUser->cabang_id) {
+                    abort(403, 'Cabang pengguna belum ditentukan.');
+                }
+
+
+                /*
+                | Cari marketing yang dipilih
+                | dan pastikan berasal dari cabang admin tersebut.
+                */
+
+                $marketing = Karyawan::query()
+                    ->where('id', $request->marketing_id)
+                    ->where(
+                        'cabang_id',
+                        $karyawanUser->cabang_id
+                    )
+                    ->whereHas('user', function ($query) {
+                        $query->role([
+                            'marketing',
+                            'spvmarketing'
+                        ]);
+                    })
+                    ->first();
+
+
+                /*
+                | Jika tidak ditemukan berarti:
+                | - ID tidak valid
+                | - marketing dari cabang lain
+                | - user bukan marketing/spvmarketing
+                */
+
+                if (!$marketing) {
+                    abort(
+                        403,
+                        'Marketing yang dipilih tidak valid atau bukan berasal dari cabang Anda.'
+                    );
+                }
+
+
+                /*
+                | Cabang pengajuan mengikuti cabang marketing
+                */
+
+                $cabangId = $marketing->cabang_id;
+
+                $marketingId = $marketing->id;
+
+            } else {
+
+                /*
+                |--------------------------------------------------------------------------
+                | MARKETING / SPV MARKETING
+                |--------------------------------------------------------------------------
+                | marketing_id otomatis dari user login
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    !$user->hasAnyRole([
+                        'marketing',
+                        'spvmarketing'
+                    ])
+                ) {
+                    abort(
+                        403,
+                        'Anda tidak memiliki hak untuk membuat pengajuan.'
+                    );
+                }
+
+
+                if (!$karyawanUser->cabang_id) {
+                    abort(403, 'Cabang pengguna belum ditentukan.');
+                }
+
+
+                $cabangId = $karyawanUser->cabang_id;
+
+                $marketingId = $karyawanUser->id;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | NOMOR PENGAJUAN
+            |--------------------------------------------------------------------------
+            */
+
             $nomor = 'PGJ-' . now()->format('YmdHis');
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | CREATE PENGAJUAN
+            |--------------------------------------------------------------------------
+            */
+
             $pengajuan = Pengajuan::create([
-                'nomor_pengajuan'       => $nomor,
-                'cabang_id'             => $marketing->cabang_id,
-                'marketing_id'          => $marketing->id,
-                'status'                => 'draft',
-                'current_step'          => 2,
-                'tanggal_pengajuan'     => $request->tanggal_pengajuan,
-                'nominal_pengajuan'     => $request->nominal_pengajuan,
-                'tenor'                 => $request->tenor,
-                'kategori_nasabah'      => $request->kategori_nasabah,
-                'status_customer'       => $request->status_customer,
-                'tujuan_pinjaman'       => $request->tujuan_pinjaman,
-                'catatan'               => $request->catatan,
+
+                'nomor_pengajuan' =>
+                    $nomor,
+
+                'cabang_id' =>
+                    $cabangId,
+
+                'marketing_id' =>
+                    $marketingId,
+
+                'status' =>
+                    'draft',
+
+                'current_step' =>
+                    2,
+
+                'tanggal_pengajuan' =>
+                    $request->tanggal_pengajuan,
+
+                'nominal_pengajuan' =>
+                    $request->nominal_pengajuan,
+
+                'tenor' =>
+                    $request->tenor,
+
+                'kategori_nasabah' =>
+                    $request->kategori_nasabah,
+
+                'status_customer' =>
+                    $request->status_customer,
+
+                'tujuan_pinjaman' =>
+                    $request->tujuan_pinjaman,
+
+                'catatan' =>
+                    $request->catatan,
             ]);
+
 
             DB::commit();
 
-            // redirect step 2
-            
-            return redirect()->route('pengajuan.step2',$pengajuan->id)
-                ->with('success','Step 1 berhasil disimpan');
+
+            /*
+            |--------------------------------------------------------------------------
+            | REDIRECT STEP 2
+            |--------------------------------------------------------------------------
+            */
+
+            return redirect()
+                ->route(
+                    'pengajuan.step2',
+                    $pengajuan->id
+                )
+                ->with(
+                    'success',
+                    'Step 1 berhasil disimpan'
+                );
+
 
         } catch (\Throwable $e) {
 
             DB::rollBack();
 
-            return back()->withInput()->with('error',$e->getMessage());
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    $e->getMessage()
+                );
         }
     }
 
     public function editStep1(Pengajuan $pengajuan)
     {
         /*
-        kalau sudah submit final
-        jangan boleh edit
+        |--------------------------------------------------------------------------
+        | HANYA DRAFT YANG BOLEH DIEDIT
+        |--------------------------------------------------------------------------
         */
 
-        if($pengajuan->status != 'draft'){
-            abort(403,'Pengajuan sudah dikirim');
+        if ($pengajuan->status != 'draft') {
+            abort(403, 'Pengajuan sudah dikirim');
         }
 
-        return view('pengajuans.step1',compact('pengajuan'));
+
+        $user = Auth::user();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN CABANG
+        |--------------------------------------------------------------------------
+        | Pastikan pengajuan memang milik cabangnya.
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->hasRole('admincabang')) {
+
+            $karyawan = $user->karyawan;
+
+            if (!$karyawan) {
+                abort(403, 'Data karyawan tidak ditemukan.');
+            }
+
+            if (!$karyawan->cabang_id) {
+                abort(403, 'Cabang pengguna belum ditentukan.');
+            }
+
+            /*
+            | Cabang pengajuan harus sama dengan cabang admin
+            */
+
+            if ($pengajuan->cabang_id != $karyawan->cabang_id) {
+                abort(403, 'Anda tidak dapat mengakses pengajuan dari cabang lain.');
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | MARKETING OPTIONS
+        |--------------------------------------------------------------------------
+        */
+
+        $marketingOptions = $this->getMarketingOptionsForUser();
+
+
+        return view(
+            'pengajuans.step1',
+            compact(
+                'pengajuan',
+                'marketingOptions'
+            )
+        );
     }
 
-    public function updateStep1(PengajuanStep1Request $request,Pengajuan $pengajuan)
+    public function updateStep1(PengajuanStep1Request $request,Pengajuan $pengajuan) 
     {
+        /*
+        |--------------------------------------------------------------------------
+        | HANYA DRAFT YANG BOLEH DIEDIT
+        |--------------------------------------------------------------------------
+        */
+
+        if ($pengajuan->status != 'draft') {
+            abort(403, 'Pengajuan sudah dikirim');
+        }
+
+
+        $user = Auth::user();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DATA KARYAWAN USER LOGIN
+        |--------------------------------------------------------------------------
+        */
+
+        $karyawanUser = $user->karyawan;
+
+        if (!$karyawanUser) {
+            abort(403, 'Data karyawan tidak ditemukan.');
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK AKSES ADMIN CABANG
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->hasRole('admincabang')) {
+
+            if (!$karyawanUser->cabang_id) {
+                abort(403, 'Cabang pengguna belum ditentukan.');
+            }
+
+            /*
+            | Admin cabang hanya boleh edit pengajuan
+            | dari cabangnya sendiri.
+            */
+
+            if ($pengajuan->cabang_id != $karyawanUser->cabang_id) {
+                abort(
+                    403,
+                    'Pengajuan bukan milik cabang Anda.'
+                );
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | TENTUKAN MARKETING ID
+        |--------------------------------------------------------------------------
+        */
+
+        $marketingId = $pengajuan->marketing_id;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN CABANG
+        |--------------------------------------------------------------------------
+        | marketing_id berasal dari select Blade
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->hasRole('admincabang')) {
+
+            $karyawanMarketing = Karyawan::query()
+                ->where('id', $request->marketing_id)
+                ->where(
+                    'cabang_id',
+                    $karyawanUser->cabang_id
+                )
+                ->whereHas('user', function ($query) {
+                    $query->role([
+                        'marketing',
+                        'spvmarketing'
+                    ]);
+                })
+                ->first();
+
+
+            /*
+            | Marketing tidak ditemukan
+            | atau bukan dari cabang admin
+            */
+
+            if (!$karyawanMarketing) {
+                abort(
+                    403,
+                    'Marketing yang dipilih tidak valid atau bukan berasal dari cabang Anda.'
+                );
+            }
+
+
+            $marketingId = $karyawanMarketing->id;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | MARKETING / SPV MARKETING
+        |--------------------------------------------------------------------------
+        | Tidak boleh mengganti marketing_id
+        |--------------------------------------------------------------------------
+        */
+
+        elseif (
+            $user->hasAnyRole([
+                'marketing',
+                'spvmarketing'
+            ])
+        ) {
+
+            $marketingId = $user->getMarketingId();
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ROLE LAIN
+        |--------------------------------------------------------------------------
+        */
+
+        else {
+
+            abort(
+                403,
+                'Anda tidak memiliki hak untuk mengubah pengajuan.'
+            );
+        }
+
+
         DB::beginTransaction();
-    
+
         try {
-    
+
             /*
-            kategori lama sebelum update
+            |--------------------------------------------------------------------------
+            | KATEGORI LAMA
+            |--------------------------------------------------------------------------
             */
+
             $oldKategori = $pengajuan->kategori_nasabah;
+
             $newKategori = $request->kategori_nasabah;
+
+
             /*
-            update step1
+            |--------------------------------------------------------------------------
+            | UPDATE STEP 1
+            |--------------------------------------------------------------------------
             */
+
             $pengajuan->update([
-                'tanggal_pengajuan' => $request->tanggal_pengajuan,
-                'nominal_pengajuan' => $request->nominal_pengajuan,
-                'tenor' => $request->tenor,
-                'kategori_nasabah' => $newKategori,
-                'tujuan_pinjaman' => $request->tujuan_pinjaman,
-                'catatan' => $request->catatan,
+
+                'marketing_id'      => $marketingId,
+
+                'tanggal_pengajuan' =>
+                    $request->tanggal_pengajuan,
+
+                'nominal_pengajuan' =>
+                    $request->nominal_pengajuan,
+
+                'tenor' =>
+                    $request->tenor,
+
+                'kategori_nasabah' =>
+                    $newKategori,
+
+                'status_customer' =>
+                    $request->status_customer,
+
+                'tujuan_pinjaman' =>
+                    $request->tujuan_pinjaman,
+
+                'catatan' =>
+                    $request->catatan,
             ]);
-    
+
+
             /*
-            =====================================
-            JIKA KATEGORI BERUBAH
-            =====================================
+            |--------------------------------------------------------------------------
+            | JIKA KATEGORI BERUBAH
+            |--------------------------------------------------------------------------
             */
+
             if ($oldKategori != $newKategori) {
+
                 /*
-                CASE 1
-                payroll → non_payroll
-                hapus dokumen payroll specific
+                |--------------------------------------------------------------------------
+                | PAYROL → NON PAYROL
+                |--------------------------------------------------------------------------
                 */
+
                 if (
-                    $oldKategori == 'payroll'
+                    $oldKategori === 'payrol'
                     &&
-                    $newKategori == 'non_payroll'
+                    $newKategori === 'non_payrol'
                 ) {
-                    $invalidDocs = ['atm_gaji','bpjs','sk_kerja'];
-                    $docs = Dokumen_pengajuan::where('pengajuan_id',$pengajuan->id)
-                    ->whereIn('jenis_dokumen',$invalidDocs)->get();
-    
+
+                    $invalidDocs = [
+                        'atm',
+                        'bpjs',
+                        'sk_kerja',
+                    ];
+
+
+                    $docs = Dokumen_pengajuan::where(
+                            'pengajuan_id',
+                            $pengajuan->id
+                        )
+                        ->whereIn(
+                            'jenis_dokumen',
+                            $invalidDocs
+                        )
+                        ->get();
+
+
                     foreach ($docs as $doc) {
+
                         /*
-                        hapus file fisik
+                        | Hapus file fisik
                         */
-                        Storage::disk('public')->delete($doc->file_path);
+
+                        Storage::disk('public')
+                            ->delete($doc->file_path);
+
+
                         /*
-                        hapus record db
+                        | Hapus record database
                         */
+
                         $doc->delete();
                     }
                 }
-    
+
+
                 /*
-                =====================================
-                RESET STATUS DOKUMEN
-                =====================================
+                |--------------------------------------------------------------------------
+                | RESET DOKUMEN
+                |--------------------------------------------------------------------------
                 */
+
                 $pengajuan->update([
-                    /*
-                    user wajib cek step4 lagi
-                    */
-                    'documents_completed' => false,
-                    /*
-                    rollback wizard
-                    */
-                    'current_step' => 4
+
+                    'documents_completed' =>
+                        false,
+
+                    'current_step' =>
+                        4,
                 ]);
-    
+
+
                 DB::commit();
-                /*
-                langsung ke step4
-                */
-                return redirect()->route('pengajuan.step4',$pengajuan->id)
-                    ->with('warning','Kategori nasabah berubah. Silakan periksa ulang dokumen.');
+
+
+                return redirect()
+                    ->route(
+                        'pengajuan.step4',
+                        $pengajuan->id
+                    )
+                    ->with(
+                        'warning',
+                        'Kategori nasabah berubah. Silakan periksa ulang dokumen.'
+                    );
             }
-    
-    
+
+
             /*
-            =====================================
-            JIKA TIDAK ADA PERUBAHAN KATEGORI
-            =====================================
+            |--------------------------------------------------------------------------
+            | TIDAK ADA PERUBAHAN KATEGORI
+            |--------------------------------------------------------------------------
             */
-    
+
             DB::commit();
-    
-            return redirect()->route('pengajuan.step2',$pengajuan->id)
-                ->with('success','Step 1 berhasil diupdate');
-    
-        }
-        catch (\Throwable $e) {
+
+
+            return redirect()
+                ->route(
+                    'pengajuan.step2',
+                    $pengajuan->id
+                )
+                ->with(
+                    'success',
+                    'Step 1 berhasil diupdate.'
+                );
+
+
+        } catch (\Throwable $e) {
+
             DB::rollBack();
-            return back()->withInput()->with('error',$e->getMessage());
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    $e->getMessage()
+                );
         }
     }
 
     public function step2(Pengajuan $pengajuan)
     {
-        if($pengajuan->status != 'draft'){
+        if ($pengajuan->status != 'draft') {
             abort(403);
         }
 
-        $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah']);
-        return view('pengajuans.step2',compact('pengajuan'));
+        $pengajuan->load([
+            'nasabah',
+            'nasabah.pekerjaanNasabah',
+        ]);
+
+        $nasabah = $pengajuan->nasabah;
+
+        $pekerjaan = $nasabah?->pekerjaanNasabah;
+
+        return view('pengajuans.step2', compact(
+            'pengajuan',
+            'nasabah',
+            'pekerjaan'
+        ));
     }
 
     public function storeStep2(Request $request, Pengajuan $pengajuan)
     {
-        $validated = $request->validate([
-    
-            /*
-            NASABAH
-            */
-            'nama' => 'required',
-            'nik' => 'required|min:16|max:16',
-            'tempat_lahir' => 'required',
-            'tgl_lahir' => 'required|date',
-            'no_hp' => 'required',
-            'alamat' => 'required',
-            'status_perkawinan' => 'required',
-            'jumlah_tanggungan' => 'required|integer',
-            'status_rumah' => 'required',
-            'lama_menetap_tahun' => 'required|integer',
-            'lama_menetap_bulan' => 'required|integer',
-    
-            /*
-            PEKERJAAN
-            */
-            'jenis_pekerjaan' => 'required',
-            'penghasilan' => 'required|numeric',
-            'nama_usaha' => 'nullable',
-            'jenis_usaha' => 'nullable',
-            'lama_usaha' => 'nullable|integer',
-            'jumlah_pegawai' => 'nullable|integer',
-            'alamat_usaha' => 'nullable',
-            'telpon_usaha' => 'nullable',
-            'bangunan_usaha' => 'nullable',
-            'status_tempat_usaha' => 'nullable',
-            'aktivitas_usaha' => 'nullable'
-        ]);
-    
-    
-        DB::beginTransaction();
-    
-        try {
-            // NASABAH satu pengajuan = satu nasabah
-            $nasabah = Nasabah::updateOrCreate(
-                // unique condition
-                ['pengajuan_id' => $pengajuan->id],
-                // update data    
-                [
-                    'nama' => $validated['nama'],
-                    'nik' => $validated['nik'],
-                    'tempat_lahir' =>$validated['tempat_lahir'],
-                    'tgl_lahir' =>$validated['tgl_lahir'],
-                    'no_hp' =>$validated['no_hp'],
-                    'alamat' =>$validated['alamat'],
-                    'status_perkawinan' =>$validated['status_perkawinan'],
-                    'jumlah_tanggungan' =>$validated['jumlah_tanggungan'],
-                    'status_rumah' =>$validated['status_rumah'],
-                    'lama_menetap_tahun' =>$validated['lama_menetap_tahun'],
-                    'lama_menetap_bulan' =>$validated['lama_menetap_bulan']
-                ]
-            );
-    
-            // PEKERJAAN NASABAH satu nasabah = satu pekerjaan
-            Pekerjaan_nasabah::updateOrCreate(
-                // unique condition
-                ['nasabah_id' => $nasabah->id],
-                // update data    
-                [
-                    'jenis_pekerjaan' =>$validated['jenis_pekerjaan'],
-                    'penghasilan' =>$validated['penghasilan'],
-                    'nama_usaha' =>$validated['nama_usaha'],
-                    'jenis_usaha' =>$validated['jenis_usaha'],
-                    'lama_usaha' =>$validated['lama_usaha'],
-                    'jumlah_pegawai' =>$validated['jumlah_pegawai'],
-                    'alamat_usaha' =>$validated['alamat_usaha'],
-                    'telpon_usaha' =>$validated['telpon_usaha'],
-                    'bangunan_usaha' =>$validated['bangunan_usaha'],
-                    'status_tempat_usaha' =>$validated['status_tempat_usaha'],
-                    'aktivitas_usaha' =>$validated['aktivitas_usaha']
-                ]
-            );
-    
-            // step tetap 3    
-            $pengajuan->update(['current_step' => 3]);
-            DB::commit();
-            return redirect()->route('pengajuan.step3',$pengajuan->id);
-    
-        } catch (\Throwable $e) {
-    
-            DB::rollBack();
-            return back()->withInput()->with('error',$e->getMessage());
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | HANYA DRAFT
+    |--------------------------------------------------------------------------
+    */
+
+    if ($pengajuan->status != 'draft') {
+        abort(403, 'Pengajuan sudah dikirim');
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CEK DATA NASABAH LAMA
+    |--------------------------------------------------------------------------
+    */
+
+    $nasabahLama = Nasabah::where(
+        'pengajuan_id',
+        $pengajuan->id
+    )->first();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DATA PEKERJAAN LAMA
+    |--------------------------------------------------------------------------
+    */
+
+    $pekerjaanLama = $nasabahLama?->pekerjaanNasabah;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SIMPAN DATA LAMA UNTUK PERBANDINGAN
+    |--------------------------------------------------------------------------
+    */
+
+    $oldStatusPerkawinan = $nasabahLama?->status_perkawinan;
+
+    $oldJenisPekerjaan = $pekerjaanLama?->jenis_pekerjaan;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDASI
+    |--------------------------------------------------------------------------
+    */
+
+    $validated = $request->validate([
+
+        /*
+        |--------------------------------------------------------------------------
+        | DATA NASABAH
+        |--------------------------------------------------------------------------
+        */
+
+        'nama' => 'required',
+
+        'nik' => 'required|min:16|max:16',
+
+        'tempat_lahir' => 'required',
+
+        'tgl_lahir' => 'required|date',
+
+        'no_hp' => 'required',
+
+        'alamat' => 'required',
+
+        'status_perkawinan' => 'required',
+
+        'jumlah_tanggungan' => 'required|integer',
+
+        'status_rumah' => 'required',
+
+        'lama_menetap_tahun' => 'required|integer',
+
+        'lama_menetap_bulan' => 'required|integer',
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | FOTO NASABAH
+        |--------------------------------------------------------------------------
+        |
+        | Nasabah baru  : wajib
+        | Nasabah lama : optional jika foto sudah ada
+        |
+        */
+
+        'foto_nasabah' => $nasabahLama?->foto_nasabah
+            ? 'nullable|image|mimes:jpg,jpeg,png|max:5120'
+            : 'required|image|mimes:jpg,jpeg,png|max:5120',
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | KTP NASABAH
+        |--------------------------------------------------------------------------
+        |
+        | Nasabah baru / belum punya KTP : wajib
+        | Sudah punya KTP               : upload ulang optional
+        |
+        */
+
+        'ktp_nasabah' => $nasabahLama?->ktp_nasabah
+            ? 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120'
+            : 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AKTE KELAHIRAN NASABAH
+        |--------------------------------------------------------------------------
+        |
+        | Optional
+        |
+        */
+
+        'akte_lahir_nasabah' =>
+            'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DATA PEKERJAAN
+        |--------------------------------------------------------------------------
+        */
+
+        'jenis_pekerjaan' => 'required',
+
+        'penghasilan' => 'required|numeric',
+
+        'nama_usaha' => 'nullable',
+
+        'jenis_usaha' => 'nullable',
+
+        'lama_usaha' => 'nullable|integer',
+
+        'jumlah_pegawai' => 'nullable|integer',
+
+        'alamat_usaha' => 'nullable',
+
+        'telpon_usaha' => 'nullable',
+
+        'bangunan_usaha' => 'nullable',
+
+        'status_tempat_usaha' => 'nullable',
+
+        'aktivitas_usaha' => 'nullable',
+    ]);
+
+
+    DB::beginTransaction();
+
+    /*
+    |--------------------------------------------------------------------------
+    | PATH FILE LAMA
+    |--------------------------------------------------------------------------
+    */
+
+    $oldPhotoPath = $nasabahLama?->foto_nasabah;
+
+    $oldKtpPath = $nasabahLama?->ktp_nasabah;
+
+    $oldAktePath = $nasabahLama?->akte_lahir_nasabah;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DEFAULT FILE
+    |--------------------------------------------------------------------------
+    |
+    | Jika tidak ada upload baru, tetap gunakan file lama.
+    |
+    */
+
+    $newPhotoPath = $oldPhotoPath;
+
+    $newKtpPath = $oldKtpPath;
+
+    $newAktePath = $oldAktePath;
+
+
+    try {
+
+        /*
+        |--------------------------------------------------------------------------
+        | FOTO NASABAH
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->hasFile('foto_nasabah')) {
+
+            $newPhotoPath = $request
+                ->file('foto_nasabah')
+                ->store('nasabah', 'public');
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | KTP NASABAH
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->hasFile('ktp_nasabah')) {
+
+            $newKtpPath = $request
+                ->file('ktp_nasabah')
+                ->store('nasabah/ktp', 'public');
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AKTE KELAHIRAN NASABAH
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->hasFile('akte_lahir_nasabah')) {
+
+            $newAktePath = $request
+                ->file('akte_lahir_nasabah')
+                ->store('nasabah/akte', 'public');
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | NASABAH
+        |--------------------------------------------------------------------------
+        */
+
+        $nasabah = Nasabah::updateOrCreate(
+
+            [
+                'pengajuan_id' => $pengajuan->id
+            ],
+
+            [
+                'nama' => $validated['nama'],
+
+                'nik' => $validated['nik'],
+
+                'tempat_lahir' => $validated['tempat_lahir'],
+
+                'tgl_lahir' => $validated['tgl_lahir'],
+
+                'no_hp' => $validated['no_hp'],
+
+                'alamat' => $validated['alamat'],
+
+                'status_perkawinan' =>
+                    $validated['status_perkawinan'],
+
+                'jumlah_tanggungan' =>
+                    $validated['jumlah_tanggungan'],
+
+                'status_rumah' =>
+                    $validated['status_rumah'],
+
+                'lama_menetap_tahun' =>
+                    $validated['lama_menetap_tahun'],
+
+                'lama_menetap_bulan' =>
+                    $validated['lama_menetap_bulan'],
+
+                'foto_nasabah' =>
+                    $newPhotoPath,
+
+                'ktp_nasabah' =>
+                    $newKtpPath,
+
+                'akte_lahir_nasabah' =>
+                    $newAktePath,
+            ]
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PEKERJAAN NASABAH
+        |--------------------------------------------------------------------------
+        */
+
+        Pekerjaan_nasabah::updateOrCreate(
+
+            [
+                'nasabah_id' => $nasabah->id
+            ],
+
+            [
+                'jenis_pekerjaan' =>
+                    $validated['jenis_pekerjaan'],
+
+                'penghasilan' =>
+                    $validated['penghasilan'],
+
+                'nama_usaha' =>
+                    $validated['nama_usaha'] ?? null,
+
+                'jenis_usaha' =>
+                    $validated['jenis_usaha'] ?? null,
+
+                'lama_usaha' =>
+                    $validated['lama_usaha'] ?? null,
+
+                'jumlah_pegawai' =>
+                    $validated['jumlah_pegawai'] ?? null,
+
+                'alamat_usaha' =>
+                    $validated['alamat_usaha'] ?? null,
+
+                'telpon_usaha' =>
+                    $validated['telpon_usaha'] ?? null,
+
+                'bangunan_usaha' =>
+                    $validated['bangunan_usaha'] ?? null,
+
+                'status_tempat_usaha' =>
+                    $validated['status_tempat_usaha'] ?? null,
+
+                'aktivitas_usaha' =>
+                    $validated['aktivitas_usaha'] ?? null,
+            ]
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK APAKAH DATA MEMPENGARUHI DOKUMEN
+        |--------------------------------------------------------------------------
+        |
+        | Status perkawinan berubah
+        | atau jenis pekerjaan berubah
+        |
+        */
+
+        $requireDocumentReview =
+            $oldStatusPerkawinan !==
+                $validated['status_perkawinan']
+            ||
+            $oldJenisPekerjaan !==
+                $validated['jenis_pekerjaan'];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | JIKA DATA MEMPENGARUHI DOKUMEN BERUBAH
+        |--------------------------------------------------------------------------
+        */
+
+        if ($requireDocumentReview) {
+
+            $pengajuan->update([
+                'documents_completed' => false,
+                'current_step' => 3,
+            ]);
+
+            DB::commit();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HAPUS FILE LAMA JIKA DIGANTI
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $request->hasFile('foto_nasabah')
+                &&
+                $oldPhotoPath
+                &&
+                $oldPhotoPath !== $newPhotoPath
+            ) {
+                Storage::disk('public')->delete(
+                    $oldPhotoPath
+                );
+            }
+
+
+            if (
+                $request->hasFile('ktp_nasabah')
+                &&
+                $oldKtpPath
+                &&
+                $oldKtpPath !== $newKtpPath
+            ) {
+                Storage::disk('public')->delete(
+                    $oldKtpPath
+                );
+            }
+
+
+            if (
+                $request->hasFile('akte_lahir_nasabah')
+                &&
+                $oldAktePath
+                &&
+                $oldAktePath !== $newAktePath
+            ) {
+                Storage::disk('public')->delete(
+                    $oldAktePath
+                );
+            }
+
+
+            return redirect()
+                ->route(
+                    'pengajuan.step3',
+                    $pengajuan->id
+                )
+                ->with(
+                    'warning',
+                    'Data nasabah atau pekerjaan berubah. Silakan periksa kembali Step 3 dan dokumen Step 4.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE WIZARD
+        |--------------------------------------------------------------------------
+        */
+
+        $pengajuan->update([
+            'current_step' => max(
+                $pengajuan->current_step,
+                3
+            ),
+        ]);
+
+
+        DB::commit();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAPUS FILE LAMA JIKA DIGANTI
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $request->hasFile('foto_nasabah')
+            &&
+            $oldPhotoPath
+            &&
+            $oldPhotoPath !== $newPhotoPath
+        ) {
+            Storage::disk('public')->delete(
+                $oldPhotoPath
+            );
+        }
+
+
+        if (
+            $request->hasFile('ktp_nasabah')
+            &&
+            $oldKtpPath
+            &&
+            $oldKtpPath !== $newKtpPath
+        ) {
+            Storage::disk('public')->delete(
+                $oldKtpPath
+            );
+        }
+
+
+        if (
+            $request->hasFile('akte_lahir_nasabah')
+            &&
+            $oldAktePath
+            &&
+            $oldAktePath !== $newAktePath
+        ) {
+            Storage::disk('public')->delete(
+                $oldAktePath
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | REDIRECT
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+            ->route(
+                'pengajuan.step3',
+                $pengajuan->id
+            )
+            ->with(
+                'success',
+                'Data nasabah dan pekerjaan berhasil disimpan.'
+            );
+
+
+    } catch (\Throwable $e) {
+
+        DB::rollBack();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAPUS FILE BARU JIKA DATABASE GAGAL
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $request->hasFile('foto_nasabah')
+            &&
+            $newPhotoPath
+            &&
+            $newPhotoPath !== $oldPhotoPath
+        ) {
+            Storage::disk('public')->delete(
+                $newPhotoPath
+            );
+        }
+
+
+        if (
+            $request->hasFile('ktp_nasabah')
+            &&
+            $newKtpPath
+            &&
+            $newKtpPath !== $oldKtpPath
+        ) {
+            Storage::disk('public')->delete(
+                $newKtpPath
+            );
+        }
+
+
+        if (
+            $request->hasFile('akte_lahir_nasabah')
+            &&
+            $newAktePath
+            &&
+            $newAktePath !== $oldAktePath
+        ) {
+            Storage::disk('public')->delete(
+                $newAktePath
+            );
+        }
+
+
+        return back()
+            ->withInput()
+            ->with(
+                'error',
+                $e->getMessage()
+            );
+    }
+}
 
     public function step3(Pengajuan $pengajuan)
     {
@@ -315,186 +1239,543 @@ class PengajuanController extends Controller
         return view('pengajuans.step3',compact('pengajuan','pasangan','penjamin','saudaras'));
     }
 
-    public function storeStep3(PengajuanStep3Request $request, Pengajuan $pengajuan)
+    public function storeStep3(PengajuanStep3Request $request, Pengajuan $pengajuan) 
     {
         DB::beginTransaction();
+
+        /*
+        |--------------------------------------------------------------------------
+        | FILE TRACKING
+        |--------------------------------------------------------------------------
+        */
+
+        $newPhotoPath = null;
+        $oldPhotoPath = null;
+
         try {
-            if ($request->has_pasangan) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | PASANGAN
+            |--------------------------------------------------------------------------
+            */
+
+            if ($request->boolean('has_pasangan')) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | CARI PASANGAN LAMA
+                |--------------------------------------------------------------------------
+                */
+
+                $oldPasangan = Referensi::where('pengajuan_id', $pengajuan->id)
+                    ->where('jenis', 'pasangan')
+                    ->first();
+
+                $oldPhotoPath = $oldPasangan?->foto_pasangan;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | FOTO PASANGAN
+                |--------------------------------------------------------------------------
+                */
+
+                $photoPath = $oldPhotoPath;
+
+                /*
+                | Jika upload foto baru
+                */
+
+                if ($request->hasFile('pasangan.foto_pasangan')) {
+
+                    $newPhotoPath = $request
+                        ->file('pasangan.foto_pasangan')
+                        ->store('pasangan', 'public');
+
+                    $photoPath = $newPhotoPath;
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | PASANGAN BARU WAJIB FOTO
+                |--------------------------------------------------------------------------
+                */
+
+                if (!$oldPasangan && !$photoPath) {
+
+                    throw ValidationException::withMessages([
+                        'pasangan.foto_pasangan' =>
+                            'Foto pasangan wajib diupload.'
+                    ]);
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | SIMPAN DATA PASANGAN
+                |--------------------------------------------------------------------------
+                */
+
                 $pasangan = Referensi::updateOrCreate(
                     [
                         'pengajuan_id' => $pengajuan->id,
-                        'jenis'        => 'pasangan'
+                        'jenis' => 'pasangan',
                     ],
                     [
                         'nama'          => $request->pasangan['nama'] ?? null,
                         'tempat_lahir'  => $request->pasangan['tempat_lahir'] ?? null,
                         'tgl_lahir'     => $request->pasangan['tgl_lahir'] ?? null,
+                        'no_hp'         => $request->pasangan['no_hp'] ?? null,
+                        'foto_pasangan' => $photoPath,
                     ]
                 );
-                if ($request->has_pekerjaan_pasangan) {
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | PEKERJAAN PASANGAN
+                |--------------------------------------------------------------------------
+                */
+
+                if ($request->boolean('has_pekerjaan_pasangan')) {
+
                     Pekerjaan_referensi::updateOrCreate(
                         [
                             'referensi_id' => $pasangan->id
                         ],
                         [
-                            'penghasilan' =>$request->pasangan['pekerjaan']['penghasilan'] ?? null,
-                            'nama_usaha' =>$request->pasangan['pekerjaan']['nama_usaha'] ?? null,
-                            'jenis_usaha' =>$request->pasangan['pekerjaan']['jenis_usaha'] ?? null,
-                            'lama_usaha' =>$request->pasangan['pekerjaan']['lama_usaha'] ?? null,
-                            'jumlah_pegawai' =>$request->pasangan['pekerjaan']['jumlah_pegawai'] ?? null,
-                            'alamat_usaha' =>$request->pasangan['pekerjaan']['alamat_usaha'] ?? null,
+                            'penghasilan' =>
+                                $request->pasangan['pekerjaan']['penghasilan'] ?? null,
+
+                            'nama_usaha' =>
+                                $request->pasangan['pekerjaan']['nama_usaha'] ?? null,
+
+                            'jenis_usaha' =>
+                                $request->pasangan['pekerjaan']['jenis_usaha'] ?? null,
+
+                            'lama_usaha' =>
+                                $request->pasangan['pekerjaan']['lama_usaha'] ?? null,
+
+                            'jumlah_pegawai' =>
+                                $request->pasangan['pekerjaan']['jumlah_pegawai'] ?? null,
+
+                            'alamat_usaha' =>
+                                $request->pasangan['pekerjaan']['alamat_usaha'] ?? null,
                         ]
                     );
+
                 } else {
-                    Pekerjaan_referensi::where('referensi_id',$pasangan->id)->delete();
+
+                    Pekerjaan_referensi::where(
+                        'referensi_id',
+                        $pasangan->id
+                    )->delete();
                 }
-    
+
+
             } else {
-                $oldPasangan = Referensi::where('pengajuan_id',$pengajuan->id)->where('jenis','pasangan')->first();
+
+                /*
+                |--------------------------------------------------------------------------
+                | PASANGAN TIDAK ADA
+                |--------------------------------------------------------------------------
+                */
+
+                $oldPasangan = Referensi::where(
+                    'pengajuan_id',
+                    $pengajuan->id
+                )
+                ->where('jenis', 'pasangan')
+                ->first();
+
                 if ($oldPasangan) {
-                    Pekerjaan_referensi::where('referensi_id',$oldPasangan->id)->delete();
+
+                    /*
+                    | Simpan path foto sebelum record dihapus
+                    */
+
+                    $oldPhotoPath = $oldPasangan->foto_pasangan;
+
+
+                    /*
+                    | Hapus pekerjaan pasangan
+                    */
+
+                    Pekerjaan_referensi::where(
+                        'referensi_id',
+                        $oldPasangan->id
+                    )->delete();
+
+
+                    /*
+                    | Hapus record pasangan
+                    */
+
                     $oldPasangan->delete();
+
+
+                    /*
+                    | Hapus file foto pasangan
+                    */
+
+                    if ($oldPhotoPath) {
+
+                        Storage::disk('public')->delete(
+                            $oldPhotoPath
+                        );
+                    }
                 }
             }
-    
-            if ($request->has_penjamin) {
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | PENJAMIN
+            |--------------------------------------------------------------------------
+            */
+
+            if ($request->boolean('has_penjamin')) {
+
                 $penjamin = Referensi::updateOrCreate(
                     [
                         'pengajuan_id' => $pengajuan->id,
-                        'jenis'        => 'penjamin'
+                        'jenis' => 'penjamin'
                     ],
                     [
-                        'nama' =>$request->penjamin['nama'] ?? null,
-                        'tempat_lahir' =>$request->penjamin['tempat_lahir'] ?? null,
-                        'tgl_lahir' =>$request->penjamin['tgl_lahir'] ?? null,
-                        'hubungan' =>$request->penjamin['hubungan'] ?? null,
-                        'no_hp' =>$request->penjamin['no_hp'] ?? null,
-                        'alamat' =>$request->penjamin['alamat'] ?? null
+                        'nama' =>
+                            $request->penjamin['nama'] ?? null,
+
+                        'tempat_lahir' =>
+                            $request->penjamin['tempat_lahir'] ?? null,
+
+                        'tgl_lahir' =>
+                            $request->penjamin['tgl_lahir'] ?? null,
+
+                        'hubungan' =>
+                            $request->penjamin['hubungan'] ?? null,
+
+                        'no_hp' =>
+                            $request->penjamin['no_hp'] ?? null,
+
+                        'alamat' =>
+                            $request->penjamin['alamat'] ?? null,
                     ]
                 );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | PEKERJAAN PENJAMIN
+                |--------------------------------------------------------------------------
+                */
+
                 if ($request->boolean('has_pekerjaan_penjamin')) {
-                
-                  /*   dd(
-                        $penjamin->id,
-                    
-                        Pekerjaan_referensi::where(
-                            'referensi_id',
-                            $penjamin->id
-                        )->get()
-                    ); */
 
                     Pekerjaan_referensi::updateOrCreate(
                         [
                             'referensi_id' => $penjamin->id
                         ],
                         [
-                            'penghasilan' =>$request->penjamin['pekerjaan']['penghasilan'] ?? null,
-                            'nama_usaha' =>$request->penjamin['pekerjaan']['nama_usaha'] ?? null,
-                            'jenis_usaha' =>$request->penjamin['pekerjaan']['jenis_usaha'] ?? null,
-                            'lama_usaha' =>$request->penjamin['pekerjaan']['lama_usaha'] ?? null,
-                            'jumlah_pegawai' =>$request->penjamin['pekerjaan']['jumlah_pegawai'] ?? null,
-                            'alamat_usaha' =>$request->penjamin['pekerjaan']['alamat_usaha'] ?? null,
+                            'penghasilan' =>
+                                $request->penjamin['pekerjaan']['penghasilan'] ?? null,
+
+                            'nama_usaha' =>
+                                $request->penjamin['pekerjaan']['nama_usaha'] ?? null,
+
+                            'jenis_usaha' =>
+                                $request->penjamin['pekerjaan']['jenis_usaha'] ?? null,
+
+                            'lama_usaha' =>
+                                $request->penjamin['pekerjaan']['lama_usaha'] ?? null,
+
+                            'jumlah_pegawai' =>
+                                $request->penjamin['pekerjaan']['jumlah_pegawai'] ?? null,
+
+                            'alamat_usaha' =>
+                                $request->penjamin['pekerjaan']['alamat_usaha'] ?? null,
                         ]
                     );
-    
+
                 } else {
-                    Pekerjaan_referensi::where('referensi_id',$penjamin->id)->delete();
+
+                    Pekerjaan_referensi::where(
+                        'referensi_id',
+                        $penjamin->id
+                    )->delete();
                 }
-    
+
+
             } else {
-                $oldPenjamin = Referensi::where('pengajuan_id',$pengajuan->id)->where('jenis','penjamin')->first();
+
+                /*
+                |--------------------------------------------------------------------------
+                | HAPUS PENJAMIN
+                |--------------------------------------------------------------------------
+                */
+
+                $oldPenjamin = Referensi::where(
+                    'pengajuan_id',
+                    $pengajuan->id
+                )
+                ->where('jenis', 'penjamin')
+                ->first();
+
                 if ($oldPenjamin) {
-                    Pekerjaan_referensi::where('referensi_id',$oldPenjamin->id)->delete();
+
+                    Pekerjaan_referensi::where(
+                        'referensi_id',
+                        $oldPenjamin->id
+                    )->delete();
+
                     $oldPenjamin->delete();
                 }
             }
-    
-          /*
-            =========================================
-            SAUDARA
-            edit / tambah / hapus
-            =========================================
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | SAUDARA
+            | edit / tambah / hapus
+            |--------------------------------------------------------------------------
             */
 
             $submittedIds = [];
-            // dd($request->saudara);
+
+
             if (!empty($request->saudara)) {
+
                 foreach ($request->saudara as $index => $item) {
+
                     /*
-                    skip jika nama kosong
+                    |--------------------------------------------------------------------------
+                    | SKIP JIKA NAMA KOSONG
+                    |--------------------------------------------------------------------------
                     */
+
                     if (empty($item['nama'])) {
                         continue;
                     }
+
+
                     /*
-                    ===========================
-                    JIKA DATA LAMA → UPDATE
-                    ===========================
+                    |--------------------------------------------------------------------------
+                    | DATA LAMA → UPDATE
+                    |--------------------------------------------------------------------------
                     */
+
                     if (!empty($item['id'])) {
-                        $saudara = Referensi::where('id',$item['id'])->where('pengajuan_id',$pengajuan->id)
-                                            ->where('jenis','saudara')->first();
+
+                        $saudara = Referensi::where(
+                            'id',
+                            $item['id']
+                        )
+                        ->where(
+                            'pengajuan_id',
+                            $pengajuan->id
+                        )
+                        ->where(
+                            'jenis',
+                            'saudara'
+                        )
+                        ->first();
+
+
                         if ($saudara) {
+
                             $saudara->update([
-                                'urutan' => $index + 1,
-                                'nama' => $item['nama'],
-                                'tempat_lahir' =>$item['tempat_lahir'] ?? null,
-                                'tgl_lahir' =>$item['tgl_lahir'] ?? null,
-                                'hubungan' =>$item['hubungan'] ?? null,
-                                'no_hp' =>$item['no_hp'] ?? null,
-                                'alamat' =>$item['alamat'] ?? null,
+                                'urutan' =>
+                                    $index + 1,
+
+                                'nama' =>
+                                    $item['nama'],
+
+                                'tempat_lahir' =>
+                                    $item['tempat_lahir'] ?? null,
+
+                                'tgl_lahir' =>
+                                    $item['tgl_lahir'] ?? null,
+
+                                'hubungan' =>
+                                    $item['hubungan'] ?? null,
+
+                                'no_hp' =>
+                                    $item['no_hp'] ?? null,
+
+                                'alamat' =>
+                                    $item['alamat'] ?? null,
                             ]);
-                            /*
-                            simpan id yg diproses
-                            */
+
+
                             $submittedIds[] = $saudara->id;
                         }
                     }
 
+
                     /*
-                    ===========================
-                    DATA BARU → CREATE
-                    ===========================
+                    |--------------------------------------------------------------------------
+                    | DATA BARU → CREATE
+                    |--------------------------------------------------------------------------
                     */
+
                     else {
+
                         $saudara = Referensi::create([
-                            'pengajuan_id' =>$pengajuan->id,
-                            'jenis' =>'saudara',
-                            'urutan' =>$index + 1,
-                            'nama' =>$item['nama'],
-                            'tempat_lahir' =>$item['tempat_lahir'] ?? null,
-                            'tgl_lahir' =>$item['tgl_lahir'] ?? null,
-                            'hubungan' =>$item['hubungan'] ?? null,
-                            'no_hp' =>$item['no_hp'] ?? null,
-                            'alamat' =>$item['alamat'] ?? null,
+                            'pengajuan_id' =>
+                                $pengajuan->id,
+
+                            'jenis' =>
+                                'saudara',
+
+                            'urutan' =>
+                                $index + 1,
+
+                            'nama' =>
+                                $item['nama'],
+
+                            'tempat_lahir' =>
+                                $item['tempat_lahir'] ?? null,
+
+                            'tgl_lahir' =>
+                                $item['tgl_lahir'] ?? null,
+
+                            'hubungan' =>
+                                $item['hubungan'] ?? null,
+
+                            'no_hp' =>
+                                $item['no_hp'] ?? null,
+
+                            'alamat' =>
+                                $item['alamat'] ?? null,
                         ]);
-                        /*
-                        simpan id baru
-                        */
+
+
                         $submittedIds[] = $saudara->id;
                     }
                 }
             }
 
+
             /*
-            =========================================
-            HAPUS SAUDARA YANG DIREMOVE USER
-            =========================================
+            |--------------------------------------------------------------------------
+            | HAPUS SAUDARA YANG DIHAPUS USER
+            |--------------------------------------------------------------------------
             */
-            Referensi::where('pengajuan_id',$pengajuan->id)->where('jenis','saudara')
-                    ->whereNotIn('id',$submittedIds)->delete();
-    
-            // UPDATE STEP
-            $pengajuan->update(['current_step' => 4]);
-    
+
+            $querySaudara = Referensi::where(
+                'pengajuan_id',
+                $pengajuan->id
+            )
+            ->where(
+                'jenis',
+                'saudara'
+            );
+
+
+            /*
+            | Jika tidak ada saudara yang dikirim,
+            | hapus semua saudara lama.
+            */
+
+            if (empty($submittedIds)) {
+
+                $querySaudara->delete();
+
+            } else {
+
+                $querySaudara
+                    ->whereNotIn('id', $submittedIds)
+                    ->delete();
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE WIZARD
+            |--------------------------------------------------------------------------
+            */
+
+            $pengajuan->update([
+                'current_step' => 4
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | COMMIT
+            |--------------------------------------------------------------------------
+            */
+
             DB::commit();
-            return redirect()->route('pengajuan.step4',$pengajuan->id);
-    
-        }
-        catch (\Throwable $e) {
-    
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HAPUS FOTO LAMA SETELAH DATABASE COMMIT
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $newPhotoPath &&
+                $oldPhotoPath &&
+                $oldPhotoPath !== $newPhotoPath
+            ) {
+
+                Storage::disk('public')->delete(
+                    $oldPhotoPath
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | REDIRECT
+            |--------------------------------------------------------------------------
+            */
+
+            return redirect()
+                ->route(
+                    'pengajuan.step4',
+                    $pengajuan->id
+                )
+                ->with(
+                    'success',
+                    'Step 3 berhasil disimpan.'
+                );
+
+
+        } catch (\Throwable $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | ROLLBACK DATABASE
+            |--------------------------------------------------------------------------
+            */
+
             DB::rollBack();
-            return back()->withInput()->with('error',$e->getMessage());
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HAPUS FOTO BARU JIKA TRANSAKSI GAGAL
+            |--------------------------------------------------------------------------
+            */
+
+            if ($newPhotoPath) {
+
+                Storage::disk('public')->delete(
+                    $newPhotoPath
+                );
+            }
+
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    $e->getMessage()
+                );
         }
     }
 
@@ -512,162 +1793,265 @@ class PengajuanController extends Controller
         ]);
     }
 
-    public function storeStep4(Request $request,Pengajuan $pengajuan,DocumentService $documentService) {
+    public function storeStep4(Request $request,Pengajuan $pengajuan,DocumentService $documentService) 
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI FILE
+        |--------------------------------------------------------------------------
+        */
+
         $request->validate([
-            'documents.*' => 'nullable|mimes:jpg,jpeg,png,pdf|max:2048'
+            'documents' => 'nullable|array',
+
+            'documents.*' => [
+                'nullable',
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:51200',
+            ],
         ]);
-    
+
+
         DB::beginTransaction();
-    
+
         try {
-    
-            $documents = $documentService->getDocuments($pengajuan);
-    
-            // Dokumen yang sudah pernah diupload
+
+            /*
+            |--------------------------------------------------------------------------
+            | DAFTAR DOKUMEN
+            |--------------------------------------------------------------------------
+            */
+
+            $documents = $documentService->getDocuments(
+                $pengajuan
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DOKUMEN YANG SUDAH ADA
+            |--------------------------------------------------------------------------
+            */
+
             $existingDocs = $pengajuan
                 ->dokumenPengajuans()
                 ->get()
                 ->keyBy('jenis_dokumen');
-    
+
+
             /*
             |--------------------------------------------------------------------------
-            | VALIDASI DOKUMEN WAJIB
+            | CEK DOKUMEN WAJIB
             |--------------------------------------------------------------------------
             */
-    
+
             $missing = [];
-    
+
+
             foreach ($documents['required'] as $doc) {
-    
-                $exists = $existingDocs->has($doc['code']);
-    
+
+                $exists = $existingDocs->has(
+                    $doc['code']
+                );
+
+
                 if (
-                    !$request->hasFile("documents.{$doc['code']}")
+                    !$request->hasFile(
+                        "documents.{$doc['code']}"
+                    )
                     && !$exists
                 ) {
+
                     $missing[] = $doc['label'];
                 }
             }
-    
+
+
             /*
             |--------------------------------------------------------------------------
-            | VALIDASI JAMINAN (ONE OF)
+            | JIKA MASIH ADA YANG KURANG
             |--------------------------------------------------------------------------
             */
-    
-            $hasOneOf = false;
-    
-            foreach ($documents['one_of'] as $doc) {
-    
-                if (
-                    $request->hasFile("documents.{$doc['code']}")
-                    || $existingDocs->has($doc['code'])
-                ) {
-                    $hasOneOf = true;
-                    break;
-                }
-            }
-    
-            if (!$hasOneOf) {
-                $missing[] = 'Minimal salah satu dokumen jaminan (BPKB / Surat Tanah)';
-            }
-    
-            /*
-            |--------------------------------------------------------------------------
-            | JIKA ADA DOKUMEN YANG BELUM LENGKAP
-            |--------------------------------------------------------------------------
-            */
-    
-            if (count($missing)) {
-    
+
+            if (!empty($missing)) {
+
                 DB::rollBack();
-    
+
                 return back()
                     ->withErrors([
-                        'error' => "Dokumen berikut masih belum lengkap:\n• " . implode("\n• ", $missing)
+                        'error' =>
+                            "Dokumen berikut masih belum lengkap:\n• "
+                            . implode(
+                                "\n• ",
+                                $missing
+                            ),
                     ])
                     ->withInput();
             }
-    
+
+
             /*
             |--------------------------------------------------------------------------
             | UPLOAD FILE
             |--------------------------------------------------------------------------
             */
-    
+
             if ($request->hasFile('documents')) {
-    
-                foreach ($request->file('documents') as $jenis => $file) {
-    
-                    $existing = $existingDocs->get($jenis);
-    
+
+                foreach (
+                    $request->file('documents')
+                    as $jenis => $file
+                ) {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | DOKUMEN LAMA
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $existing = $existingDocs->get(
+                        $jenis
+                    );
+
+
                     if ($existing) {
-                        Storage::disk('public')->delete($existing->file_path);
+
+                        Storage::disk('public')->delete(
+                            $existing->file_path
+                        );
                     }
-    
-                    $extension = $file->getClientOriginalExtension();
-    
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | NAMA FILE
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $extension =
+                        $file->getClientOriginalExtension();
+
+
                     $fileName =
                         $jenis . '_' .
                         $pengajuan->id . '_' .
                         now()->format('YmdHis') .
-                        '.' . $extension;
-    
-                    $folder = "pengajuan/{$pengajuan->id}";
-    
+                        '.' .
+                        $extension;
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | FOLDER
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $folder =
+                        "pengajuan/{$pengajuan->id}/dokumen";
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SIMPAN FILE
+                    |--------------------------------------------------------------------------
+                    */
+
                     $path = $file->storeAs(
                         $folder,
                         $fileName,
                         'public'
                     );
-    
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SIMPAN DATABASE
+                    |--------------------------------------------------------------------------
+                    */
+
                     Dokumen_pengajuan::updateOrCreate(
-    
+
                         [
-                            'pengajuan_id' => $pengajuan->id,
-                            'jenis_dokumen' => $jenis
+                            'pengajuan_id' =>
+                                $pengajuan->id,
+
+                            'jenis_dokumen' =>
+                                $jenis,
                         ],
-    
+
                         [
-                            'nama_file' => $fileName,
-                            'file_path' => $path,
-                            'file_size' => $file->getSize(),
-    
-                            'status' => 'pending',
-                            'catatan' => null,
-                            'uploaded_by' => auth()->id(),
+                            'nama_file' =>
+                                $file->getClientOriginalName(),
+
+                            'file_path' =>
+                                $path,
+
+                            'file_size' =>
+                                $file->getSize(),
+
+                            'status' =>
+                                'pending',
+
+                            'catatan' =>
+                                null,
+
+                            'uploaded_by' =>
+                                auth()->id(),
                         ]
                     );
                 }
             }
-    
+
+
             /*
             |--------------------------------------------------------------------------
             | UPDATE STEP
             |--------------------------------------------------------------------------
             */
-    
+
             $pengajuan->update([
                 'documents_completed' => true,
-                'current_step' => max($pengajuan->current_step, 5),
+
+                'current_step' => max(
+                    $pengajuan->current_step,
+                    5
+                ),
             ]);
-    
+
+
             DB::commit();
-    
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | REDIRECT REVIEW
+            |--------------------------------------------------------------------------
+            */
+
             return redirect()
-                ->route('pengajuan.reviewData', $pengajuan)
-                ->with('success', 'Dokumen berhasil disimpan.');
-    
+                ->route(
+                    'pengajuan.reviewData',
+                    $pengajuan
+                )
+                ->with(
+                    'success',
+                    'Dokumen pengajuan berhasil disimpan.'
+                );
+
+
         } catch (\Throwable $e) {
-    
+
             DB::rollBack();
-    
+
             return back()
-                ->with('error', $e->getMessage())
+                ->with(
+                    'error',
+                    $e->getMessage()
+                )
                 ->withInput();
         }
     }
-
 
     public function reviewData(Pengajuan $pengajuan)
     {
@@ -749,78 +2133,824 @@ class PengajuanController extends Controller
         return redirect()->route('pengajuan.jaminan',$pengajuan->id);
     }
 
-   /*  public function jaminan(Pengajuan $pengajuan)
-    {
-        $pengajuan->load('jaminans');
-        $jaminans = $pengajuan->jaminans;
-        return view('pengajuans.jaminan',compact('pengajuan','jaminans'));
-    }
- */
 
     public function jaminan(Pengajuan $pengajuan)
     {
-        $pengajuan->load('jaminanPengajuans');
+        if ($pengajuan->status != 'draft') {
+            abort(403, 'Pengajuan sudah dikirim.');
+        }
+        $pengajuan->load(['jaminanPengajuans.dokumenJaminans',]);
 
         $jaminans = $pengajuan->jaminanPengajuans;
 
-        return view('pengajuans.jaminan', compact('pengajuan', 'jaminans'));
+        return view('pengajuans.jaminan',compact('pengajuan','jaminans'));
     }
 
-    public function storeJaminan(Request $request,Pengajuan $pengajuan)
+    public function storeJaminan(Request $request,Pengajuan $pengajuan) 
     {
+        // dd($request->all());
+        /*
+        |--------------------------------------------------------------------------
+        | CEK STATUS
+        |--------------------------------------------------------------------------
+        */
+
+        abort_if(
+            $pengajuan->status != 'draft',
+            403
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI
+        |--------------------------------------------------------------------------
+        */
+
+        $validated = $request->validate([
+
+            /*
+            |--------------------------------------------------------------------------
+            | JAMINAN UTAMA
+            |--------------------------------------------------------------------------
+            */
+
+            'jaminan' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'jaminan.*.id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'jaminan.*.jenis_jaminan' => [
+                'required',
+                'in:BPKB Motor,BPKB Mobil,Surat Tanah',
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DATA KENDARAAN
+            |--------------------------------------------------------------------------
+            */
+
+            'jaminan.*.jenis_kendaraan' => [
+                'nullable',
+                'in:motor,mobil',
+            ],
+
+            'jaminan.*.tahun_kendaraan' => [
+                'nullable',
+                'integer',
+                'min:1900',
+                'max:' . (date('Y') + 1),
+            ],
+
+            'jaminan.*.merk_kendaraan' => [
+                'nullable',
+                'string',
+                'max:200',
+            ],
+
+            'jaminan.*.plat_polisi' => [
+                'nullable',
+                'string',
+                'max:200',
+            ],
+
+            'jaminan.*.bpkb_status' => [
+                'nullable',
+                'in:ada,tidak_ada',
+            ],
+
+            'jaminan.*.pajak_stnk_status' => [
+                'nullable',
+                'in:ada,tidak_ada',
+            ],
+
+            'jaminan.*.status_pajak' => [
+                'nullable',
+                'in:hidup,mati',
+            ],
+
+            'jaminan.*.bpkb_atas_nama' => [
+                'nullable',
+                'string',
+                'max:200',
+            ],
+
+            'jaminan.*.no_bpkb' => [
+                'nullable',
+                'string',
+                'max:200',
+            ],
+
+            'jaminan.*.no_rangka' => [
+                'nullable',
+                'string',
+                'max:200',
+            ],
+
+            'jaminan.*.no_mesin' => [
+                'nullable',
+                'string',
+                'max:200',
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DATA TANAH
+            |--------------------------------------------------------------------------
+            */
+
+            'jaminan.*.skt_spgr_status' => [
+                'nullable',
+                'in:ada,tidak_ada',
+            ],
+
+            'jaminan.*.skt_spgr_dikeluarkan_oleh' => [
+                'nullable',
+                'in:camat,kepala_desa,kepala_dusun,bawah_tangan',
+            ],
+
+            'jaminan.*.sertifikat_status' => [
+                'nullable',
+                'in:ada,tidak_ada',
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DATA UMUM JAMINAN
+            |--------------------------------------------------------------------------
+            */
+
+            'jaminan.*.nama_jaminan' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'jaminan.*.nilai_taksiran' => [
+                'nullable',
+            ],
+
+            'jaminan.*.detail_jaminan' => [
+                'nullable',
+                'string',
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DOKUMEN JAMINAN
+            |--------------------------------------------------------------------------
+            */
+
+            'jaminan.*.files' => [
+                'nullable',
+                'array',
+            ],
+
+            'jaminan.*.files.*' => [
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:51200',
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DOKUMEN PAYROLL
+            |--------------------------------------------------------------------------
+            */
+
+            'dokumen_payroll' => [
+                'nullable',
+                'array',
+            ],
+
+            'dokumen_payroll.bpjs_ketenagakerjaan' => [
+                'nullable',
+                'array',
+            ],
+
+            'dokumen_payroll.bpjs_ketenagakerjaan.*' => [
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:51200',
+            ],
+
+            'dokumen_payroll.buku_tabungan' => [
+                'nullable',
+                'array',
+            ],
+
+            'dokumen_payroll.buku_tabungan.*' => [
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:51200',
+            ],
+
+            'dokumen_payroll.atm' => [
+                'nullable',
+                'array',
+            ],
+
+            'dokumen_payroll.atm.*' => [
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:51200',
+            ],
+
+            'dokumen_payroll.slip_gaji' => [
+                'nullable',
+                'array',
+            ],
+
+            'dokumen_payroll.slip_gaji.*' => [
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:51200',
+            ],
+
+
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | TRANSACTION
+        |--------------------------------------------------------------------------
+        */
+
         DB::beginTransaction();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | TRACK FILE BARU
+        |--------------------------------------------------------------------------
+        */
+
+        $newFiles = [];
+
+
         try {
-            $existingIds = JaminanPengajuan::where('pengajuan_id',$pengajuan->id)->pluck('id')->toArray();
-    
-            $submittedIds = [];
-            if (!empty($request->jaminan)) {
-                foreach ($request->jaminan as $item) {
-                    if (empty($item['nama_jaminan'])) {
-                        continue;
-                    }
-    
-                    // edit existing
-                    if (!empty($item['id'])) {
-                        $jaminan = JaminanPengajuan::find($item['id']);
-                        if ($jaminan) {
-                            $jaminan->update([
-                                'jenis_jaminan' => $item['jenis_jaminan'],
-                                'nama_jaminan'  => $item['nama_jaminan'],
-                                'detail_jaminan'=> $item['detail_jaminan'],
-                                'nilai_taksiran'=> $item['nilai_taksiran']
-                            ]);
-    
-                            $submittedIds[] = $jaminan->id;
+
+            /*
+            |--------------------------------------------------------------------------
+            | JAMINAN LAMA
+            |--------------------------------------------------------------------------
+            */
+
+            $existingJaminans = $pengajuan
+                ->jaminanPengajuans()
+                ->with('dokumenJaminans')
+                ->get()
+                ->keyBy('id');
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | ID JAMINAN YANG MASIH ADA
+            |--------------------------------------------------------------------------
+            */
+
+            $submittedIds = collect(
+                $validated['jaminan']
+            )
+                ->pluck('id')
+                ->filter()
+                ->map(
+                    fn ($id) => (int) $id
+                )
+                ->values()
+                ->toArray();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HAPUS JAMINAN YANG DIHAPUS DARI FORM
+            |--------------------------------------------------------------------------
+            */
+
+            foreach (
+                $existingJaminans as $existingJaminan
+            ) {
+
+                if (
+                    !in_array(
+                        $existingJaminan->id,
+                        $submittedIds
+                    )
+                ) {
+
+                    /*
+                    | Hapus file fisik
+                    */
+
+                    foreach (
+                        $existingJaminan
+                            ->dokumenJaminans
+                        as $dokumen
+                    ) {
+
+                        if (
+                            $dokumen->file_path
+                        ) {
+
+                            Storage::disk('public')
+                                ->delete(
+                                    $dokumen->file_path
+                                );
                         }
                     }
-                    else {
-                        $new =
-                            JaminanPengajuan::create([
-                                'pengajuan_id'      => $pengajuan->id,
-                                'jenis_jaminan'     => $item['jenis_jaminan'],
-                                'nama_jaminan'      => $item['nama_jaminan'],
-                                'detail_jaminan'    => $item['detail_jaminan'],
-                                'nilai_taksiran'    => $item['nilai_taksiran']
-                            ]);
-    
-                        $submittedIds[] = $new->id;
+
+
+                    /*
+                    | Hapus database
+                    */
+
+                    $existingJaminan
+                        ->dokumenJaminans()
+                        ->delete();
+
+                    $existingJaminan->delete();
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | PROSES JAMINAN
+            |--------------------------------------------------------------------------
+            */
+
+            foreach (
+                $validated['jaminan']
+                as $data
+            ) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | JAMINAN LAMA / BARU
+                |--------------------------------------------------------------------------
+                */
+
+                $jaminan = null;
+
+
+                if (
+                    !empty($data['id'])
+                ) {
+
+                    $jaminan =
+                        $existingJaminans->get(
+                            (int) $data['id']
+                        );
+
+
+                    /*
+                    | Security:
+                    | ID harus milik pengajuan ini.
+                    */
+
+                    if (!$jaminan) {
+
+                        abort(
+                            403,
+                            'Data jaminan tidak valid.'
+                        );
+                    }
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | JENIS JAMINAN
+                |--------------------------------------------------------------------------
+                */
+
+                $jenisJaminan =
+                    $data['jenis_jaminan'];
+
+
+                $isKendaraan =
+                    in_array(
+                        $jenisJaminan,
+                        [
+                            'BPKB Motor',
+                            'BPKB Mobil',
+                        ]
+                    );
+
+
+                $isTanah =
+                    $jenisJaminan ===
+                    'Surat Tanah';
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | DATA JAMINAN
+                |--------------------------------------------------------------------------
+                */
+
+                $jaminanData = [
+
+                    'pengajuan_id' =>
+                        $pengajuan->id,
+
+                    'jenis_jaminan' =>
+                        $jenisJaminan,
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | KENDARAAN
+                    |--------------------------------------------------------------------------
+                    */
+
+                    'jenis_kendaraan' =>
+                        $isKendaraan
+                        ? ($data['jenis_kendaraan'] ?? null)
+                        : null,
+
+                    'tahun_kendaraan' =>
+                        $isKendaraan
+                        ? ($data['tahun_kendaraan'] ?? null)
+                        : null,
+
+                    'merk_kendaraan' =>
+                        $isKendaraan
+                        ? ($data['merk_kendaraan'] ?? null)
+                        : null,
+
+                    'plat_polisi' =>
+                        $isKendaraan
+                        ? ($data['plat_polisi'] ?? null)
+                        : null,
+
+                    'bpkb_status' =>
+                        $isKendaraan
+                        ? ($data['bpkb_status'] ?? null)
+                        : null,
+
+                    'pajak_stnk_status' =>
+                        $isKendaraan
+                        ? ($data['pajak_stnk_status'] ?? null)
+                        : null,
+
+                    'status_pajak' =>
+                        $isKendaraan
+                        ? ($data['status_pajak'] ?? null)
+                        : null,
+
+                    'bpkb_atas_nama' =>
+                        $isKendaraan
+                        ? ($data['bpkb_atas_nama'] ?? null)
+                        : null,
+
+                    'no_bpkb' =>
+                        $isKendaraan
+                        ? ($data['no_bpkb'] ?? null)
+                        : null,
+
+                    'no_rangka' =>
+                        $isKendaraan
+                        ? ($data['no_rangka'] ?? null)
+                        : null,
+
+                    'no_mesin' =>
+                        $isKendaraan
+                        ? ($data['no_mesin'] ?? null)
+                        : null,
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SURAT TANAH
+                    |--------------------------------------------------------------------------
+                    */
+
+                    'skt_spgr_status' =>
+                        $isTanah
+                        ? ($data['skt_spgr_status'] ?? null)
+                        : null,
+
+                    'skt_spgr_dikeluarkan_oleh' =>
+                        $isTanah
+                        ? ($data['skt_spgr_dikeluarkan_oleh'] ?? null)
+                        : null,
+
+                    'sertifikat_status' =>
+                        $isTanah
+                        ? ($data['sertifikat_status'] ?? null)
+                        : null,
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | UMUM
+                    |--------------------------------------------------------------------------
+                    */
+
+                    'nama_jaminan' =>
+                        $data['nama_jaminan'],
+
+                    'nilai_taksiran' =>
+                        parse_rupiah(
+                            $data['nilai_taksiran'] ?? null
+                        ),
+
+                    'detail_jaminan' =>
+                        $data['detail_jaminan'] ?? null,
+                ];
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | UPDATE / CREATE
+                |--------------------------------------------------------------------------
+                */
+
+                if ($jaminan) {
+
+                    $jaminan->update(
+                        $jaminanData
+                    );
+
+                } else {
+
+                    $jaminan =
+                        JaminanPengajuan::create(
+                            $jaminanData
+                        );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | DOKUMEN JAMINAN
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    !empty($data['files'])
+                ) {
+
+                    foreach (
+                        $data['files']
+                        as $file
+                    ) {
+
+                        $originalName =
+                            $file->getClientOriginalName();
+
+
+                        $extension =
+                            $file->getClientOriginalExtension();
+
+
+                        $storedName =
+                            Str::uuid()
+                            . '.'
+                            . $extension;
+
+
+                        $folder =
+                            "pengajuan/{$pengajuan->id}/jaminan/{$jaminan->id}";
+
+
+                        $path =
+                            $file->storeAs(
+                                $folder,
+                                $storedName,
+                                'public'
+                            );
+
+
+                        $newFiles[] =
+                            $path;
+
+
+                        DokumenJaminan::create([
+
+                            'jaminan_pengajuan_id' =>
+                                $jaminan->id,
+
+                            'jenis_dokumen' =>
+                                'dokumen_jaminan',
+
+                            'nama_file' =>
+                                $originalName,
+
+                            'file_path' =>
+                                $path,
+
+                            'file_size' =>
+                                $file->getSize(),
+
+                            'mime_type' =>
+                                $file->getMimeType(),
+
+                            'uploaded_by' =>
+                                auth()->id(),
+                        ]);
                     }
                 }
             }
-    
-            // hapus yang tidak dikirim
-            $deletedIds = array_diff($existingIds,$submittedIds);
-            JaminanPengajuan::whereIn('id',$deletedIds)->delete();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DOKUMEN PAYROLL
+            |--------------------------------------------------------------------------
+            */
+
+            $jenisPayroll = [
+
+                'bpjs_ketenagakerjaan' =>
+                    'Kartu Jamsostek / BPJS Ketenagakerjaan',
+
+                'buku_tabungan' =>
+                    'Buku Tabungan',
+
+                'atm' =>
+                    'ATM',
+
+                'slip_gaji' =>
+                    'Slip Gaji',
+            ];
+
+
+            if (
+                !empty(
+                    $validated['dokumen_payroll']
+                    ?? null
+                )
+            ) {
+
+                foreach (
+                    $jenisPayroll as $jenisDokumen => $label
+                ) {
+
+                    $files =
+                        $validated[
+                            'dokumen_payroll'
+                        ][$jenisDokumen] ?? [];
+
+
+                    foreach (
+                        $files as $file
+                    ) {
+
+                        $originalName =
+                            $file->getClientOriginalName();
+
+
+                        $extension =
+                            $file->getClientOriginalExtension();
+
+
+                        $storedName =
+                            Str::uuid()
+                            . '.'
+                            . $extension;
+
+
+                        $folder =
+                            "pengajuan/{$pengajuan->id}/payroll";
+
+
+                        $path =
+                            $file->storeAs(
+                                $folder,
+                                $storedName,
+                                'public'
+                            );
+
+
+                        $newFiles[] =
+                            $path;
+
+
+                        Dokumen_payroll::create([
+
+                            'pengajuan_id' =>
+                                $pengajuan->id,
+
+                            'jenis_dokumen' =>
+                                $jenisDokumen,
+
+                            'nama_file' =>
+                                $originalName,
+
+                            'file_path' =>
+                                $path,
+
+                            'file_size' =>
+                                $file->getSize(),
+
+                            'mime_type' =>
+                                $file->getMimeType(),
+
+                            'uploaded_by' =>
+                                auth()->id(),
+                        ]);
+                    }
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE WIZARD
+            |--------------------------------------------------------------------------
+            */
+
+            $pengajuan->update([
+
+                'current_step' => max(
+                    $pengajuan->current_step,
+                    7
+                ),
+
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | COMMIT
+            |--------------------------------------------------------------------------
+            */
+
             DB::commit();
-    
-            return redirect()->route('pengajuan.kapital',$pengajuan->id);
-        }
-    
-        catch (\Throwable $e) {
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | REDIRECT
+            |--------------------------------------------------------------------------
+            */
+
+            return redirect()
+                ->route(
+                    'pengajuan.kapital',
+                    $pengajuan->id
+                )
+                ->with(
+                    'success',
+                    'Data jaminan dan dokumen berhasil disimpan.'
+                );
+
+
+        } catch (\Throwable $e) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | ROLLBACK
+            |--------------------------------------------------------------------------
+            */
+
             DB::rollBack();
-            return back()->with('error',$e->getMessage());
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HAPUS FILE BARU
+            |--------------------------------------------------------------------------
+            */
+
+            foreach (
+                $newFiles as $path
+            ) {
+
+                Storage::disk('public')
+                    ->delete($path);
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | ERROR
+            |--------------------------------------------------------------------------
+            */
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    $e->getMessage()
+                );
         }
-    }
+    }    
 
     public function kapital(Pengajuan $pengajuan)
     {
@@ -892,8 +3022,8 @@ class PengajuanController extends Controller
             abort(403);
         }
     
-        $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah','referensis','referensis.pekerjaan','dokumenPengajuans',
-        'marketing','cabang','analisa','jaminanPengajuans','kapital',]);
+        $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah','referensis','referensis.pekerjaan','marketing','cabang','analisa',
+        'jaminanPengajuans','jaminanPengajuans.dokumenJaminans','dokumenPayrolls','kapital',]);
     
         $referensis = $pengajuan->referensis;
     
@@ -968,26 +3098,90 @@ class PengajuanController extends Controller
 
     public function show(Pengajuan $pengajuan)
     {
-        $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah','referensis','referensis.pekerjaan','dokumenPengajuans','marketing.user',
-        'cabang','analisa','jaminanPengajuans','kapital','approvals.user',]);
+        $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah','referensis','referensis.pekerjaan','dokumenPengajuans',
+            'marketing.user','cabang','analisa','jaminanPengajuans','jaminanPengajuans.dokumenJaminans','kapital','approvals.user',]);
 
         $referensis = $pengajuan->referensis;
 
-        $pasangan = $referensis->firstWhere('jenis', 'pasangan');
-
-        $penjamin = $referensis->firstWhere('jenis', 'penjamin');
-
-        $saudaras = $referensis->where('jenis', 'saudara');
-
-        // dd($pengajuan->catatan_marketing);
+        $pasangan = $referensis->firstWhere('jenis','pasangan');
+        $penjamin = $referensis->firstWhere('jenis','penjamin');
+        $saudaras = $referensis->where('jenis','saudara');
 
         return view('pengajuans.review-final', [
             'pengajuan' => $pengajuan,
-            'pasangan' => $pasangan,
-            'penjamin' => $penjamin,
-            'saudaras' => $saudaras,
-            'mode' => 'show',
+            'pasangan'  => $pasangan,
+            'penjamin'  => $penjamin,
+            'saudaras'  => $saudaras,
+            'mode'      => 'show',
         ]);
+    }
+
+    private function getMarketingOptions()
+    {
+        $user = auth()->user();
+
+        if ($user->hasAnyRole(['marketing', 'spvmarketing'])) {
+            return collect([
+                $user->karyawan
+            ]);
+        }
+
+        if ($user->hasRole('admincabang')) {
+            $cabangId = $user->karyawan?->cabang_id;
+
+            return Karyawan::query()
+                ->where('cabang_id', $cabangId)
+                ->whereHas('user', function ($query) {
+                    $query->role(['marketing', 'spvmarketing']);
+                })
+                ->with('user')
+                ->get();
+        }
+
+        return collect();
+    }    
+
+    private function getMarketingOptionsForUser()
+    {
+        $user = Auth::user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN CABANG
+        |--------------------------------------------------------------------------
+        | Hanya boleh memilih marketing/spvmarketing
+        | dari cabangnya sendiri.
+        */
+
+        if ($user->hasRole('admincabang')) {
+
+            $karyawan = $user->karyawan;
+
+            if (!$karyawan) {
+                abort(403, 'Data karyawan tidak ditemukan.');
+            }
+
+            if (!$karyawan->cabang_id) {
+                abort(403, 'Cabang pengguna belum ditentukan.');
+            }
+
+            return Karyawan::query()
+                ->where('cabang_id', $karyawan->cabang_id)
+                ->whereHas('user', function ($query) {
+                    $query->role(['marketing', 'spvmarketing']);
+                })
+                ->with('user')
+                ->get();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | MARKETING / SPV MARKETING
+        |--------------------------------------------------------------------------
+        | Tidak perlu pilihan marketing.
+        */
+
+        return collect();
     }
 
 }

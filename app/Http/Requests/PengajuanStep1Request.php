@@ -9,7 +9,7 @@ class PengajuanStep1Request extends FormRequest
     public function authorize(): bool
     {
         return auth()->check()
-        && auth()->user()->hasRole('marketing');
+        && auth()->user()->hasRole('marketing|spvmarketing|admincabang');
     }
 
    public function rules(): array

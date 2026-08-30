@@ -127,6 +127,9 @@
                                             Perbaiki
                                         </a>
                                     @endif
+                                        <a href="{{ route('survey.pengajuan.show',$item->pengajuan_id) }}"
+                                            class="btn btn-info btn-sm"target="_blank">Detail
+                                        </a>
                                 </td>
                             </tr>
                         @empty

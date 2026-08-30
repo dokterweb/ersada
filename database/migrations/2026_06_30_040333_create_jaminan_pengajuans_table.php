@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('nama_jaminan');
             $table->text('detail_jaminan')->nullable();
             $table->bigInteger('nilai_taksiran')->nullable();
+            $table->string('file_jaminan')->nullable()->after('nilai_taksiran');
+            $table->unsignedBigInteger('file_size')->nullable()->after('file_jaminan');
             $table->timestamps();
         });
     }

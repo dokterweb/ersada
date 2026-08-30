@@ -10,7 +10,7 @@ class Nasabah extends Model
 {
     use HasFactory, SoftDeletes;
     
-    protected $fillable = ['pengajuan_id', 'nama', 'nik', 'tempat_lahir', 'tgl_lahir', 'no_hp', 'alamat', 'status_perkawinan', 'jumlah_tanggungan', 'status_rumah', 'lama_menetap_tahun', 'lama_menetap_bulan'];
+    protected $fillable = ['pengajuan_id', 'nama', 'nik', 'tempat_lahir', 'tgl_lahir', 'no_hp', 'alamat', 'status_perkawinan', 'jumlah_tanggungan', 'status_rumah', 'lama_menetap_tahun', 'lama_menetap_bulan','foto_nasabah','ktp_nasabah','akte_lahir_nasabah'];
 
     // Nasabah.php
     public function pengajuan()

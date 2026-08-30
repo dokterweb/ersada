@@ -17,7 +17,7 @@
                     </ul>
                 </div>
             @endif
-            <form action="{{ route('pengajuan.storeStep3',$pengajuan->id) }}" method="POST" class="card">
+            <form action="{{ route('pengajuan.storeStep3',$pengajuan->id) }}" method="POST" class="card" enctype="multipart/form-data">
                 @csrf
                 <div class="card">
                     <div class="card-body">
@@ -45,22 +45,51 @@
                                 <span class="form-check-label">Memiliki Pasangan</span>
                             </label>
                             <div id="pasangan_form" style="display:none;">
-                                <h4>DATA PASANGAN</h4>
-                                <div class="row">
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Nama Sesuai KTP</label>
-                                        <input type="text" class="form-control" name="pasangan[nama]" value="{{ old('pasangan.nama', $pasangan->nama ?? '') }}">
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Tempat Lahir</label>
-                                        <input type="text" class="form-control" name="pasangan[tempat_lahir]" value="{{ old('pasangan.tempat_lahir', $pasangan->tempat_lahir ?? '') }}">
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Tgl Lahir</label>
-                                        <input type="date" class="form-control" name="pasangan[tgl_lahir]" value="{{ old('pasangan.tgl_lahir', $pasangan->tgl_lahir ?? '') }}">
-                                    </div>
+                            <h4>DATA PASANGAN</h4>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Nama Sesuai KTP</label>
+                                    <input type="text" class="form-control" name="pasangan[nama]" value="{{ old('pasangan.nama', $pasangan->nama ?? '') }}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Tempat Lahir</label>
+                                    <input type="text" class="form-control" name="pasangan[tempat_lahir]" 
+                                    value="{{ old('pasangan.tempat_lahir', $pasangan->tempat_lahir ?? '') }}">
+                                </div>
+
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Tgl Lahir</label>
+                                    <input type="date" class="form-control" name="pasangan[tgl_lahir]"
+                                        value="{{ old('pasangan.tgl_lahir', $pasangan->tgl_lahir ?? '') }}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">No. HP</label>
+                                    <input class="form-control" name="pasangan[no_hp]" value="{{ old('pasangan.no_hp', $pasangan->no_hp ?? '') }}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Foto Pasangan</label>
+                                    <input type="file" name="pasangan[foto_pasangan]" class="form-control" accept="image/jpeg,image/png,image/jpg">
+                                    <small class="text-secondary">
+                                        Format JPG/JPEG/PNG, maksimal 5 MB.
+                                    </small>
+                                    @error('pasangan.foto_pasangan')
+                                        <div class="text-danger small">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+                                    @if(!empty($pasangan?->foto_pasangan))
+                                        <div class="mt-2">
+                                            <img
+                                                src="{{ asset('storage/' . $pasangan->foto_pasangan) }}"
+                                                alt="Foto Pasangan"
+                                                class="img-thumbnail"
+                                                style="max-width: 150px;"
+                                            >
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
+                        </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-check">

@@ -52,7 +52,7 @@ class User extends Authenticatable
   
     public function karyawan()
     {
-        return $this->hasOne(Karyawan::class);
+        return $this->hasOne(Karyawan::class, 'user_id');
     }
 
     public function pembayaranAngsurans()

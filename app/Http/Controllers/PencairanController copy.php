@@ -22,60 +22,60 @@ class PencairanController extends Controller
         return view('pencairan.index', compact('pencairans'));
     }
 
-    /**
-     * Form pencairan
-     */
     public function create(Akad $akad)
     {
-        $akad->load(['pembiayaan','pembiayaan.pengajuan','pembiayaan.pengajuan.nasabah','pembiayaan.pengajuan.marketing','pembiayaan.pengajuan.cabang',]);
-
-        if ($akad->pencairan) {return redirect()->route('pencairan.show', $akad->pencairan)->with('warning', 'Pencairan sudah pernah dilakukan.');}
-
+        $akad->load(['pembiayaan','pembiayaan.pengajuan.nasabah','pembiayaan.pengajuan.marketing.user','pembiayaan.pengajuan.cabang','pencairan',]);
+    
+       abort_if($akad->status != 'signed' ||$akad->pembiayaan->status != 'signed',403,'Akad belum ditandatangani.');
+    
+        if ($akad->pencairan) {return redirect()
+                ->route('pencairan.show', $akad->pencairan)
+                ->with('warning', 'Pencairan sudah pernah dilakukan.');
+        }
+    
         return view('pencairan.create', compact('akad'));
     }
-
-    /**
-     * Simpan pencairan
-     */
+   
     public function store(Request $request, Akad $akad)
     {
+       abort_if($akad->status != 'signed' ||$akad->pembiayaan->status != 'signed',403,'Akad belum ditandatangani.');
+
         $request->validate([
             'tanggal_pencairan' => 'required|date',
             'metode'            => 'required|in:tunai,transfer',
             'bank'              => 'nullable|string|max:100',
             'no_rekening'       => 'nullable|string|max:100',
             'atas_nama'         => 'nullable|string|max:100',
-            'keterangan'        => 'nullable|string',
+            'keterangan'        => 'nullable|string|max:1000',
         ]);
 
-        if ($akad->pencairan) {
-            return back()->with('error', 'Pencairan sudah dibuat.');
+        if ($akad->pencairan) {return back()->with('error','Pencairan sudah pernah dibuat.');
         }
 
         DB::transaction(function () use ($request, $akad) {
             $pembiayaan = $akad->pembiayaan;
-            $pencairan = Pencairan::create([
-                'akad_id'            => $akad->id,
-                'nomor_pencairan'    => $this->generateNomor(),
-                'tanggal_pencairan'  => $request->tanggal_pencairan,
-                'jumlah_dicairkan'   => $pembiayaan->dana_diterima,
-                'metode'             => $request->metode,
-                'bank'               => $request->bank,
-                'no_rekening'        => $request->no_rekening,
-                'atas_nama'          => $request->atas_nama,
-                'keterangan'         => $request->keterangan,
-                'created_by'         => Auth::id(),
+            Pencairan::create([
+                'akad_id'           => $akad->id,
+                'nomor_pencairan'   => $this->generateNomor(),
+                'tanggal_pencairan' => $request->tanggal_pencairan,
+                'jumlah_dicairkan'  => $pembiayaan->dana_diterima,
+                'metode'            => $request->metode,
+                'bank'              => $request->bank,
+                'no_rekening'       => $request->no_rekening,
+                'atas_nama'         => $request->atas_nama,
+                'keterangan'        => $request->keterangan,
+                'created_by'        => auth()->id(),
             ]);
 
             $pembiayaan->update([
                 'status'             => 'dicairkan',
-                'tanggal_akad'       => $pembiayaan->tanggal_akad ?? $request->tanggal_pencairan,
                 'tanggal_pencairan'  => $request->tanggal_pencairan,
             ]);
-
         });
+        
+        $akad->load('pencairan');
 
-        return redirect()->route('pencairan.index')->with('success', 'Pencairan berhasil disimpan.');
+        return redirect()->route('pencairan.show', $akad->pencairan)->with('success','Pencairan berhasil disimpan.');
     }
 
     /**

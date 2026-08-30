@@ -35,7 +35,7 @@
             </div>
           </a>
           <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-            <a href="./profile.html" class="dropdown-item">Profile</a>
+            <a href="{{route('profile.index')}}" class="dropdown-item">Profile</a>
             <div class="dropdown-divider"></div>
               <a href="{{route('password.change')}}" class="dropdown-item">Settings</a>
               {{-- <a href="./sign-in.html" class="dropdown-item">Logout</a> --}}
@@ -130,7 +130,7 @@
         </div>
       </div>
       @endrole
-      @role('marketing')
+      @role('marketing|admincabang')
       <div class="collapse navbar-collapse" id="navbar-menu">
         <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
           <ul class="navbar-nav">
@@ -232,6 +232,14 @@
                   <i class="nav-icon fas fa-cog"></i>
                 </span>
                 <span class="nav-link-title">Pengajuan</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ route('diskon-denda.approval') }}" >
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                  <i class="nav-icon fas fa-cog"></i>
+                </span>
+                <span class="nav-link-title">Diskon Denda</span>
               </a>
             </li>
 

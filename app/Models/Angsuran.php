@@ -25,4 +25,9 @@ class Angsuran extends Model
     {
         return $this->hasMany(PembayaranAngsuran::class);
     }
+
+    public function pengajuanDiskonDendas()
+    {
+        return $this->hasMany(PengajuanDiskonDenda::class);
+    }
 }

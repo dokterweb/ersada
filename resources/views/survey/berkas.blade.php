@@ -233,7 +233,9 @@
                     </h3>
                     <span id="badgePekerjaan" class="badge bg-yellow-lt">Belum Lengkap</span>
                 </div>
-            
+                @php
+                    $dokumenPayroll = $survey->pengajuan ->dokumenPayrolls ->groupBy('jenis_dokumen');
+                @endphp
                 <div class="card-body">
                     <div class="row mb-3">
                         <div class="col-md-3">
@@ -246,6 +248,27 @@
                                     {{ old('slip_gaji', optional($survey->berkas)->slip_gaji) ? 'checked' : '' }}>
                                 </label>
                             </div>
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label">Dokumen Slip Gaji</label>
+                            @php
+                                $slipGaji = $dokumenPayroll ->get('slip_gaji', collect());
+                            @endphp
+                            @if($slipGaji->count())
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach($slipGaji as $dokumen)
+                                        <a href="{{ asset('storage/' . $dokumen->file_path) }}"target="_blank"
+                                            class="btn btn-outline-primary btn-sm">
+                                            <i class="ti ti-file"></i>
+                                            {{ $dokumen->nama_file }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="text-muted">
+                                    Belum ada dokumen slip gaji.
+                                </span>
+                            @endif
                         </div>
                     </div>
                     <div id="pekerjaan_box">
@@ -286,13 +309,10 @@
                     </h3>
                     <span id="badgeBPJS" class="badge bg-yellow-lt">Belum Lengkap</span>
                 </div>
-            
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="form-label">
-                                BPJS
-                            </label>
+                            <label class="form-label">BPJS</label>
                             <div>
                                 <label class="form-check form-switch">
                                 <input type="checkbox" class="form-check-input" id="bpjs" name="bpjs" value="1"
@@ -306,6 +326,27 @@
                             </label>
                             <input type="text" class="form-control" id="no_bpjs" name="no_bpjs"
                                 value="{{ old('no_bpjs', optional($survey->berkas)->no_bpjs) }}">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Dokumen BPJS</label>
+                            @php
+                                $bpjsDocs = $dokumenPayroll ->get( 'bpjs_ketenagakerjaan', collect() );
+                            @endphp
+                            @if($bpjsDocs->count())
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach($bpjsDocs as $dokumen)
+                                        <a href="{{ asset('storage/' . $dokumen->file_path) }}" target="_blank"
+                                            class="btn btn-outline-primary btn-sm">
+                                            <i class="ti ti-file"></i>
+                                            {{ $dokumen->nama_file }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="text-muted">
+                                    Belum ada dokumen BPJS.
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -346,7 +387,7 @@
                         </div>
                     </div>
                     <hr>
-                    <div class="row">
+                    <div class="row mb-4">
                         <div class="col-md-3">
                             <label class="form-label">
                                 Kartu ATM
@@ -364,6 +405,31 @@
                             </label>
                             <input type="text" class="form-control" id="pin_atm" name="pin_atm"
                                 value="{{ old('pin_atm', optional($survey->berkas)->pin_atm) }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label class="form-label">
+                                Dokumen Buku Tabungan
+                            </label>
+                            @php
+                                $tabunganDocs = $dokumenPayroll ->get( 'buku_tabungan', collect());
+                            @endphp
+                            @if($tabunganDocs->count())
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach($tabunganDocs as $dokumen)
+                                        <a href="{{ asset('storage/' . $dokumen->file_path) }}" target="_blank"
+                                            class="btn btn-outline-primary btn-sm">
+                                            <i class="ti ti-file"></i>
+                                            {{ $dokumen->nama_file }}
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="text-muted">
+                                    Belum ada dokumen buku tabungan.
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>

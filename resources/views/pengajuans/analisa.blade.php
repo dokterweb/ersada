@@ -134,7 +134,7 @@
                                 </select>
                             </div>
                             {{-- KTP PASANGAN --}}
-                            @if(strtolower($pengajuan->nasabah->status_pernikahan ?? '') === 'menikah')
+                            @if(strtolower($pengajuan->nasabah->status_perkawinan ?? '') === 'menikah')
 
                             <div class="col-md-3 mb-3">
                                 <label>KTP Pasangan</label>
@@ -171,7 +171,7 @@
                                 </select>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label>Kartu Keluarga</label>
+                                <label>Perbaikan Plafond</label>
                                 <select name="perbaikan_plafon" class="form-select">
                                     <option value="0"{{ old('perbaikan_plafon',$analisa?->perbaikan_plafon) == 0? 'selected' : '' }}>
                                         Belum

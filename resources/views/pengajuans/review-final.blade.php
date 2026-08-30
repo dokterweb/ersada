@@ -114,7 +114,8 @@
                                         </tr>
                                         <tr>
                                             <td>Tgl Lahir</td>
-                                            <td>{{ $pengajuan->nasabah->tgl_lahir }}</td>
+                                            {{-- <td>{{ $pengajuan->nasabah->tgl_lahir }}</td> --}}
+                                            <td>{{ \Carbon\Carbon::parse($pengajuan->nasabah->tgl_lahir)->format('d-m-Y') }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat</td>
@@ -226,7 +227,8 @@
                                         </tr>
                                         <tr>
                                             <td>Tgl Lahir</td>
-                                            <td>{{ $pasangan->tgl_lahir }}</td>
+                                            {{-- <td>{{ $pasangan->tgl_lahir }}</td> --}}
+                                            <td>{{ \Carbon\Carbon::parse($pasangan->tgl_lahir)->format('d-m-Y') }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat</td>
@@ -306,7 +308,8 @@
                                         </tr>
                                         <tr>
                                             <td>Tgl Lahir</td>
-                                            <td>{{ $penjamin->tgl_lahir }}</td>
+                                            {{-- <td>{{ $penjamin->tgl_lahir }}</td> --}}
+                                            <td>{{ \Carbon\Carbon::parse($penjamin->tgl_lahir)->format('d-m-Y') }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat</td>
@@ -387,7 +390,8 @@
                                         </tr>
                                         <tr>
                                             <td>Tgl Lahir</td>
-                                            <td>{{ $saudara->tgl_lahir }}</td>
+                                            {{-- <td>{{ $saudara->tgl_lahir }}</td> --}}
+                                            <td>{{ \Carbon\Carbon::parse($saudara->tgl_lahir)->format('d-m-Y') }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat</td>
@@ -414,20 +418,539 @@
                     <div class="card-body">
                        <div class="row">
                         <table class="table">
-                        @foreach($pengajuan->dokumenPengajuans as $doc)
-                            <tr>
-                                <td>{{ $doc->jenis_label  }}</td>
-                                <td>
-                                    <a href="{{ asset('storage/'.$doc->file_path) }}" target="_blank">{{ $doc->nama_file }}</a>
-                                </td>
-                                <td>{{ $doc->status }}</td>
-                            </tr>
-                        @endforeach
+                            @foreach($pengajuan->dokumenPengajuans as $doc)
+                                <tr>
+                                    <td>{{ $doc->jenis_label  }}</td>
+                                    <td>
+                                        <a href="{{ asset('storage/'.$doc->file_path) }}" target="_blank">{{ $doc->nama_file }}</a>
+                                    </td>
+                                    <td>{{ $doc->status }}</td>
+                                </tr>
+                            @endforeach
                         </table>
                        </div>
                     </div>
                 </div>
             </div>
+
+            {{-- =========================================================
+                JAMINAN
+            ========================================================= --}}
+            @if($pengajuan->jaminanPengajuans->count())
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header bg-warning">
+                        <h3 class="card-title mb-0">Data Jaminan</h3>
+                    </div>
+                    <div class="card-body">
+                        @foreach($pengajuan->jaminanPengajuans as $index => $jaminan)
+                            <div class="card mb-4 border">
+                                {{-- HEADER JAMINAN --}}
+                                <div class="card-header bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong>
+                                            Jaminan {{ $index + 1 }} - 
+                                        </strong>
+                                        <span class="badge bg-primary">
+                                            {{ $jaminan->jenis_jaminan }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                        {{-- BPKB MOTOR / MOBIL --}}
+                                    @if(
+                                        in_array($jaminan->jenis_jaminan,['BPKB Motor', 'BPKB Mobil'])
+                                    )
+                                        <h3 class="text-primary mb-3">Data Kendaraan</h3>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="card mt-2 p-2">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <td>Jenis Kendaraan</td>
+                                                            <td>{{ $jaminan->jenis_kendaraan ?? '-' }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Tahun</td>
+                                                            <td>{{ $jaminan->tahun_kendaraan ?? '-' }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Merk</td>
+                                                            <td>{{ $jaminan->merk_kendaraan ?? '-' }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Plat Kendaraan</td>
+                                                            <td>{{ $jaminan->plat_polisi ?? '-' }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>BPKB Atas Nama</td>
+                                                            <td>
+                                                                {{ $jaminan->bpkb_atas_nama ?? '-' }}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>No BPKB</td>
+                                                            <td>
+                                                            {{ $jaminan->no_bpkb ?? '-' }}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>No Rangka</td>
+                                                            <td>
+                                                            {{ $jaminan->no_rangka ?? '-' }}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>No Mesin</td>
+                                                            <td>
+                                                            {{ $jaminan->no_mesin ?? '-' }}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>BPKB</td>
+                                                            <td>
+                                                                @if($jaminan->bpkb_status === 'ada')
+                                                                    <span class="badge bg-success">
+                                                                        Ada
+                                                                    </span>
+                                                                @else
+                                                                    <span class="badge bg-danger">
+                                                                        Tidak Ada
+                                                                    </span>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Pajak STNK</td>
+                                                            <td>
+                                                                @if($jaminan->pajak_stnk_status === 'ada')
+                                                                    <span class="badge bg-success">
+                                                                        Ada
+                                                                    </span>
+                                                                @else
+                                                                    <span class="badge bg-danger">
+                                                                        Tidak Ada
+                                                                    </span>
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Status Pajak</td>
+                                                            <td>
+                                                                @if($jaminan->status_pajak === 'hidup')
+                                                                    <span class="badge bg-success">
+                                                                        Hidup
+                                                                    </span>
+                                                                @elseif($jaminan->status_pajak === 'mati')
+                                                                    <span class="badge bg-danger">
+                                                                        Mati
+                                                                    </span>
+                                                                @else
+                                                                    -
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        
+
+                                        {{-- SURAT TANAH --}}
+                                    @elseif($jaminan->jenis_jaminan === 'Surat Tanah')
+                                        <h3 class="text-primary mb-3">Data Surat Tanah</h3>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="card mt-2 p-2">
+                                                    <table class="table table-sm">
+                                                        <tr>
+                                                            <td style="width:50%">SKT / SPGR</td>
+                                                            <td>
+                                                                @if($jaminan->skt_spgr_status === 'ada')
+                                                                    <span class="badge bg-success">Ada</span>
+                                                                @elseif($jaminan->skt_spgr_status === 'tidak_ada')
+                                                                    <span class="badge bg-danger">Tidak Ada</span>
+                                                                @else
+                                                                    -
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>SKT / SPGR Dikeluarkan Oleh</td>
+                                                            <td>
+                                                            {{ $jaminan->skt_spgr_dikeluarkan_oleh ?? '-' }}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>Sertifikat</td>
+                                                            <td>
+                                                            @if($jaminan->sertifikat_status === 'ada')
+                                                                    <span class="badge bg-success">Ada</span>
+                                                                @elseif($jaminan->sertifikat_status === 'tidak_ada')
+                                                                    <span class="badge bg-danger">Tidak Ada</span>
+                                                                @else
+                                                                    -
+                                                                @endif
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        
+                                    @endif
+                                        {{-- NILAI TAKSIRAN --}}
+                                        <div class="col-md-6">
+                                            <div class="card mt-2 p-2">
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th style="width:25%">Nilai Taksiran</th>
+                                                        <td>Rp {{ number_format($jaminan->nilai_taksiran ?? 0,0,',','.') }}</td>
+                                                        
+                                                    </tr>
+                                                    <tr>
+                                                        <td>Deskripsi</td>
+                                                        <td>{{$jaminan->detail_jaminan ?? '-'}}</td>
+                                                    </tr>
+                                                </table>
+                                                <h5 class="text-primary mb-3">Dokumen Jaminan</h5>
+                                                @if($jaminan->dokumenJaminans->count())
+                                                    <div class="row">
+                                                    <table class="table table-sm">
+                                                            @foreach($jaminan->dokumenJaminans as $dokumen)
+                                                            <tr>
+                                                                <td>{{ $dokumen->nama_file }}</td>
+                                                                <td>
+                                                                    <a href="{{ asset( 'storage/' . $dokumen->file_path) }}" target="_blank"
+                                                                    class="btn btn-sm btn-primary">Lihat Dokumen
+                                                                    </a>
+                                                                </td>
+                                                            </tr>
+                                                            @endforeach
+                                                        </table>
+                                                    </div>
+                                                @else
+                                                    <div class="alert alert-secondary">
+                                                        Belum ada dokumen jaminan.
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                    {{-- =================================================
+                                        DOKUMEN JAMINAN
+                                    ================================================== --}}
+
+
+                                
+                                </div>
+                            </div>
+                        @endforeach
+
+                    </div>
+
+                </div>
+                @else
+                <div class="card mb-4">
+                    <div class="card-header bg-warning">
+                        <h3 class="card-title mb-0">
+                            Data Jaminan
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning mb-0">
+                            Belum ada data jaminan.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+            {{-- ========================================================= --}}
+            {{-- DOKUMEN PAYROLL --}}
+            {{-- ========================================================= --}}
+
+            <div class="card mb-4">
+
+                <div class="card-header bg-success text-white">
+
+                    <strong>
+                        DOKUMEN TAMBAHAN KARYAWAN / PAYROLL
+                    </strong>
+
+                </div>
+
+
+                <div class="card-body">
+
+                    <div class="row">
+
+
+                        {{-- BPJS --}}
+
+                        <div class="col-md-6 mb-4">
+
+                            <strong>
+                                1. Kartu Jamsostek /
+                                BPJS Ketenagakerjaan
+                            </strong>
+
+
+                            @php
+
+                                $bpjs =
+                                    $pengajuan
+                                        ->dokumenPayrolls
+                                        ->where(
+                                            'jenis_dokumen',
+                                            'bpjs_ketenagakerjaan'
+                                        );
+
+                            @endphp
+
+
+                            @if($bpjs->count())
+
+                                <div class="list-group mt-2">
+
+                                    @foreach($bpjs as $dokumen)
+
+                                        <div
+                                            class="
+                                                list-group-item
+                                                d-flex
+                                                justify-content-between
+                                                align-items-center
+                                            "
+                                        >
+
+                                            {{ $dokumen->nama_file }}
+
+
+                                            <a
+                                                href="{{ asset('storage/' . $dokumen->file_path) }}"
+                                                target="_blank"
+                                                class="btn btn-sm btn-outline-primary"
+                                            >
+                                                Lihat
+                                            </a>
+
+                                        </div>
+
+                                    @endforeach
+
+                                </div>
+
+                            @else
+
+                                <div class="text-muted mt-2">
+                                    Belum ada dokumen.
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        {{-- BUKU TABUNGAN --}}
+
+                        <div class="col-md-6 mb-4">
+
+                            <strong>
+                                2. Buku Tabungan
+                            </strong>
+
+
+                            @php
+
+                                $tabungan =
+                                    $pengajuan
+                                        ->dokumenPayrolls
+                                        ->where(
+                                            'jenis_dokumen',
+                                            'buku_tabungan'
+                                        );
+
+                            @endphp
+
+
+                            @if($tabungan->count())
+
+                                <div class="list-group mt-2">
+
+                                    @foreach($tabungan as $dokumen)
+
+                                        <div
+                                            class="
+                                                list-group-item
+                                                d-flex
+                                                justify-content-between
+                                                align-items-center
+                                            "
+                                        >
+
+                                            {{ $dokumen->nama_file }}
+
+
+                                            <a
+                                                href="{{ asset('storage/' . $dokumen->file_path) }}"
+                                                target="_blank"
+                                                class="btn btn-sm btn-outline-primary"
+                                            >
+                                                Lihat
+                                            </a>
+
+                                        </div>
+
+                                    @endforeach
+
+                                </div>
+
+                            @else
+
+                                <div class="text-muted mt-2">
+                                    Belum ada dokumen.
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        {{-- ATM --}}
+
+                        <div class="col-md-6 mb-4">
+
+                            <strong>
+                                3. Kartu ATM
+                            </strong>
+
+
+                            @php
+
+                                $atm =
+                                    $pengajuan
+                                        ->dokumenPayrolls
+                                        ->where(
+                                            'jenis_dokumen',
+                                            'atm'
+                                        );
+
+                            @endphp
+
+
+                            @if($atm->count())
+
+                                <div class="list-group mt-2">
+
+                                    @foreach($atm as $dokumen)
+
+                                        <div
+                                            class="
+                                                list-group-item
+                                                d-flex
+                                                justify-content-between
+                                                align-items-center
+                                            "
+                                        >
+
+                                            {{ $dokumen->nama_file }}
+
+
+                                            <a
+                                                href="{{ asset('storage/' . $dokumen->file_path) }}"
+                                                target="_blank"
+                                                class="btn btn-sm btn-outline-primary"
+                                            >
+                                                Lihat
+                                            </a>
+
+                                        </div>
+
+                                    @endforeach
+
+                                </div>
+
+                            @else
+
+                                <div class="text-muted mt-2">
+                                    Belum ada dokumen.
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        {{-- SLIP GAJI --}}
+
+                        <div class="col-md-6 mb-4">
+
+                            <strong>
+                                4. Slip Gaji
+                            </strong>
+
+
+                            @php
+
+                                $slipGaji =
+                                    $pengajuan
+                                        ->dokumenPayrolls
+                                        ->where(
+                                            'jenis_dokumen',
+                                            'slip_gaji'
+                                        );
+
+                            @endphp
+
+
+                            @if($slipGaji->count())
+
+                                <div class="list-group mt-2">
+
+                                    @foreach(
+                                        $slipGaji
+                                        as $dokumen
+                                    )
+
+                                        <div
+                                            class="
+                                                list-group-item
+                                                d-flex
+                                                justify-content-between
+                                                align-items-center
+                                            "
+                                        >
+
+                                            {{ $dokumen->nama_file }}
+
+
+                                            <a
+                                                href="{{ asset('storage/' . $dokumen->file_path) }}"
+                                                target="_blank"
+                                                class="btn btn-sm btn-outline-primary"
+                                            >
+                                                Lihat
+                                            </a>
+
+                                        </div>
+
+                                    @endforeach
+
+                                </div>
+
+                            @else
+
+                                <div class="text-muted mt-2">
+                                    Belum ada dokumen.
+                                </div>
+
+                            @endif
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header bg-info text-white d-flex justify-content-between">
@@ -506,7 +1029,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-12">
+            {{-- <div class="col-md-12">
                 <div class="card">
                     <div class="card-header bg-info text-white d-flex justify-content-between">
                         <h3 class="card-title">
@@ -552,7 +1075,7 @@
                        </div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
             <div class="col-md-12">
                 <div class="card">
                    <div class="card-header bg-info text-white d-flex justify-content-between">
@@ -575,142 +1098,153 @@
                             @endphp
                     
                             @if($kapital)
-                    
-                            <div class="row">
-                    
-                                {{-- PENDAPATAN --}}
-                                <div class="col-md-6">
-                    
-                                    <h4 class="text-primary">Pendapatan</h4>
-                    
-                                    <table class="table table-sm">
-                    
-                                        <tr>
-                                            <td>Omzet Harian</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->omzet_harian) }}
-                                            </td>
-                                        </tr>
-                    
-                                        <tr>
-                                            <td>Laba Harian</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->laba_harian) }}
-                                            </td>
-                                        </tr>
-                    
-                                        <tr>
-                                            <td>Pendapatan Lain</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->pendapatan_lain) }}
-                                            </td>
-                                        </tr>
-                    
-                                        <tr>
-                                            <td>Pendapatan Pasangan</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->pendapatan_pasangan) }}
-                                            </td>
-                                        </tr>
-                    
-                                    </table>
-                    
+
+                                <div class="row">
+
+                                    {{-- PENDAPATAN --}}
+                                    <div class="col-md-6">
+
+                                        <h4 class="text-primary">
+                                            Pendapatan
+                                        </h4>
+
+                                        <table class="table table-sm">
+
+                                            {{-- Omzet Usaha --}}
+                                            <tr>
+                                                <td>Omzet Harian</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->omzet_harian ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                            {{-- Laba Usaha --}}
+                                            <tr>
+                                                <td>Laba Harian</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->laba_harian ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                            {{-- Gaji Debitur --}}
+                                            <tr>
+                                                <td>Gaji Debitur</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->gaji_debitur ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                            {{-- Pendapatan Pasangan --}}
+                                            <tr>
+                                                <td>Pendapatan Pasangan</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->pendapatan_pasangan ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                        </table>
+
+                                    </div>
+
+
+                                    {{-- PENGELUARAN --}}
+                                    <div class="col-md-6">
+
+                                        <h4 class="text-danger">
+                                            Pengeluaran
+                                        </h4>
+
+                                        <table class="table table-sm">
+
+                                            <tr>
+                                                <td>Rumah Tangga</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->biaya_rumah_tangga ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>Motor</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->biaya_motor ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>Koperasi</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->biaya_koperasi ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>Angsuran Lain</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->angsuran_lain ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>Kontrak Rumah</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->biaya_kontrak_rumah ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>Tempat Usaha</td>
+                                                <td class="text-end">
+                                                    Rp {{ number_format($kapital->biaya_tempat_usaha ?? 0, 0, ',', '.') }}
+                                                </td>
+                                            </tr>
+
+                                        </table>
+
+                                    </div>
+
                                 </div>
-                    
-                                {{-- PENGELUARAN --}}
-                                <div class="col-md-6">
-                    
-                                    <h4 class="text-danger">Pengeluaran</h4>
-                    
-                                    <table class="table table-sm">
-                    
-                                        <tr>
-                                            <td>Rumah Tangga</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->biaya_rumah_tangga) }}
-                                            </td>
-                                        </tr>
-                    
-                                        <tr>
-                                            <td>Motor</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->biaya_motor) }}
-                                            </td>
-                                        </tr>
-                    
-                                        <tr>
-                                            <td>Koperasi</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->biaya_koperasi) }}
-                                            </td>
-                                        </tr>
-                    
-                                        <tr>
-                                            <td>Angsuran Lain</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->angsuran_lain) }}
-                                            </td>
-                                        </tr>
-                    
-                                        <tr>
-                                            <td>Kontrak Rumah</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->biaya_kontrak_rumah) }}
-                                            </td>
-                                        </tr>
-                    
-                                        <tr>
-                                            <td>Tempat Usaha</td>
-                                            <td class="text-end">
-                                                Rp {{ number_format($kapital->biaya_tempat_usaha) }}
-                                            </td>
-                                        </tr>
-                    
-                                    </table>
-                    
+
+
+                                <hr>
+
+
+                                <div class="row">
+
+                                    <div class="col-md-6">
+
+                                        <h4>
+                                            Total Pengeluaran
+                                        </h4>
+
+                                        <h2 class="text-danger">
+                                            Rp {{ number_format($kapital->total_pengeluaran ?? 0, 0, ',', '.') }}
+                                        </h2>
+
+                                    </div>
+
+
+                                    <div class="col-md-6 text-end">
+
+                                        <h4>
+                                            Sisa Pendapatan
+                                        </h4>
+
+                                        <h2 class="text-success">
+                                            Rp {{ number_format($kapital->sisa_pendapatan ?? 0, 0, ',', '.') }}
+                                        </h2>
+
+                                    </div>
+
                                 </div>
-                    
-                            </div>
-                    
-                            <hr>
-                    
-                            <div class="row">
-                    
-                                <div class="col-md-6">
-                    
-                                    <h4>Total Pengeluaran</h4>
-                    
-                                    <h2 class="text-danger">
-                    
-                                        Rp {{ number_format($kapital->total_pengeluaran) }}
-                    
-                                    </h2>
-                    
-                                </div>
-                    
-                                <div class="col-md-6 text-end">
-                    
-                                    <h4>Sisa Pendapatan</h4>
-                    
-                                    <h2 class="text-success">
-                    
-                                        Rp {{ number_format($kapital->sisa_pendapatan) }}
-                    
-                                    </h2>
-                    
-                                </div>
-                    
-                            </div>
-                    
+
+
                             @else
-                    
+
                                 <div class="alert alert-warning">
-                    
                                     Data Analisa Kapital belum diisi.
-                    
                                 </div>
-                    
-                            @endif                       
+
+                            @endif
                             </table>
                             </div>
                        </div>

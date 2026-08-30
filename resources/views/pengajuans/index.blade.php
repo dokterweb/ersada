@@ -2,26 +2,7 @@
 
 @section('content')
 <div class="page-wrapper">
-    <!-- Page header -->
-    <div class="page-header d-print-none">
-      <div class="container-xl">
-        <div class="row g-2 align-items-center">
-          <div class="col">
-            <h2 class="page-title">
-              Data Karyawan
-            </h2>
-          </div>
-          <!-- Page title actions -->
-          <div class="col-auto ms-auto d-print-none">
-            <div class="btn-list">
-              <a href="{{route('karyawans.create')}}" class="btn btn-primary">
-                Tambah Karyawan
-            </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    
     <!-- Page body -->
     <div class="page-body">
       <div class="container-xl">

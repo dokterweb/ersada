@@ -10,7 +10,7 @@ class Pembiayaan extends Model
     use HasFactory;
 
     protected $fillable = ['pengajuan_id', 'nomor_pembiayaan', 'plafond', 'tenor', 'jenis_tenor', 'persen_bunga', 'persen_administrasi', 'biaya_administrasi', 
-    'materai', 'biaya_survei', 'dana_diterima', 'tanggal_akad', 'tanggal_pencairan', 'tanggal_jatuh_tempo_pertama', 'status','created_by'];
+    'materai', 'biaya_survei', 'biaya_notaris','dana_diterima', 'tanggal_akad', 'tanggal_pencairan', 'tanggal_jatuh_tempo_pertama', 'status','created_by'];
 
     protected $casts = [
         'tanggal_akad' => 'date',

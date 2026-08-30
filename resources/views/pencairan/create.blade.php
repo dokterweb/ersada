@@ -25,7 +25,7 @@
     <!-- Page body -->
     <div class="page-body">
       <div class="container-xl">
-        <form action="{{ route('pencairan.store',$akad) }}" method="POST">
+        <form action="{{ route('pencairan.store',$akad) }}" method="POST"  enctype="multipart/form-data">
             @csrf
             <div class="card">
                 <div class="card-header">
@@ -113,6 +113,30 @@
                                 <label class="form-label">Atas Nama</label>
                                 <input type="text" name="atas_nama" class="form-control">
                             </div>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <h4 class="mb-3">Dokumen Pencairan</h4>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Bukti Pencairan</label>
+                            <input type="file" name="bukti_pencairan" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                            <div class="form-text">JPG, JPEG, PNG atau PDF.Maksimal 50 MB.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Foto Akad 1</label>
+                            <input type="file" name="foto_akad1" class="form-control" accept=".jpg,.jpeg,.png">
+                            <div class="form-text">JPG, JPEG atau PNG.Maksimal 50 MB.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Foto Akad 2</label>
+                            <input type="file" name="foto_akad2" class="form-control" accept=".jpg,.jpeg,.png">
+                            <div class="form-text">JPG, JPEG atau PNG.Maksimal 50 MB.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Foto Akad 3</label>
+                            <input type="file" name="foto_akad3" class="form-control" accept=".jpg,.jpeg,.png">
+                            <div class="form-text">JPG, JPEG atau PNG.Maksimal 50 MB.</div>
                         </div>
                     </div>
                     <div class="mb-3">

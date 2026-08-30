@@ -50,15 +50,13 @@ class AuthController extends Controller
             case $user->hasAnyRole(['spvsurveyor', 'surveyor']):
             return redirect()->route('survey.index');
     
-            /*case $user->hasRole('spvmarketing'):
+            case $user->hasRole('admincabang'):
+                return redirect()->route('admincabang.dashboard'); 
+            
+                
+                /*case $user->hasRole('spvmarketing'):
                 return redirect()->route('spvmarketing.dashboard');
-    
-            case $user->hasRole('surveyor'):
-                return redirect()->route('surveyor.dashboard');
-    
-            case $user->hasRole('spvsurveyor'):
-                return redirect()->route('spvsurveyor.dashboard'); */
-    
+            */                    
             default:
                 Auth::logout();
     

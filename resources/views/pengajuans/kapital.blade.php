@@ -41,19 +41,19 @@
                     <div class="row">
                         <div class="col-md-3 mb-3">
                             <label>Omzet Harian</label>
-                            <input type="number" name="omzet_harian" class="form-control" value="{{ old('omzet_harian', $kapital?->omzet_harian) }}">
+                            <input type="text" name="omzet_harian" class="form-control rupiah" value="{{ old('omzet_harian', $kapital?->omzet_harian) }}">
                         </div>
                         <div class="col-md-3 mb-3">
                             <label>Laba Harian</label>
-                            <input type="number" name="laba_harian" class="form-control" value="{{ old('laba_harian', $kapital?->laba_harian) }}">
+                            <input type="text" name="laba_harian" class="form-control rupiah" value="{{ old('laba_harian', $kapital?->laba_harian) }}">
                         </div>
                         <div class="col-md-3 mb-3">
                             <label>Gaji Debitur</label>
-                            <input type="number" name="gaji_debitur" class="form-control" value="{{ old('gaji_debitur', $kapital?->gaji_debitur) }}">
+                            <input type="text" name="gaji_debitur" class="form-control rupiah" value="{{ old('gaji_debitur', $kapital?->gaji_debitur) }}">
                         </div>
                         <div class="col-md-3 mb-3">
                             <label>Pendapatan Pasangan</label>
-                            <input type="number" name="pendapatan_pasangan" class="form-control" value="{{ old('pendapatan_pasangan', $kapital?->pendapatan_pasangan) }}">
+                            <input type="text" name="pendapatan_pasangan" class="form-control rupiah" value="{{ old('pendapatan_pasangan', $kapital?->pendapatan_pasangan) }}">
                         </div>
                     </div>
                     <hr>
@@ -61,31 +61,31 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label>Biaya Rumah Tangga</label>
-                            <input type="number" name="biaya_rumah_tangga" class="form-control" value="{{ old('biaya_rumah_tangga', $kapital?->biaya_rumah_tangga) }}">
+                            <input type="text" name="biaya_rumah_tangga" class="form-control rupiah" value="{{ old('biaya_rumah_tangga', $kapital?->biaya_rumah_tangga) }}">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label>Biaya Motor</label>
-                            <input type="number" name="biaya_motor" class="form-control" value="{{ old('biaya_motor', $kapital?->biaya_motor) }}">
+                            <input type="text" name="biaya_motor" class="form-control rupiah" value="{{ old('biaya_motor', $kapital?->biaya_motor) }}">
                         </div>
         
                         <div class="col-md-4 mb-3">
                             <label>Biaya Koperasi</label>
-                            <input type="number" name="biaya_koperasi" class="form-control" value="{{ old('biaya_koperasi', $kapital?->biaya_koperasi) }}">
+                            <input type="text" name="biaya_koperasi" class="form-control rupiah" value="{{ old('biaya_koperasi', $kapital?->biaya_koperasi) }}">
                         </div>
         
                         <div class="col-md-4 mb-3">
                             <label>Angsuran Lain</label>
-                            <input type="number" name="angsuran_lain" class="form-control" value="{{ old('angsuran_lain', $kapital?->angsuran_lain) }}">
+                            <input type="text" name="angsuran_lain" class="form-control rupiah" value="{{ old('angsuran_lain', $kapital?->angsuran_lain) }}">
                         </div>
         
                         <div class="col-md-4 mb-3">
                             <label>Biaya Kontrak Rumah</label>
-                            <input type="number" name="biaya_kontrak_rumah" class="form-control" value="{{ old('biaya_kontrak_rumah',$kapital?->biaya_kontrak_rumah) }}">
+                            <input type="text" name="biaya_kontrak_rumah" class="form-control rupiah" value="{{ old('biaya_kontrak_rumah',$kapital?->biaya_kontrak_rumah) }}">
                         </div>
         
                         <div class="col-md-4 mb-3">
                             <label>Biaya Tempat Usaha</label>
-                            <input type="number" name="biaya_tempat_usaha" class="form-control" value="{{ old('biaya_tempat_usaha',$kapital?->biaya_tempat_usaha) }}">
+                            <input type="text" name="biaya_tempat_usaha" class="form-control rupiah" value="{{ old('biaya_tempat_usaha',$kapital?->biaya_tempat_usaha) }}">
                         </div>
         
                     </div>

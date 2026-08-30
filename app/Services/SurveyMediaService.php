@@ -4,10 +4,20 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Laravel\Facades\Image;
+// use Intervention\Image\Laravel\Facades\Image;
+// use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class SurveyMediaService
 {
+    protected ImageManager $image;
+
+    public function __construct()
+    {
+        $this->image = new ImageManager(new Driver());
+    }
+
     /**
      * Simpan file sesuai jenisnya.
      */
@@ -26,13 +36,23 @@ class SurveyMediaService
         return $this->storePdf($file, $surveyId);
     }
 
-    public function resizeImage(UploadedFile $file, int $surveyId): string
+/*     public function resizeImage(UploadedFile $file, int $surveyId): string
     {
         $image = Image::read($file);
         $image->scaleDown(width: 1600,height: 1600);
         $filename =uniqid().'.jpg';
         $path ="survey/{$surveyId}/".$filename;
         Storage::disk('public')->put($path,(string) $image->toJpeg(75)            );
+        return $path;
+    } */
+
+    public function resizeImage(UploadedFile $file, int $surveyId): string
+    {
+        $image = $this->image->read($file);
+        $image->scaleDown(width: 1600,height: 1600);
+        $filename = uniqid().'.jpg';
+        $path = "survey/{$surveyId}/".$filename;
+        Storage::disk('public')->put($path,$image->toJpeg(75));
         return $path;
     }
 
@@ -57,5 +77,14 @@ class SurveyMediaService
             return Storage::disk('public')->delete($path);
         }
         return false;
+    }
+
+    public function storeImage(UploadedFile $file,string $folder='avatars',int $width=400,int $height=400,int $quality=80): string {
+        $image = $this->image->read($file);
+        $image->cover($width,$height);
+        $filename = uniqid().'.jpg';
+        $path = $folder.'/'.$filename;
+        Storage::disk('public')->put($path,$image->toJpeg($quality));
+        return $path;
     }
 }

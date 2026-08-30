@@ -59,46 +59,294 @@ class SurveyController extends Controller
 
     public function create(Pengajuan $pengajuan)
     {
+        /*
+        |--------------------------------------------------------------------------
+        | HANYA PENGAJUAN MENUNGGU SURVEY
+        |--------------------------------------------------------------------------
+        */
+
         if ($pengajuan->status != 'menunggu_survey') {
             abort(403);
         }
-        $surveyors = User::role('surveyor')->orderBy('name')->get();
-        return view('survey.create', compact('pengajuan','surveyors'));
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | LOAD DATA PENGAJUAN
+        |--------------------------------------------------------------------------
+        */
+
+        $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah','referensis','referensis.pekerjaan','marketing','cabang',
+            'analisa','jaminanPengajuans','jaminanPengajuans','jaminanPengajuans.dokumenJaminans','dokumenPayrolls','kapital',]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | REFERENSI
+        |--------------------------------------------------------------------------
+        */
+
+        $referensis = $pengajuan->referensis;
+
+        $pasangan = $referensis->firstWhere('jenis', 'pasangan');
+
+        $penjamin = $referensis->firstWhere('jenis', 'penjamin');
+
+        $saudaras = $referensis
+            ->where('jenis', 'saudara')
+            ->sortBy('urutan')
+            ->values();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DAFTAR SURVEYOR
+        |--------------------------------------------------------------------------
+        */
+
+        $surveyors = User::role('surveyor')
+            ->orderBy('name')
+            ->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAK PENUGASAN
+        |--------------------------------------------------------------------------
+        */
+
+        $user = auth()->user();
+
+        /*
+        | SPV Surveyor dan Surveyor boleh
+        | mengambil survey untuk dirinya sendiri
+        */
+
+        $canSurveySelf = $user->hasAnyRole([
+            'spvsurveyor',
+            'surveyor',
+        ]);
+
+
+        /*
+        | Untuk sementara SPV Surveyor dan Surveyor
+        | sama-sama boleh menugaskan surveyor lain.
+        */
+
+        $canAssignSurveyor = $user->hasAnyRole([
+            'spvsurveyor',
+            'surveyor',
+        ]);
+
+
+        return view('survey.create', [
+
+            'pengajuan' => $pengajuan,
+
+            'pasangan' => $pasangan,
+
+            'penjamin' => $penjamin,
+
+            'saudaras' => $saudaras,
+
+            'surveyors' => $surveyors,
+
+            'canSurveySelf' => $canSurveySelf,
+
+            'canAssignSurveyor' => $canAssignSurveyor,
+
+        ]);
     }
 
-    public function store(Request $request, Pengajuan $pengajuan)
-    {
-        if ($pengajuan->status != 'menunggu_survey') {
-            abort(403);
-        }
-    
-        $validated = $request->validate([
-            'jenis' => 'required|in:sendiri,assign',
-            'surveyor_id' => 'nullable|required_if:jenis,assign|exists:users,id',
-        ]);
-    
-        DB::transaction(function () use ($validated, $pengajuan) {
-            if ($validated['jenis'] == 'sendiri') {
-                Survey::create([
-                    'pengajuan_id' => $pengajuan->id,
-                    'assigned_by' => auth()->id(),
-                    'assigned_to' => auth()->id(),
-                    'status' => 'accepted',
-                    'accepted_at' => now(),
-                ]);
-            } else {
-                Survey::create([
-                    'pengajuan_id' => $pengajuan->id,
-                    'assigned_by' => auth()->id(),
-                    'assigned_to' => $validated['surveyor_id'],
-                    'status' => 'waiting',
-                ]);
-            }
-            $pengajuan->update(['status' => 'survey_progress',]);
-        });
-    
-        return redirect()->route('survey.index')->with('success', 'Penugasan survey berhasil dibuat.');
+public function store(Request $request, Pengajuan $pengajuan)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | PENGAJUAN HARUS MENUNGGU SURVEY
+    |--------------------------------------------------------------------------
+    */
+
+    if ($pengajuan->status != 'menunggu_survey') {
+        abort(403);
     }
+
+
+    $user = auth()->user();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDASI
+    |--------------------------------------------------------------------------
+    */
+
+    $validated = $request->validate([
+
+        'jenis' => [
+            'required',
+            'in:sendiri,assign',
+        ],
+
+        'surveyor_id' => [
+            'nullable',
+            'required_if:jenis,assign',
+            'exists:users,id',
+        ],
+
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SURVEY SENDIRI
+    |--------------------------------------------------------------------------
+    |
+    | Surveyor dan SPV Surveyor boleh mengambil survey sendiri.
+    |
+    */
+
+    if ($validated['jenis'] === 'sendiri') {
+
+        if (
+            !$user->hasAnyRole([
+                'surveyor',
+                'spvsurveyor',
+            ])
+        ) {
+
+            abort(
+                403,
+                'Anda tidak diperbolehkan mengambil survey sendiri.'
+            );
+        }
+
+
+        $assignedTo = $user->id;
+
+        $status = 'accepted';
+
+        $acceptedAt = now();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ASSIGN SURVEYOR
+    |--------------------------------------------------------------------------
+    |
+    | Hanya SPV Surveyor yang boleh menugaskan
+    | survey kepada surveyor lain.
+    |
+    */
+
+    else {
+
+        if (
+            !$user->hasRole('spvsurveyor')
+        ) {
+
+            abort(
+                403,
+                'Anda tidak diperbolehkan menugaskan surveyor.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SURVEYOR YANG DIPILIH HARUS ROLE SURVEYOR
+        |--------------------------------------------------------------------------
+        */
+
+        $surveyor = User::role('surveyor')
+            ->where(
+                'id',
+                $validated['surveyor_id']
+            )
+            ->first();
+
+
+        if (!$surveyor) {
+
+            abort(
+                403,
+                'User yang dipilih bukan surveyor.'
+            );
+        }
+
+
+        $assignedTo = $surveyor->id;
+
+        $status = 'waiting';
+
+        $acceptedAt = null;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SIMPAN SURVEY
+    |--------------------------------------------------------------------------
+    */
+
+    DB::transaction(function () use (
+        $pengajuan,
+        $user,
+        $assignedTo,
+        $status,
+        $acceptedAt
+    ) {
+
+        Survey::create([
+
+            'pengajuan_id' =>
+                $pengajuan->id,
+
+            'assigned_by' =>
+                $user->id,
+
+            'assigned_to' =>
+                $assignedTo,
+
+            'status' =>
+                $status,
+
+            'accepted_at' =>
+                $acceptedAt,
+
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE STATUS PENGAJUAN
+        |--------------------------------------------------------------------------
+        */
+
+        $pengajuan->update([
+
+            'status' =>
+                'survey_progress',
+
+        ]);
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REDIRECT
+    |--------------------------------------------------------------------------
+    */
+
+    return redirect()
+        ->route('survey.index')
+        ->with(
+            'success',
+            'Penugasan survey berhasil dibuat.'
+        );
+}
+    
 
     public function accept(Survey $survey)
     {
@@ -125,15 +373,59 @@ class SurveyController extends Controller
         return redirect()->route('survey.berkas', $survey)->with('success', 'Survey berhasil dimulai.');
     }
 
-    public function stepBerkas(Survey $survey)
+   public function stepBerkas(Survey $survey)
     {
-        abort_if($survey->assigned_to != auth()->id(), 403);
+        abort_if(
+            $survey->assigned_to != auth()->id(),
+            403
+        );
 
-        abort_if($survey->status != 'progress', 403);
+        abort_if(
+            $survey->status != 'progress',
+            403
+        );
 
-        $survey->load(['pengajuan.nasabah','pengajuan.marketing','pengajuan.cabang', 'assignedTo', 'assignedBy', 'berkas',]);
 
-        return view('survey.berkas', compact('survey'));
+        $survey->load([
+            'pengajuan.nasabah',
+            'pengajuan.marketing',
+            'pengajuan.cabang',
+
+            'assignedTo',
+            'assignedBy',
+
+            'berkas',
+
+            /*
+            |--------------------------------------------------------------------------
+            | DOKUMEN PENGAJUAN
+            |--------------------------------------------------------------------------
+            */
+
+            'pengajuan.dokumenPengajuans',
+
+            /*
+            |--------------------------------------------------------------------------
+            | DOKUMEN PAYROLL
+            |--------------------------------------------------------------------------
+            */
+
+            'pengajuan.dokumenPayrolls',
+
+            /*
+            |--------------------------------------------------------------------------
+            | JAMINAN + DOKUMEN JAMINAN
+            |--------------------------------------------------------------------------
+            */
+
+            'pengajuan.jaminanPengajuans.dokumenJaminans',
+        ]);
+
+
+        return view(
+            'survey.berkas',
+            compact('survey')
+        );
     }
 
     public function storeStepBerkas(Request $request, Survey $survey)
@@ -247,77 +539,54 @@ class SurveyController extends Controller
         return view('survey.dokumentasi', compact('survey','rumahDepan','rumahDalam','rumahSamping','usaha','statusJaminan'));
     }
 
-    public function checkDokumentasi(Survey $survey)
+  public function checkDokumentasi(Survey $survey)
     {
-        abort_if($survey->assigned_to != auth()->id(),403);
-    
-        abort_if($survey->status!='progress',403);
-    
         /*
         |--------------------------------------------------------------------------
-        | CEK FOTO RUMAH
+        | CEK HAK AKSES
         |--------------------------------------------------------------------------
         */
-    
-        $rumah = SurveyDokumentasi::where('survey_id',$survey->id)
-                    ->where('kategori','rumah')
-                    ->pluck('posisi')
-                    ->toArray();
-    
-        foreach(['depan','dalam','samping'] as $posisi){
-    
-            if(!in_array($posisi,$rumah)){
-    
-                return back()->withErrors([
-                    'dokumentasi'=>'Foto rumah belum lengkap.'
-                ]);
-    
-            }
-    
-        }
-    
+
+        abort_if(
+            $survey->assigned_to != auth()->id(),
+            403
+        );
+
+
         /*
         |--------------------------------------------------------------------------
-        | CEK JAMINAN
+        | SURVEY HARUS MASIH PROGRESS
         |--------------------------------------------------------------------------
         */
-    
-        foreach($survey->pengajuan->jaminanPengajuans as $jaminan){
-    
-            $foto = SurveyDokumentasi::where('survey_id',$survey->id)
-                        ->where('jaminan_pengajuan_id',$jaminan->id)
-                        ->where('kategori','jaminan')
-                        ->pluck('posisi')
-                        ->toArray();
-    
-            foreach(['depan','samping','dalam','belakang'] as $posisi){
-    
-                if(!in_array($posisi,$foto)){
-    
-                    return back()->withErrors([
-                        'dokumentasi'=>'Foto jaminan belum lengkap.'
-                    ]);
-    
-                }
-    
-            }
-    
-            $video = SurveyDokumentasi::where('survey_id',$survey->id)
-                        ->where('jaminan_pengajuan_id',$jaminan->id)
-                        ->where('kategori','video')
-                        ->exists();
-    
-            if(!$video){
-    
-                return back()->withErrors([
-                    'dokumentasi'=>'Video jaminan belum diupload.'
-                ]);
-    
-            }
-    
-        }
-    
-        return redirect()->route('survey.review',$survey);
+
+        abort_if(
+            $survey->status != 'progress',
+            403
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DOKUMENTASI OPTIONAL
+        |--------------------------------------------------------------------------
+        |
+        | Tidak ada lagi validasi:
+        |
+        | - foto rumah
+        | - foto tempat usaha
+        | - foto jaminan
+        | - video jaminan
+        |
+        | Semua dokumentasi bersifat optional.
+        |
+        */
+
+
+        return redirect()
+            ->route(
+                'survey.review',
+                $survey
+            );
     }
 
     public function uploadDokumentasi(Request $request, Survey $survey, SurveyMediaService $mediaService)
@@ -580,4 +849,69 @@ class SurveyController extends Controller
     
         return redirect()->route('survey.review', $survey)->with('success', 'Dokumentasi survey berhasil disimpan.');
     }
+
+    public function showPengajuan(Pengajuan $pengajuan)
+    {
+        $user = auth()->user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK SURVEYOR
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$user->hasAnyRole(['surveyor', 'spvsurveyor'])) {
+            abort(403);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CEK APAKAH PENGAJUAN INI MEMILIKI SURVEY UNTUK USER
+        |--------------------------------------------------------------------------
+        */
+
+        $survey = Survey::where('pengajuan_id', $pengajuan->id)
+            ->where('assigned_to', $user->id)
+            ->latest()
+            ->first();
+
+        if (!$survey) {
+            abort(403, 'Anda tidak ditugaskan untuk survey pengajuan ini.');
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | LOAD DATA PENGAJUAN
+        |--------------------------------------------------------------------------
+        */
+
+        $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah','referensis','referensis.pekerjaan','dokumenPengajuans','marketing',
+            'marketing.user','cabang','analisa','jaminanPengajuans','jaminanPengajuans.dokumenJaminans','dokumenPayrolls','kapital']);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | REFERENSI
+        |--------------------------------------------------------------------------
+        */
+
+        $referensis = $pengajuan->referensis;
+
+        $pasangan = $referensis->firstWhere('jenis','pasangan');
+
+        $penjamin = $referensis->firstWhere('jenis','penjamin');
+
+        $saudaras = $referensis->where('jenis','saudara');
+
+        return view('survey.pengajuan-show', [
+            'pengajuan' => $pengajuan,
+            'survey' => $survey,
+            'pasangan' => $pasangan,
+            'penjamin' => $penjamin,
+            'saudaras' => $saudaras,
+            'mode' => 'survey',
+        ]);
+    }    
 }

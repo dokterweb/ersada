@@ -5,22 +5,22 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PengajuanStep1Request;
 use App\Http\Requests\PengajuanStep3Request;
-use App\Http\Requests\PengajuanStep4Request;
 use App\Models\AnalisaPengajuan;
 use App\Models\ApprovalPengajuan;
-use App\Models\Cabang;
 use App\Models\Dokumen_pengajuan;
 use App\Models\JaminanPengajuan;
 use App\Models\KapitalPengajuan;
+use App\Models\Karyawan;
 use App\Models\Nasabah;
 use App\Models\Pekerjaan_nasabah;
 use App\Models\Pekerjaan_referensi;
 use App\Models\Pengajuan;
 use App\Models\Referensi;
+use App\Services\DocumentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
 
 class PengajuanController extends Controller
 {
@@ -37,7 +37,7 @@ class PengajuanController extends Controller
         /*
         * Direktur bisa melihat semua cabang
         */
-        if (!$user->hasRole('DIREKTUR')) {
+        if (!$user->hasRole('direktur')) {
             $query->where('cabang_id', auth()->user()->getCabangId());
         }
 
@@ -48,7 +48,34 @@ class PengajuanController extends Controller
 
     public function createStep1()
     {
-        return view('pengajuans.step1');
+        $user = Auth::user();
+
+        $marketingOptions = collect();
+
+        if ($user->hasRole('admincabang')) {
+
+            $karyawan = $user->karyawan;
+
+            if (!$karyawan) {
+                abort(403, 'Data karyawan tidak ditemukan.');
+            }
+
+            if (!$karyawan->cabang_id) {
+                abort(403, 'Cabang pengguna belum ditentukan.');
+            }
+
+            $marketingOptions = Karyawan::query()
+                ->where('cabang_id', $karyawan->cabang_id)
+                ->whereHas('user', function ($query) {
+                    $query->role(['marketing', 'spvmarketing']);
+                })
+                ->with('user')
+                ->get();
+        }
+
+        return view('pengajuans.step1', compact(
+            'marketingOptions'
+        ));
     }
 
     public function storeStep1(PengajuanStep1Request $request)
@@ -499,111 +526,173 @@ class PengajuanController extends Controller
         }
     }
 
-    public function step4(Pengajuan $pengajuan)
-    {
-        if ($pengajuan->status != 'draft') {
-            abort(403);
-        }
-
-        $kategori = $pengajuan->kategori_nasabah;
+    public function step4(Pengajuan $pengajuan,DocumentService $documentService) {
+        abort_if($pengajuan->status != 'draft',403);
     
-        $docs = config("pengajuan.documents.$kategori", []);
-        if(empty($docs)){
-            abort(500,'Config dokumen tidak ditemukan');
-        }
+        $documents = $documentService->getDocuments($pengajuan);
     
-        $optionalDocs = config('pengajuan.documents.optional', []);
         $uploaded = $pengajuan->dokumenPengajuans()->get()->keyBy('jenis_dokumen');
     
-        return view('pengajuans.step4',compact('pengajuan','docs','optionalDocs','uploaded'));
+        return view('pengajuans.step4',[
+            'pengajuan'=>$pengajuan,
+            'documents'=>$documents,
+            'uploaded'=>$uploaded,
+        ]);
     }
 
-    public function storeStep4(Request $request, Pengajuan $pengajuan)
-    {
+    public function storeStep4(Request $request,Pengajuan $pengajuan,DocumentService $documentService) {
         $request->validate([
             'documents.*' => 'nullable|mimes:jpg,jpeg,png,pdf|max:2048'
         ]);
-
+    
         DB::beginTransaction();
-
+    
         try {
-            $kategori = $pengajuan->kategori_nasabah;
-            $docs = config("pengajuan.documents.$kategori");
-            // ambil existing docs sekali saja
-            $existingDocs = $pengajuan->dokumenPengajuans->keyBy('jenis_dokumen');
-
-            // VALIDASI REQUIRED DOCS
-            foreach ($docs['required'] as $doc) {
-                $exists = isset($existingDocs[$doc['code']]);
+    
+            $documents = $documentService->getDocuments($pengajuan);
+    
+            // Dokumen yang sudah pernah diupload
+            $existingDocs = $pengajuan
+                ->dokumenPengajuans()
+                ->get()
+                ->keyBy('jenis_dokumen');
+    
+            /*
+            |--------------------------------------------------------------------------
+            | VALIDASI DOKUMEN WAJIB
+            |--------------------------------------------------------------------------
+            */
+    
+            $missing = [];
+    
+            foreach ($documents['required'] as $doc) {
+    
+                $exists = $existingDocs->has($doc['code']);
+    
                 if (
                     !$request->hasFile("documents.{$doc['code']}")
                     && !$exists
                 ) {
-                    return back()
-                        ->withErrors([
-                            'error' => "{$doc['label']} wajib diupload"
-                        ])
-                        ->withInput();
+                    $missing[] = $doc['label'];
                 }
             }
-
-            // VALIDASI JAMINAN
-            $hasBpkb = $request->hasFile('documents.bpkb');
-            $hasSurat = $request->hasFile('documents.surat_tanah');
-
-            $existingBpkb = isset($existingDocs['bpkb']);
-            $existingSurat = isset($existingDocs['surat_tanah']);
-
-            if (!$hasBpkb&&!$hasSurat&&!$existingBpkb&&!$existingSurat) {
-                return back()
-                    ->withErrors(['error' => 'Upload minimal BPKB atau Surat Tanah'])->withInput();
+    
+            /*
+            |--------------------------------------------------------------------------
+            | VALIDASI JAMINAN (ONE OF)
+            |--------------------------------------------------------------------------
+            */
+    
+            $hasOneOf = false;
+    
+            foreach ($documents['one_of'] as $doc) {
+    
+                if (
+                    $request->hasFile("documents.{$doc['code']}")
+                    || $existingDocs->has($doc['code'])
+                ) {
+                    $hasOneOf = true;
+                    break;
+                }
             }
-
-            // UPLOAD FILES
+    
+            if (!$hasOneOf) {
+                $missing[] = 'Minimal salah satu dokumen jaminan (BPKB / Surat Tanah)';
+            }
+    
+            /*
+            |--------------------------------------------------------------------------
+            | JIKA ADA DOKUMEN YANG BELUM LENGKAP
+            |--------------------------------------------------------------------------
+            */
+    
+            if (count($missing)) {
+    
+                DB::rollBack();
+    
+                return back()
+                    ->withErrors([
+                        'error' => "Dokumen berikut masih belum lengkap:\n• " . implode("\n• ", $missing)
+                    ])
+                    ->withInput();
+            }
+    
+            /*
+            |--------------------------------------------------------------------------
+            | UPLOAD FILE
+            |--------------------------------------------------------------------------
+            */
+    
             if ($request->hasFile('documents')) {
+    
                 foreach ($request->file('documents') as $jenis => $file) {
-                    $existing = $existingDocs[$jenis] ?? null;
-
-                    // hapus file lama
-                    if ($existing) {Storage::disk('public')->delete($existing->file_path);}
-
-                    // custom file name
+    
+                    $existing = $existingDocs->get($jenis);
+    
+                    if ($existing) {
+                        Storage::disk('public')->delete($existing->file_path);
+                    }
+    
                     $extension = $file->getClientOriginalExtension();
-                    $fileName = $jenis. '_'. $pengajuan->id. '_'. now()->format('YmdHis'). '.'. $extension;
+    
+                    $fileName =
+                        $jenis . '_' .
+                        $pengajuan->id . '_' .
+                        now()->format('YmdHis') .
+                        '.' . $extension;
+    
                     $folder = "pengajuan/{$pengajuan->id}";
-                    $path = $file->storeAs($folder,$fileName,'public');
-
-                    // update/create
+    
+                    $path = $file->storeAs(
+                        $folder,
+                        $fileName,
+                        'public'
+                    );
+    
                     Dokumen_pengajuan::updateOrCreate(
+    
                         [
                             'pengajuan_id' => $pengajuan->id,
                             'jenis_dokumen' => $jenis
                         ],
+    
                         [
                             'nama_file' => $fileName,
                             'file_path' => $path,
                             'file_size' => $file->getSize(),
-
-                            // upload ulang = reset review
+    
                             'status' => 'pending',
                             'catatan' => null,
-                            'uploaded_by' => auth()->id()
+                            'uploaded_by' => auth()->id(),
                         ]
                     );
                 }
             }
-
+    
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE STEP
+            |--------------------------------------------------------------------------
+            */
+    
             $pengajuan->update([
                 'documents_completed' => true,
-                'current_step' => max($pengajuan->current_step,5)
+                'current_step' => max($pengajuan->current_step, 5),
             ]);
-
+    
             DB::commit();
-            return redirect()->route('pengajuan.reviewData', $pengajuan->id)->with('success', 'Dokumen berhasil disimpan');
-
+    
+            return redirect()
+                ->route('pengajuan.reviewData', $pengajuan)
+                ->with('success', 'Dokumen berhasil disimpan.');
+    
         } catch (\Throwable $e) {
+    
             DB::rollBack();
-            return back()->with('error', $e->getMessage())->withInput();
+    
+            return back()
+                ->with('error', $e->getMessage())
+                ->withInput();
         }
     }
 
@@ -642,7 +731,7 @@ class PengajuanController extends Controller
 
     public function analisa(Pengajuan $pengajuan)
     {
-        $pengajuan->load('analisa');
+        $pengajuan->load(['analisa','nasabah']);
         $analisa = $pengajuan->analisa;
         return view('pengajuans.analisa',compact('pengajuan','analisa'));
     }
@@ -662,6 +751,11 @@ class PengajuanController extends Controller
             'perbaikan_plafon' => 'nullable'
         ]);
     
+        $ktpPasanganValid = null;
+
+        if (strtolower($pengajuan->nasabah->status_pernikahan ?? '') === 'menikah') {
+            $ktpPasanganValid = $request->ktp_pasangan_valid;
+        }
         AnalisaPengajuan::updateOrCreate(
             [
                 'pengajuan_id' => $pengajuan->id
@@ -673,7 +767,7 @@ class PengajuanController extends Controller
                 'status_tempat_tinggal' => $request->status_tempat_tinggal,
                 'data_pemohon_lengkap'  => $request->data_pemohon_lengkap,
                 'ktp_pemohon_valid'     => $request->ktp_pemohon_valid,
-                'ktp_pasangan_valid'    => $request->ktp_pasangan_valid,
+                'ktp_pasangan_valid'    => $ktpPasanganValid,
                 'kk_valid'              => $request->kk_valid,
                 'perbaikan_plafon'      => $request->perbaikan_plafon,
                 'created_by'            => auth()->id()
@@ -902,8 +996,8 @@ class PengajuanController extends Controller
 
     public function show(Pengajuan $pengajuan)
     {
-        $pengajuan->load(['nasabah','nasabah.pekerjaan','referensis','referensis.pekerjaan','dokumenPengajuans','marketing.user',
-        'cabang','analisa','jaminans','kapital','approvals.user',]);
+        $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah','referensis','referensis.pekerjaan','dokumenPengajuans','marketing.user',
+        'cabang','analisa','jaminanPengajuans','kapital','approvals.user',]);
 
         $referensis = $pengajuan->referensis;
 
@@ -924,4 +1018,28 @@ class PengajuanController extends Controller
         ]);
     }
 
+    private function getMarketingOptions()
+    {
+        $user = auth()->user();
+
+        if ($user->hasAnyRole(['marketing', 'spvmarketing'])) {
+            return collect([
+                $user->karyawan
+            ]);
+        }
+
+        if ($user->hasRole('admincabang')) {
+            $cabangId = $user->karyawan?->cabang_id;
+
+            return Karyawan::query()
+                ->where('cabang_id', $cabangId)
+                ->whereHas('user', function ($query) {
+                    $query->role(['marketing', 'spvmarketing']);
+                })
+                ->with('user')
+                ->get();
+        }
+
+        return collect();
+    }    
 }

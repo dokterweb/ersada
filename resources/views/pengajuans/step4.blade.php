@@ -49,129 +49,233 @@
                   <h3 class="card-title">DOKUMEN WAJIB</h3>
               </div>
           
-              <div class="card-body">
-          
-                  <div class="row">
-          
-                      @foreach($documents['required'] as $doc)
-          
-                          <div class="col-md-4 mb-4">
-          
-                              <label class="form-label">
-          
-                                  {{ $doc['label'] }}
-          
-                                  <span class="text-danger">*</span>
-          
-                              </label>
-          
-                              <input type="file"
-                                     name="documents[{{ $doc['code'] }}]"
-                                     class="form-control">
-          
-                              {{-- sudah upload --}}
-                              @if(isset($uploaded[$doc['code']]))
-          
-                                  <small class="text-success">
-          
-                                      Uploaded :
-                                         <a href="{{ asset('storage/'.$uploaded[$doc['code']]->file_path) }}" target="_blank">
-                                            {{ $uploaded[$doc['code']]->nama_file }}
+             <div class="card-body">
+
+                {{-- ERROR --}}
+                @if($errors->has('error'))
+
+                    <div class="alert alert-danger">
+                        {!! nl2br(e($errors->first('error'))) !!}
+                    </div>
+
+                @endif
+
+
+                {{-- SUCCESS --}}
+                @if(session('success'))
+
+                    <div class="alert alert-success">
+                        {{ session('success') }}
+                    </div>
+
+                @endif
+
+
+                {{-- ========================================================= --}}
+                {{-- DOKUMEN WAJIB --}}
+                {{-- ========================================================= --}}
+
+                <h4 class="mb-3">
+                    Dokumen Wajib
+                </h4>
+
+
+                @foreach($documents['required'] as $doc)
+
+                    @php
+                        $uploadedDoc = $uploaded->get($doc['code']);
+                    @endphp
+
+
+                    <div class="card mb-3">
+
+                        <div class="card-body">
+
+                            <div class="row align-items-center">
+
+                                {{-- NAMA DOKUMEN --}}
+
+                                <div class="col-md-4">
+
+                                    <label class="form-label fw-bold">
+
+                                        {{ $doc['label'] }}
+
+                                        <span class="text-danger">
+                                            *
+                                        </span>
+
+                                    </label>
+
+                                </div>
+
+
+                                {{-- FILE --}}
+
+                                <div class="col-md-5">
+
+                                    <input
+                                        type="file"
+                                        name="documents[{{ $doc['code'] }}]"
+                                        class="form-control"
+                                        accept=".jpg,.jpeg,.png,.pdf"
+                                    >
+
+                                    <div class="form-text">
+                                        PDF, JPG, JPEG atau PNG.
+                                        Maksimal 50 MB.
+                                    </div>
+
+                                </div>
+
+
+                                {{-- STATUS --}}
+
+                                <div class="col-md-3">
+
+                                    @if($uploadedDoc)
+
+                                        <div class="mb-2">
+
+                                            <span class="badge bg-success">
+                                                Sudah Upload
+                                            </span>
+
+                                        </div>
+
+                                        <a
+                                            href="{{ asset('storage/' . $uploadedDoc->file_path) }}"
+                                            target="_blank"
+                                            class="btn btn-sm btn-primary"
+                                        >
+                                            Lihat Dokumen
                                         </a>
-          
-                                  </small>
-          
-                                  <br>
-          
-                                  <small>
-          
-                                      Status :
-                                      {{ $uploaded[$doc['code']]->status }}
-          
-                                  </small>
-          
-                              @endif
-          
-                          </div>
-          
-                      @endforeach
-          
-                  </div>
-          
-              </div>
-          
-          
-              {{-- ========================================================= --}}
-              {{-- SALAH SATU WAJIB --}}
-              {{-- ========================================================= --}}
-              <div class="card-header bg-warning">
-                  <h3 class="card-title">
-          
-                      JAMINAN (UPLOAD MINIMAL SALAH SATU)
-          
-                  </h3>
-              </div>
-          
-              <div class="card-body">
-          
-                  <div class="alert alert-warning">
-          
-                      Pilih minimal salah satu:
-                      <strong>BPKB</strong>
-                      atau
-                      <strong>Surat Tanah</strong>.
-                      Bisa upload keduanya.
-          
-                  </div>
-          
-                  <div class="row">
-          
-                      @foreach($documents['one_of'] as $doc)
-          
-                          <div class="col-md-6 mb-4">
-          
-                              <label class="form-label">
-          
-                                  {{ $doc['label'] }}
-          
-                              </label>
-          
-                              <input type="file"
-                                     name="documents[{{ $doc['code'] }}]"
-                                     class="form-control">
-          
-          
-                              @if(isset($uploaded[$doc['code']]))
-          
-                                  <small class="text-success">
-          
-                                      Uploaded :
-                                         <a href="{{ asset('storage/'.$uploaded[$doc['code']]->file_path) }}" target="_blank">
-                                            {{ $uploaded[$doc['code']]->nama_file }}
-                                        </a>
-          
-                                  </small>
-          
-                                  <br>
-          
-                                  <small>
-          
-                                      Status :
-                                      {{ $uploaded[$doc['code']]->status }}
-          
-                                  </small>
-          
-                              @endif
-          
-                          </div>
-          
-                      @endforeach
-          
-                  </div>
-          
-              </div>
-          
-          
+
+                                    @else
+
+                                        <span class="badge bg-danger">
+                                            Belum Upload
+                                        </span>
+
+                                    @endif
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                @endforeach
+
+
+                {{-- ========================================================= --}}
+                {{-- DOKUMEN OPTIONAL --}}
+                {{-- ========================================================= --}}
+
+                @if(!empty($documents['optional']))
+
+                    <hr class="my-4">
+
+                    <h4 class="mb-3">
+                        Dokumen Optional
+                    </h4>
+
+
+                    @foreach($documents['optional'] as $doc)
+
+                        @php
+                            $uploadedDoc = $uploaded->get($doc['code']);
+                        @endphp
+
+
+                        <div class="card mb-3">
+
+                            <div class="card-body">
+
+                                <div class="row align-items-center">
+
+                                    {{-- NAMA --}}
+
+                                    <div class="col-md-4">
+
+                                        <label class="form-label fw-bold">
+
+                                            {{ $doc['label'] }}
+
+                                            <span class="text-muted">
+                                                (Optional)
+                                            </span>
+
+                                        </label>
+
+                                    </div>
+
+
+                                    {{-- FILE --}}
+
+                                    <div class="col-md-5">
+
+                                        <input
+                                            type="file"
+                                            name="documents[{{ $doc['code'] }}]"
+                                            class="form-control"
+                                            accept=".jpg,.jpeg,.png,.pdf"
+                                        >
+
+                                        <div class="form-text">
+                                            PDF, JPG, JPEG atau PNG.
+                                            Maksimal 50 MB.
+                                        </div>
+
+                                    </div>
+
+
+                                    {{-- STATUS --}}
+
+                                    <div class="col-md-3">
+
+                                        @if($uploadedDoc)
+
+                                            <div class="mb-2">
+
+                                                <span class="badge bg-success">
+                                                    Sudah Upload
+                                                </span>
+
+                                            </div>
+
+                                            <a
+                                                href="{{ asset('storage/' . $uploadedDoc->file_path) }}"
+                                                target="_blank"
+                                                class="btn btn-sm btn-primary"
+                                            >
+                                                Lihat Dokumen
+                                            </a>
+
+                                        @else
+
+                                            <span class="badge bg-secondary">
+                                                Optional
+                                            </span>
+
+                                        @endif
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    @endforeach
+
+                @endif
+
+            </div>
+        
               {{-- BUTTON --}}
               <div class="card-footer text-end">
                 <a href="{{ route('pengajuan.step3',$pengajuan->id) }}"class="btn btn-warning">Previous</a>

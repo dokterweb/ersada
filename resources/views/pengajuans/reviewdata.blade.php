@@ -47,7 +47,7 @@
                             </tr>
                             <tr>
                                 <td>Tanggal</td>
-                                <td>{{ $pengajuan->tanggal_pengajuan }}</td>
+                                <td>{{ $pengajuan->tanggal_pengajuan->format('d-m-Y') }}</td>
                             </tr>
                             <tr>
                                 <td>Nominal</td>
@@ -113,7 +113,8 @@
                                         </tr>
                                         <tr>
                                             <td>Tgl Lahir</td>
-                                            <td>{{ $pengajuan->nasabah->tgl_lahir }}</td>
+                                            {{-- <td>{{ $pengajuan->nasabah->tgl_lahir }}</td> --}}
+                                            <td>{{ \Carbon\Carbon::parse( $pengajuan->nasabah->tgl_lahir)->format('d-m-Y') }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat</td>
@@ -225,7 +226,8 @@
                                         </tr>
                                         <tr>
                                             <td>Tgl Lahir</td>
-                                            <td>{{ $pasangan->tgl_lahir }}</td>
+                                            {{-- <td>{{ $pasangan->tgl_lahir }}</td> --}}
+                                            <td>{{ \Carbon\Carbon::parse( $pasangan->tgl_lahir)->format('d-m-Y') }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat</td>
@@ -305,7 +307,8 @@
                                         </tr>
                                         <tr>
                                             <td>Tgl Lahir</td>
-                                            <td>{{ $penjamin->tgl_lahir }}</td>
+                                            {{-- <td>{{ $penjamin->tgl_lahir }}</td> --}}
+                                            <td>{{ \Carbon\Carbon::parse( $penjamin->tgl_lahir)->format('d-m-Y') }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat</td>
@@ -346,7 +349,7 @@
                                         <tr>
                                             <td>Alamat Usaha</td>
                                             <td>{{ $penjamin->pekerjaan->alamat_usaha }}</td>
-                                        </tr>                                       
+                                        </tr>
                                     </table>
                                     @else
                                     <h2>Tidak Bekerja</h2>
@@ -386,7 +389,8 @@
                                         </tr>
                                         <tr>
                                             <td>Tgl Lahir</td>
-                                            <td>{{ $saudara->tgl_lahir }}</td>
+                                            {{-- <td>{{ $saudara->tgl_lahir }}</td> --}}
+                                            <td>{{ \Carbon\Carbon::parse( $saudara->tgl_lahir)->format('d-m-Y') }}</td>
                                         </tr>
                                         <tr>
                                             <td>Alamat</td>

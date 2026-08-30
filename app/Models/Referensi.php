@@ -9,7 +9,7 @@ class Referensi extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['pengajuan_id','jenis','nama','tempat_lahir','tgl_lahir','hubungan','no_hp','alamat','urutan'];
+    protected $fillable = ['pengajuan_id','jenis','nama','tempat_lahir','tgl_lahir','hubungan','no_hp','alamat','urutan','foto_pasangan'];
 
     const PASANGAN = 'pasangan';
     const PENJAMIN = 'penjamin';

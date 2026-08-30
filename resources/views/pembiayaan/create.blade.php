@@ -91,6 +91,10 @@
                                             <label>Biaya Survey</label>
                                             <input type="number" class="form-control hitung" id="biaya_survei" name="biaya_survei" value="0">
                                         </div>
+                                        <div class="mb-3">
+                                            <label>Biaya Notaris</label>
+                                            <input type="number" class="form-control hitung" id="biaya_notaris" name="biaya_notaris" value="0">
+                                        </div>
                         
                                         <div class="mb-3">
                                             <label>Tanggal Jatuh Tempo Pertama</label>
@@ -204,9 +208,10 @@ function hitungPembiayaan(){
     let tenor = parseInt($('#tenor').val()) || 0;
     let materai = parseFloat($('#materai').val()) || 0;
     let survey = parseFloat($('#biaya_survei').val()) || 0;
+    let notaris = parseFloat($('#biaya_notaris').val()) || 0;
     let bunga = 0;
     let admin = plafond * 3 / 100;
-    let diterima = plafond - admin - materai - survey;
+    let diterima = plafond - admin - materai - survey - notaris;
 
     $('#persen_administrasi').val('3 %');
     $('#biaya_administrasi').val(formatRupiah(admin));

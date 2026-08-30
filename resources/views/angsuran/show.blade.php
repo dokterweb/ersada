@@ -29,7 +29,7 @@
                                 <div class="col-md-6">
                                     <table class="table table-bordered">
                                         <tr>
-                                            <th width="180">Nomor Pembiayaan</th>
+                                            <th width="250">Nomor Pembiayaan</th>
                                             <td>{{ $pembiayaan->nomor_pembiayaan }}</td>
                                         </tr>
                                         <tr>
@@ -65,7 +65,7 @@
                                 <div class="col-md-6">
                                     <table class="table table-bordered">
                                         <tr>
-                                            <th width="180">Total Angsuran</th>
+                                            <th width="250">Total Angsuran</th>
                                             <td>{{ $totalAngsuran }}</td>
                                         </tr>
                                         <tr>
@@ -94,6 +94,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Ke</th>
+                                                {{-- <th>ID</th> --}}
                                                 <th>Jatuh Tempo</th>
                                                 <th>Pokok</th>
                                                 <th>Bunga</th>
@@ -108,6 +109,7 @@
                                         @foreach($pembiayaan->angsurans as $item)
                                         <tr id="row-{{ $item->id }}">
                                             <td>{{ $item->angsuran_ke }}</td>
+                                            {{-- <td>{{ $item->id }}</td> --}}
                                             <td>{{ $item->tanggal_jatuh_tempo->format('d-m-Y') }}</td>
                                             <td>Rp {{ number_format($item->pokok_angsuran,0,',','.') }}</td>
                                             <td>Rp {{ number_format($item->bunga_angsuran,0,',','.') }}</td>
@@ -143,6 +145,15 @@
                                                     <button id="btn-{{ $item->id }}"  class="btn btn-success btn-sm btn-bayar"
                                                         data-id="{{ $item->id }}">Bayar
                                                     </button>
+                                                    @if(
+                                                        $item->status != 'dibayar' &&
+                                                        ($item->preview_denda['denda_tersisa'] ?? 0) > 0
+                                                    )
+                                                        <a href="{{ route('diskon-denda.create', $item) }}" class="btn btn-warning btn-sm">
+                                                            <i class="ti ti-discount"></i>
+                                                            Diskon Denda
+                                                        </a>
+                                                    @endif
                                                 @endif
                                                    {{--  <a href="{{ route('angsuran.history',$item) }}" class="btn btn-info btn-sm">
                                                         History
@@ -222,9 +233,43 @@
                             <option value="transfer">Transfer</option>
                         </select>
                     </div>
+
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Denda</label>
-                        <input type="text" id="m_denda" class="form-control" readonly>
+    <label class="form-label">Denda Berjalan</label>
+    <input type="text" id="m_denda_berjalan" class="form-control" readonly>
+</div>
+
+<div class="col-md-4 mb-3">
+    <label class="form-label">
+        Diskon Denda Disetujui
+    </label>
+    <input type="text" id="m_diskon_denda" class="form-control text-success" readonly>
+</div>
+
+<div class="col-md-4 mb-3">
+    <label class="form-label">Denda Setelah Diskon</label>
+    <input
+        type="text"
+        id="m_denda"
+        class="form-control fw-bold"
+        readonly
+    >
+</div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">
+                            Admin Keterlambatan
+                        </label>
+                        <input type="text" id="m_admin_keterlambatan" class="form-control" readonly>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Hari Terlambat</label>
+                        <input type="text" id="m_hari_terlambat" class="form-control" readonly>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">
+                            Total Tambahan
+                        </label>
+                        <input type="text" id="m_total_tambahan" class="form-control" readonly>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Total Terbayar</label>
@@ -237,7 +282,7 @@
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Nominal Bayar</label>
-                        <input type="number" id="jumlah_bayar" class="form-control">
+                        <input type="number" id="jumlah_bayar" name="jumlah_bayar" class="form-control fw-bold"  required>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Keterangan</label>
@@ -337,153 +382,680 @@
 @endsection
 
 @section('scripts')
+
 <script>
 
 $(function () {
-    $('.btn-bayar').click(function () {
-        let id = $(this).data('id');
-        $.get("/angsuran/jadwal/" + id + "/json", function (r) {
-            $('#angsuran_id').val(r.id);
-            $('#m_nama').val(r.nama);
-            $('#m_nomor').val(r.nomor_pembiayaan);
-            $('#m_ke').val(r.angsuran_ke);
-            $('#m_jatuh_tempo').val(r.tanggal_jatuh_tempo);
-            $('#m_status').val(r.status);
-            $('#m_pokok').val(r.pokok);
-            $('#m_bunga').val(r.bunga);
-            $('#m_total').val(r.total);
-            $('#m_total_terbayar').val(r.total_terbayar_format);
-            $('#m_sisa_tagihan').val(r.sisa_tagihan_format);
-            /*
-            * Default pembayaran
-            * langsung sebesar sisa tagihan
-            */
-            $('#jumlah_bayar').val(r.sisa_tagihan);
-            $('#m_denda').val(r.denda);
-            $('#metode').val(r.metode);
-            $('#keterangan').val('');
 
-            const modal = new bootstrap.Modal(
-                document.getElementById('modalBayar')
-            );
+    /*
+    |--------------------------------------------------------------------------
+    | GLOBAL DATA
+    |--------------------------------------------------------------------------
+    */
 
-            modal.show();
+    let currentAngsuranId = null;
+    let currentSisaTagihan = 0;
+    let currentTotalTambahan = 0;
 
-        });
 
-    });
+    /*
+    |--------------------------------------------------------------------------
+    | FORMAT RUPIAH
+    |--------------------------------------------------------------------------
+    */
 
-});
+    function formatRupiah(angka)
+    {
+        angka = parseInt(angka) || 0;
 
-$('#btnSimpanBayar').click(function () {
-    let id = $('#angsuran_id').val();
+        return new Intl.NumberFormat('id-ID').format(angka);
+    }
+
+
+    $('.btn-bayar').on('click', function () {
+
+    let id = $(this).data('id');
+
     $.ajax({
-        url: '/angsuran/jadwal/' + id + '/bayar',
-        type: 'POST',
-        data: {
-            _token: $('meta[name="csrf-token"]').attr('content'),
-            tanggal_bayar: $('#tanggal_bayar').val(),
-            jumlah_bayar: $('#jumlah_bayar').val(),
-            metode: $('#metode').val(),
-            keterangan: $('#keterangan').val()
-        },
+
+        url: "/angsuran/jadwal/" + id + "/json",
+
+        type: "GET",
+
+        dataType: "json",
+
         beforeSend: function () {
-            $('#btnSimpanBayar').prop('disabled', true).html('Menyimpan...');
+
+            $('#btn-' + id)
+                .prop('disabled', true)
+                .text('Memuat...');
+
         },
 
         success: function (r) {
-            const modal = bootstrap.Modal.getInstance(
-                document.getElementById('modalBayar')
+
+            /*
+            |--------------------------------------------------------------------------
+            | DATA UTAMA
+            |--------------------------------------------------------------------------
+            */
+
+            $('#angsuran_id').val(r.id);
+
+            $('#m_nama').val(r.nama);
+
+            $('#m_nomor').val(
+                r.nomor_pembiayaan
             );
 
-            modal.hide();
-            $('#status-' + id).removeClass('bg-danger bg-secondary bg-success').addClass(r.row.badge).text(r.row.status);
-            if (r.row.status === 'Dibayar') {
-                $('#btn-' + id).remove();
-            }
-            $('#terbayar-' + id).text('Rp ' + r.row.total_terbayar_format);
-            $('#sisa-' + id).text('Rp ' + r.row.sisa_tagihan_format);
-            $('#card_dibayar').text(r.summary.sudah_dibayar);
-            $('#card_sisa').text(r.summary.sisa_angsuran);
-            $('#card_outstanding').text('Rp ' + r.summary.outstanding_format);
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil',
-                // text: r.message,
-                html: `
-                    <b>Nominal Dibayar</b><br>
-                    Rp ${r.nominal}
-                `,
-                confirmButtonText: 'OK'
-            });
+            $('#m_ke').val(
+                r.angsuran_ke
+            );
+
+            $('#m_jatuh_tempo').val(
+                r.tanggal_jatuh_tempo
+            );
+
+            $('#m_status').val(
+                r.status
+            );
+
+            $('#m_pokok').val(
+                r.pokok
+            );
+
+            $('#m_bunga').val(
+                r.bunga
+            );
+
+            $('#m_total').val(
+                r.total
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | PEMBAYARAN
+            |--------------------------------------------------------------------------
+            */
+
+            $('#m_total_terbayar').val(
+                'Rp ' + r.total_terbayar_format
+            );
+
+            $('#m_sisa_tagihan').val(
+                'Rp ' + r.sisa_tagihan_format
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DENDA
+            |--------------------------------------------------------------------------
+            */
+
+            $('#m_denda_berjalan').val(
+                'Rp ' + r.denda_berjalan_format
+            );
+
+            $('#m_diskon_denda').val(
+                'Rp ' + r.diskon_denda_format
+            );
+
+            $('#m_denda').val(
+                'Rp ' + r.denda_format
+            );
+
+            $('#m_admin_keterlambatan').val(
+                'Rp ' + r.admin_keterlambatan_format
+            );
+
+            $('#m_hari_terlambat').val(
+                r.hari_terlambat_format
+            );
+
+            $('#m_total_tambahan').val(
+                'Rp ' + r.total_tambahan_format
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | TANGGAL & METODE
+            |--------------------------------------------------------------------------
+            */
+
+            $('#tanggal_bayar').val(
+                '{{ now()->format("Y-m-d") }}'
+            );
+
+            $('#metode').val(
+                r.metode
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DEFAULT NOMINAL BAYAR
+            |--------------------------------------------------------------------------
+            */
+
+            $('#jumlah_bayar').val(
+                r.default_bayar
+            );
+
+
+            $('#keterangan').val('');
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | SIMPAN ID
+            |--------------------------------------------------------------------------
+            */
+
+            $('#angsuran_id').val(
+                r.id
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | TAMPILKAN MODAL
+            |--------------------------------------------------------------------------
+            */
+
+            const modal =
+                new bootstrap.Modal(
+                    document.getElementById(
+                        'modalBayar'
+                    )
+                );
+
+            modal.show();
+
         },
 
         error: function (xhr) {
-            let msg = 'Terjadi kesalahan.';
-            if (xhr.responseJSON) {
-                msg = xhr.responseJSON.message;
+
+            console.log(
+                xhr.responseText
+            );
+
+            let message =
+                'Gagal mengambil data angsuran.';
+
+            if (
+                xhr.responseJSON &&
+                xhr.responseJSON.message
+            ) {
+
+                message =
+                    xhr.responseJSON.message;
             }
-            alert(msg);
+
+            alert(message);
         },
 
         complete: function () {
-            $('#btnSimpanBayar').prop('disabled', false).html('<i class="ti ti-device-floppy"></i> Simpan Pembayaran');
+
+            $('#btn-' + id)
+                .prop('disabled', false)
+                .text('Bayar');
+
         }
+
     });
+
 });
 
-$(function () {
-    $('.btn-history').click(function () {
-        let id = $(this).data('id');
-        $.ajax({
-            url: "/angsuran/jadwal/" + id + "/history",
-            type: "GET",
-            success: function (r) {
-                $('#h_nama').val(r.nama);
-                $('#h_nomor').val(r.nomor_pembiayaan);
-                $('#h_ke').val(r.angsuran_ke);
-                $('#h_status').val(r.status);
-                $('#h_tagihan').val("Rp " + r.total_tagihan);
-                $('#h_terbayar').val("Rp " + r.total_terbayar);
-                $('#h_sisa').val("Rp " + r.sisa_tagihan);
-                let rows = [];
-                if (r.history.length === 0) {
-                    rows.push(`
-                        <tr>
-                            <td colspan="8" class="text-center">
-                                Belum ada pembayaran.
-                            </td>
-                        </tr>
-                    `);
-                } else {
-                    $.each(r.history, function (i, item) {
-                        rows.push(`
-                        <tr>
-                            <td>${item.tanggal}</td>
-                            <td>${item.nomor}</td>
-                            <td class="text-end">Rp ${item.jumlah_bayar_format}</td>
-                            <td class="text-end">Rp ${item.denda_format}</td>
-                            <td class="text-end">Rp ${item.total_format}</td>
-                            <td>${item.metode}</td>
-                            <td>${item.user ?? '-'}</td>
-                            <td>
-                                <a target="_blank" href="/angsuran/pembayaran/${item.id}/cetak" class="btn btn-primary btn-sm" title="Cetak Kwitansi">
-                                    <i class="fa-solid fa-print"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        `);
-                    });
-                }
-                $('#historyBody').html(rows.join(''));
-                    const modal = new bootstrap.Modal(
-                    document.getElementById('modalHistory')
-                );
-                $('#btnCetakHistory').attr('href','/angsuran/angsuran/'+id+'/history/cetak');
-                modal.show();
+    /*
+    |--------------------------------------------------------------------------
+    | PERUBAHAN TANGGAL BAYAR
+    |--------------------------------------------------------------------------
+    */
+
+    $('#tanggal_bayar').on(
+        'change',
+        function () {
+
+            let tanggalBayar =
+                $(this).val();
+
+            let angsuranId =
+                $('#angsuran_id').val();
+
+
+            if (!angsuranId || !tanggalBayar) {
+                return;
             }
-        });
-    });
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | LOADING
+            |--------------------------------------------------------------------------
+            */
+
+            $('#m_denda').val('Menghitung...');
+
+            $('#m_admin_keterlambatan').val(
+                'Menghitung...'
+            );
+
+            $('#m_hari_terlambat').val(
+                'Menghitung...'
+            );
+
+            $('#m_total_tambahan').val(
+                'Menghitung...'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | PREVIEW DENDA
+            |--------------------------------------------------------------------------
+            */
+
+            $.ajax({
+
+                url:
+                    '/angsuran/jadwal/' +
+                    angsuranId +
+                    '/preview-denda',
+
+                type: 'GET',
+
+                data: {
+                    tanggal_bayar:
+                        tanggalBayar
+                },
+
+                success: function (r) {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | UPDATE DATA
+                    |--------------------------------------------------------------------------
+                    */
+
+                    currentSisaTagihan =
+                        parseInt(
+                            r.sisa_tagihan
+                        ) || 0;
+
+                    currentTotalTambahan =
+                        parseInt(
+                            r.total_tambahan
+                        ) || 0;
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | DENDA
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $('#m_denda').val(
+                        r.denda_format
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | ADMIN
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $('#m_admin_keterlambatan').val(
+                        r.admin_keterlambatan_format
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | HARI TERLAMBAT
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $('#m_hari_terlambat').val(
+                        r.hari_terlambat
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | TOTAL TAMBAHAN
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $('#m_total_tambahan').val(
+                        r.total_tambahan_format
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | DEFAULT NOMINAL BAYAR
+                    |--------------------------------------------------------------------------
+                    */
+
+                    let totalKewajiban =
+                        currentSisaTagihan +
+                        currentTotalTambahan;
+
+                    $('#jumlah_bayar').val(
+                        totalKewajiban
+                    );
+
+                },
+
+                error: function (xhr) {
+
+                    console.error(xhr);
+
+                    alert(
+                        'Gagal menghitung denda.'
+                    );
+
+                }
+            });
+
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SIMPAN PEMBAYARAN
+    |--------------------------------------------------------------------------
+    */
+
+    $('#btnSimpanBayar').on(
+        'click',
+        function () {
+
+            let angsuranId =
+                $('#angsuran_id').val();
+
+            let tanggalBayar =
+                $('#tanggal_bayar').val();
+
+            let jumlahBayar =
+                parseInt(
+                    $('#jumlah_bayar').val()
+                ) || 0;
+
+            let metode =
+                $('#metode').val();
+
+            let keterangan =
+                $('#keterangan').val();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | VALIDASI
+            |--------------------------------------------------------------------------
+            */
+
+            if (!angsuranId) {
+
+                alert(
+                    'Angsuran belum dipilih.'
+                );
+
+                return;
+            }
+
+
+            if (!tanggalBayar) {
+
+                alert(
+                    'Tanggal bayar wajib diisi.'
+                );
+
+                return;
+            }
+
+
+            if (jumlahBayar <= 0) {
+
+                alert(
+                    'Nominal pembayaran harus lebih besar dari nol.'
+                );
+
+                return;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DISABLE BUTTON
+            |--------------------------------------------------------------------------
+            */
+
+            let button =
+                $(this);
+
+            button.prop(
+                'disabled',
+                true
+            );
+
+            button.html(
+                '<i class="ti ti-loader-2"></i> Menyimpan...'
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | SIMPAN
+            |--------------------------------------------------------------------------
+            */
+
+            $.ajax({
+
+                url:
+                    '/angsuran/jadwal/' +
+                    angsuranId +
+                    '/bayar',
+
+                type: 'POST',
+
+                headers: {
+
+                    'X-CSRF-TOKEN':
+                        $('meta[name="csrf-token"]')
+                        .attr('content')
+                },
+
+                data: {
+
+                    tanggal_bayar:
+                        tanggalBayar,
+
+                    jumlah_bayar:
+                        jumlahBayar,
+
+                    metode:
+                        metode,
+
+                    keterangan:
+                        keterangan
+                },
+
+                success: function (r) {
+
+                    if (!r.success) {
+
+                        alert(
+                            r.message
+                        );
+
+                        return;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | UPDATE ROW
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $('#terbayar-' + angsuranId)
+                        .text(
+                            'Rp ' +
+                            r.row.total_terbayar_format
+                        );
+
+
+                    $('#sisa-' + angsuranId)
+                        .text(
+                            'Rp ' +
+                            r.row.sisa_tagihan_format
+                        );
+
+
+                    $('#status-' + angsuranId)
+
+                        .removeClass(
+                            'bg-success bg-danger bg-secondary'
+                        )
+
+                        .addClass(
+                            r.row.badge
+                        )
+
+                        .text(
+                            r.row.status
+                        );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | TUTUP MODAL
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const modalElement =
+                        document.getElementById(
+                            'modalBayar'
+                        );
+
+                    const modal =
+                        bootstrap.Modal.getInstance(
+                            modalElement
+                        );
+
+                    if (modal) {
+                        modal.hide();
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SUCCESS
+                    |--------------------------------------------------------------------------
+                    */
+
+                    alert(
+                        r.message
+                    );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SUMMARY
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        r.summary
+                    ) {
+
+                        $('#totalAngsuran')
+                            .text(
+                                r.summary.total_angsuran
+                            );
+
+                        $('#sudahDibayar')
+                            .text(
+                                r.summary.sudah_dibayar
+                            );
+
+                        $('#sisaAngsuran')
+                            .text(
+                                r.summary.sisa_angsuran
+                            );
+
+                        $('#outstanding')
+                            .text(
+                                'Rp ' +
+                                r.summary.outstanding_format
+                            );
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | JIKA LUNAS
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        r.row.status === 'Dibayar'
+                    ) {
+
+                        $('#btn-' + angsuranId)
+                            .remove();
+
+                    }
+
+                },
+
+                error: function (xhr) {
+
+                    console.error(xhr);
+
+                    let message =
+                        'Pembayaran gagal.';
+
+                    if (
+                        xhr.responseJSON &&
+                        xhr.responseJSON.message
+                    ) {
+
+                        message =
+                            xhr.responseJSON.message;
+                    }
+
+                    alert(message);
+
+                },
+
+                complete: function () {
+
+                    button.prop(
+                        'disabled',
+                        false
+                    );
+
+                    button.html(
+                        '<i class="ti ti-device-floppy"></i> Simpan Pembayaran'
+                    );
+
+                }
+
+            });
+
+        }
+    );
+
 });
+
+
 </script>
+
 @endsection

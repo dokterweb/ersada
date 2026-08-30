@@ -23,6 +23,7 @@ return new class extends Migration
             $table->date('tanggal_bayar')->nullable();
             $table->bigInteger('jumlah_bayar')->default(0);
             $table->bigInteger('denda')->default(0);
+            $table->unsignedBigInteger('admin_keterlambatan')->default(0);
             $table->bigInteger('total_terbayar')->default(0);
             $table->bigInteger('sisa_tagihan')->default(0);
             $table->enum('status',['belum_jatuh_tempo','jatuh_tempo','dibayar'])->default('belum_jatuh_tempo');

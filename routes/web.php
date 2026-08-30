@@ -6,6 +6,7 @@ use App\Http\Controllers\ApprovalSurveyController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CabangController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiskonDendaController;
 use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\OperasionalController;
 use App\Http\Controllers\PelunasanController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\PembiayaanController;
 use App\Http\Controllers\PencairanController;
 use App\Http\Controllers\PengajuanController;
 use App\Http\Controllers\PimpinanController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SurveyController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +36,7 @@ Route::post('/password/update', [AuthController::class, 'updatePassword'])->midd
 // Route untuk Admin
 Route::middleware(['auth', 'role:superadmin'])->get('/superadmin/dashboard', [DashboardController::class, 'indexsuperadmin'])->name('superadmin.dashboard');
 Route::middleware(['auth', 'role:marketing'])->get('/marketing/dashboard', [DashboardController::class, 'indexmarketing'])->name('marketing.dashboard');
+Route::middleware(['auth', 'role:admincabang'])->get('/admincabang/dashboard', [DashboardController::class, 'indexadmincabang'])->name('admincabang.dashboard');
 
 Route::get('/cabangs',[CabangController::class, 'index'])->middleware('role:superadmin')->name('cabangs');
 Route::post('cabangs/store', [CabangController::class, 'store'])->middleware('role:superadmin')->name('cabangs.store');
@@ -50,7 +53,7 @@ Route::delete('karyawans/{karyawan}',[KaryawanController::class, 'destroy'])->mi
 ->name('karyawans.destroy');
 
 
-Route::prefix('pengajuans')->middleware('role:marketing')->group(function () {
+Route::prefix('pengajuans')->middleware('role:marketing|spvmarketing|admincabang')->group(function () {
     Route::get('/', [PengajuanController::class, 'index'])->name('pengajuan.index');
     // STEP 1 (CREATE NEW)
     // halaman create pertama kali
@@ -103,6 +106,7 @@ Route::middleware(['auth','role:spvsurveyor|surveyor'])->prefix('survey')->name(
     Route::get('/', [SurveyController::class,'index'])->name('index');
     Route::get('/create/{pengajuan}', [SurveyController::class, 'create'])->name('create');
     Route::post('/store/{pengajuan}', [SurveyController::class, 'store'])->name('store');
+    Route::get('/pengajuan/{pengajuan}',[SurveyController::class, 'showPengajuan'])->name('pengajuan.show');
     Route::post('/{survey}/accept',[SurveyController::class,'accept'])->name('accept');
     Route::post('/{survey}/start',[SurveyController::class,'start'])->name('start');
     Route::get('/{survey}/berkas', [SurveyController::class, 'stepBerkas'])->name('berkas');
@@ -166,9 +170,20 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
         Route::get('/{angsuran}/bayar', [AngsuranController::class,'create'])->name('angsuran.create');
         Route::get('/jadwal/{angsuran}/history',[AngsuranController::class, 'getHistory'])->name('angsuran.history');
         Route::get('/jadwal/{angsuran}/json',[AngsuranController::class,'getAngsuran'])->name('angsuran.json');
+        Route::get('/{angsuran}/preview-denda',[AngsuranController::class, 'previewDenda'])->name('angsuran.previewDenda');
         Route::post('/jadwal/{angsuran}/bayar',[AngsuranController::class,'store'])->name('angsuran.store');
         Route::get('/pembayaran/{pembayaran}/cetak',[PembayaranAngsuranController::class,'cetak'])->name('pembayaran.cetak');
         Route::get('/angsuran/{angsuran}/history/cetak',[AngsuranController::class,'cetakHistory'])->name('angsuran.history.cetak');
+    });
+
+    Route::prefix('diskon-denda')->group(function () {
+         // Kasir
+        Route::get('/{angsuran}/create',[DiskonDendaController::class, 'create'])->name('diskon-denda.create');
+        Route::post('/{angsuran}',[DiskonDendaController::class, 'store'])->name('diskon-denda.store');
+          // Pimpinan
+        Route::get('/approval',[DiskonDendaController::class, 'indexApproval'])->name('diskon-denda.approval');
+        Route::post('/{pengajuan}/approve',[DiskonDendaController::class, 'approve'])->name('diskon-denda.approve');
+        Route::post('/{pengajuan}/reject',[DiskonDendaController::class, 'reject'])->name('diskon-denda.reject');
     });
 
     Route::prefix('operasional')->middleware(['auth'])->name('operasional.')->group(function () {
@@ -206,3 +221,9 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
         Route::get('/npl/excel', [ReportController::class, 'exportNplExcel'])->name('npl.excel');
         Route::get('/npl/pdf', [ReportController::class, 'exportNplPdf'])->name('npl.pdf');
     });
+
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+        Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    });    
+

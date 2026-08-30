@@ -3,8 +3,7 @@
 @section('survey-content')
 <h3 class="mb-4">
     <i class="fa fa-folder-open text-primary"></i>
-    Step 1 - Pemeriksaan Berkas
-
+    Step 2 - Pemeriksaan Dokumentasi
 </h3>
 
 @php
@@ -12,8 +11,7 @@
     $penjamin = $survey->pengajuan->referensis->firstWhere('jenis', 'penjamin');
 @endphp
 
-<form action="{{ route('survey.storeDokumentasi',$survey) }}" method="POST" enctype="multipart/form-data">
-    @csrf
+
     <div class="row">
         <div class="col-md-6">
             <div class="card mb-4">
@@ -29,22 +27,32 @@
             
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label">
-                            Foto Rumah Tampak Depan
+                        <label class="form-label d-flex justify-content-between">
+                            <span>Foto Rumah Tampak Depan</span>
+                            {{-- <span class="badge bg-success-lt d-none status-upload" id="status-rumah-depan"> --}}
+                            <span id="status-rumah-depan" class="badge bg-success-lt status-upload {{ $rumahDepan ? '' : 'd-none' }}">
+                                ✓ Berhasil
+                            </span>
                         </label>
-                        <input type="file" class="form-control" name="rumah[depan]" multipleaccept="image/*">
+                        <input type="file" class="upload-file" data-kategori="rumah" data-posisi="depan" accept="image/*">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">
-                            Foto Rumah Tampak Dalam
+                        <label class="form-label d-flex justify-content-between">
+                            <span>Foto Rumah Tampak Dalam</span>
+                            <span  class="badge bg-success-lt status-upload {{ $rumahDalam ? '' : 'd-none' }}" id="status-rumah-dalam">
+                                ✓ Berhasil
+                            </span>
                         </label>
-                        <input type="file" class="form-control" name="rumah[dalam]" multiple accept="image/*">
+                        <input type="file" class="upload-file" data-kategori="rumah" data-posisi="dalam" accept="image/*">
                     </div>
                     <div>
-                        <label class="form-label">
-                            Foto Rumah Tampak Samping
+                        <label class="form-label d-flex justify-content-between">
+                            <span>Foto Rumah Tampak Samping</span>
+                            <span class="badge bg-success-lt status-upload {{ $rumahSamping ? '' : 'd-none' }}"  id="status-rumah-samping">
+                                ✓ Berhasil
+                            </span>
                         </label>
-                        <input type="file" class="form-control" name="rumah[samping]" multiple accept="image/*">
+                        <input type="file" class="upload-file" data-kategori="rumah" data-posisi="samping" accept="image/*">
                     </div>
                 </div>
             </div>
@@ -62,7 +70,13 @@
                     </span>
                 </div>
                 <div class="card-body">
-                    <input type="file" class="form-control" name="usaha[]" multiple accept="image/*">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Foto Tempat Usaha</span>
+                        <span id="status-usaha" class="badge bg-success-lt status-upload {{ $usaha ? '' : 'd-none' }}">
+                            ✓ Berhasil
+                        </span>
+                    </label>
+                    <input type="file" multiple class="upload-file" data-kategori="usaha"  data-posisi="usaha" accept="image/*">>
                     <small class="text-muted">
                         Upload sebanyak mungkin foto tempat usaha.
                     </small>
@@ -72,7 +86,7 @@
     </div>
     <div class="row">
         <div class="col-md-12">
-            @foreach($survey->pengajuan->jaminans as $jaminan)
+            @foreach($survey->pengajuan->jaminanPengajuans as $jaminan)
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title mb-0">
@@ -87,57 +101,195 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="form-label">
-                                Foto Depan
+                            <label class="form-label d-flex justify-content-between">
+                                <span>Foto Depan</span>
+                                <span id="status-jaminan-{{ $jaminan->id }}-depan"
+                                    class="badge bg-success-lt status-upload {{ $statusJaminan[$jaminan->id]['depan'] ? '' : 'd-none' }}">
+                                    ✓ Berhasil
+                                </span>
                             </label>
-                            <input type="file" class="form-control file-jaminan" data-id="{{ $jaminan->id }}" name="jaminan[{{ $jaminan->id }}][depan]" multiple accept="image/*">
+                            <input type="file" class="upload-file" data-kategori="jaminan" data-jaminan="{{ $jaminan->id }}" data-posisi="depan" accept="image/*">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">
-                                Foto Samping
+                            <label class="form-label d-flex justify-content-between">
+                                <span>Foto Samping</span>
+                                <span id="status-jaminan-{{ $jaminan->id }}-samping"
+                                    class="badge bg-success-lt status-upload {{ $statusJaminan[$jaminan->id]['samping'] ? '' : 'd-none' }}">
+                                    ✓ Berhasil
+                                </span>
                             </label>
-                            <input type="file" class="form-control file-jaminan" data-id="{{ $jaminan->id }}" name="jaminan[{{ $jaminan->id }}][samping]" multiple accept="image/*">
+                            <input type="file" class="upload-file" data-kategori="jaminan" data-jaminan="{{ $jaminan->id }}" data-posisi="samping" accept="image/*">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">
-                                Foto Dalam
+                            <label class="form-label d-flex justify-content-between">
+                                <span>Foto Dalam</span>
+                                {{-- <span class="badge bg-success-lt d-none" id="status-jaminan-{{ $jaminan->id }}-dalam"> --}}
+                                <span id="status-jaminan-{{ $jaminan->id }}-dalam"
+                                    class="badge bg-success-lt status-upload {{ $statusJaminan[$jaminan->id]['dalam'] ? '' : 'd-none' }}">                                    
+                                    ✓ Berhasil
+                                </span>
                             </label>
-                            <input type="file" class="form-control file-jaminan" data-id="{{ $jaminan->id }}" name="jaminan[{{ $jaminan->id }}][dalam]" multiple accept="image/*">
+                            <input type="file" class="upload-file" data-kategori="jaminan" data-jaminan="{{ $jaminan->id }}" data-posisi="dalam" accept="image/*">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">
-                                Foto Belakang
+                            <label class="form-label d-flex justify-content-between">
+                                <span>Foto Belakang</span>
+                                <span id="status-jaminan-{{ $jaminan->id }}-belakang"
+                                    class="badge bg-success-lt status-upload {{ $statusJaminan[$jaminan->id]['belakang'] ? '' : 'd-none' }}">                                                                        
+                                    ✓ Berhasil
+                                </span>
                             </label>
-                            <input type="file" class="form-control file-jaminan" data-id="{{ $jaminan->id }}" name="jaminan[{{ $jaminan->id }}][belakang]" multiple accept="image/*">
+                            <input type="file" class="upload-file" data-kategori="jaminan" data-jaminan="{{ $jaminan->id }}" data-posisi="belakang">
                         </div>
                     </div>
                     <hr>
-                    <label class="form-label">
-                        Video Jaminan
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Video Jaminan</span>
+                        <span id="status-video-{{ $jaminan->id }}"
+                            class="badge bg-success-lt status-upload {{ $statusJaminan[$jaminan->id]['video'] ? '' : 'd-none' }}">
+                            ✓ Berhasil
+                        </span>
+                                                
                     </label>
-                    <input type="file" class="form-control video-jaminan" data-id="{{ $jaminan->id }}" name="video[{{ $jaminan->id }}][]" multiple accept="video/*">
+                    <input type="file" multiple class="upload-file" data-kategori="video" data-posisi="video" data-jaminan="{{ $jaminan->id }}">
                 </div>
             </div>
             @endforeach
          </div>
     </div>
-    <div class="d-flex justify-content-between mt-4">
-        <a href="{{ route('survey.berkas',$survey) }}" class="btn btn-secondary">
-            <i class="ti ti-arrow-left"></i>
-            Kembali
-        </a>
-        <button class="btn btn-primary">
-            Simpan & Review
-            <i class="ti ti-arrow-right"></i>
-        </button>
-    </div>
-</form>
+    <form action="{{ route('survey.reviewCheck',$survey) }}" method="POST">
+        @csrf
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{{ route('survey.berkas',$survey) }}"
+            class="btn btn-secondary">
+                <i class="ti ti-arrow-left"></i>
+                Kembali
+            </a>
+            <button class="btn btn-primary">
+                Lanjut ke Review
+                <i class="ti ti-arrow-right"></i>
+            </button>
+        </div>
+    </form>
 
 @endsection
 
 @section('scripts')
 
 <script>
+
+$(function(){
+
+    updateBadgeRumah();
+    updateBadgeUsaha();
+    updateBadgeJaminan();
+
+});
+
+$('.upload-file').change(function(){
+    let input=$(this);
+    let formData=new FormData();
+    let files=input[0].files;
+    $.each(files,function(i,file){
+        formData.append('files[]',file);
+    });
+    formData.append('kategori',input.data('kategori'));
+    formData.append('posisi',input.data('posisi') ?? '');
+    formData.append('jaminan_pengajuan_id',input.data('jaminan') ?? '');
+    $.ajax({
+        url:"{{ route('survey.uploadDokumentasi',$survey) }}",
+        type:"POST",
+        headers:{
+        'X-CSRF-TOKEN':
+            $('meta[name="csrf-token"]').attr('content')
+        },
+        data:formData,
+        processData:false,
+        contentType:false,
+        success:function(res){
+            let kategori=input.data('kategori');
+            let posisi=input.data('posisi') ?? '';
+            let jaminan=input.data('jaminan');
+            if(kategori==='rumah'){
+                $('#status-rumah-'+posisi).removeClass('d-none');
+                updateBadgeRumah();
+            }
+
+            else if(kategori==='usaha'){
+                $('#status-usaha').removeClass('d-none');
+                updateBadgeUsaha();
+            }
+
+            else if(kategori==='video'){
+                $('#status-video-'+jaminan).removeClass('d-none');
+            }
+
+            else{
+                $('#status-jaminan-'+jaminan+'-'+posisi).removeClass('d-none');
+                updateBadgeJaminan();
+            }
+        },
+        
+        error:function(xhr){
+        console.log(xhr);
+        console.log(xhr.responseText);
+        alert('Upload gagal.');
+        }
+    });
+});
+
+
+function updateBadgeRumah(){
+    if($('#badgeRumah').length == 0){
+        return;
+    }
+    let lengkap = true;
+    if($('#status-rumah-depan').hasClass('d-none')){
+        lengkap = false;
+    }
+    if($('#status-rumah-dalam').hasClass('d-none')){
+        lengkap = false;
+    }
+    if($('#status-rumah-samping').hasClass('d-none')){
+        lengkap = false;
+    }
+    if(lengkap){
+        $('#badgeRumah').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
+    }else{
+        $('#badgeRumah').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
+    }
+}
+
+function updateBadgeUsaha(){
+    if($('#badgeUsaha').length == 0){
+        return;
+    }
+
+    if($('#status-usaha').hasClass('d-none')){
+        $('#badgeUsaha').removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
+    }else{
+        $('#badgeUsaha').removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
+    }
+}
+
+function updateBadgeJaminan(){
+    $('.badge-jaminan').each(function(){
+        let badge = $(this);
+        let id = badge.data('id');
+        let lengkap = true;
+        ['depan','samping','dalam','belakang'].forEach(function(posisi){
+            if($('#status-jaminan-'+id+'-'+posisi).hasClass('d-none')){
+                lengkap = false;
+            }
+        });
+
+        if(lengkap){
+            badge.removeClass('bg-yellow-lt').addClass('bg-green-lt').text('Lengkap');
+        }else{
+            badge.removeClass('bg-green-lt').addClass('bg-yellow-lt').text('Belum Lengkap');
+        }
+    });
+}
 
 </script>
 @endsection

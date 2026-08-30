@@ -17,7 +17,7 @@
                     </ul>
                 </div>
             @endif
-            <form action="{{ route('pengajuan.storeStep2',$pengajuan->id) }}" method="POST" class="card">
+            <form action="{{ route('pengajuan.storeStep2',$pengajuan->id) }}" method="POST" class="card"  enctype="multipart/form-data">
                 @csrf
                 <div class="card">
                     <div class="card-body">
@@ -41,51 +41,58 @@
                     <div class="row">
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Nama Sesuai KTP</label>
-                            <input type="text" name="nama" class="form-control" value="{{ old('nama',$pengajuan->nama) }}">
+                             <input type="text" name="nama" class="form-control" value="{{ old('nama', $nasabah?->nama) }}">
                             @error('nama')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">NIK</label>
-                            <input type="text" name="nik" class="form-control" value="{{  old('nik',$pengajuan->nik) }}">
+                            <input type="text" name="nik" class="form-control" value="{{ old('nik', $nasabah?->nik) }}">
                             @error('nik')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Tempat Lahir</label>
-                            <input type="text" name="tempat_lahir" class="form-control" value="{{ old('tempat_lahir',$pengajuan->tempat_lahir) }}">
+                            <input type="text" name="tempat_lahir" class="form-control" value="{{ old('tempat_lahir', $nasabah?->tempat_lahir) }}">
                             @error('tempat_lahir')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Tanggal Lahir</label>
-                            <input type="date" name="tgl_lahir" class="form-control" value="{{ old('tgl_lahir',$pengajuan->tgl_lahir) }}">
+                            <input type="date" name="tgl_lahir" class="form-control" value="{{ old('tgl_lahir', $nasabah?->tgl_lahir) }}">
                             @error('tgl_lahir')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">No. HP</label>
-                            <input type="number" name="no_hp" class="form-control" value="{{ old('no_hp',$pengajuan->no_hp) }}">
+                            <input type="number" name="no_hp" class="form-control" value="{{ old('no_hp', $nasabah?->no_hp) }}">
                             @error('no_hp')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Alamat</label>
-                            <input type="text" name="alamat" class="form-control" value="{{ old('alamat',$pengajuan->alamat) }}">
+                            <input type="text" name="alamat" class="form-control" value="{{ old('alamat', $nasabah?->alamat) }}">
                             @error('alamat')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Status Perkawinan</label>
-                            <select name="status_perkawinan" class="form-select">
-                                <option value="menikah" {{ $pengajuan->status_perkawinan == 'menikah' ? 'selected' : '' }}>menikah</option>
-                                <option value="belum_menikah" {{ $pengajuan->status_perkawinan == 'belum_menikah' ? 'selected' : '' }}>belum_menikah</option>
+                             <select name="status_perkawinan" class="form-select">
+                                <option value="">-- Pilih --</option>
+                                <option value="menikah"
+                                    {{ old('status_perkawinan', $nasabah?->status_perkawinan) == 'menikah' ? 'selected' : '' }}>
+                                    Menikah
+                                </option>
+                                <option value="belum_menikah"
+                                    {{ old('status_perkawinan', $nasabah?->status_perkawinan) == 'belum_menikah' ? 'selected' : '' }}>
+                                    Belum Menikah
+                                </option>
                             </select>
                             @error('status_perkawinan')
                                 <span class="text-danger">{{ $message }}</span>
@@ -93,7 +100,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Jlh Tanggungan</label>
-                            <input type="number" name="jumlah_tanggungan" class="form-control" value="{{ old('jumlah_tanggungan',$pengajuan->jumlah_tanggungan) }}">
+                            <input type="number" name="jumlah_tanggungan" class="form-control" value="{{ old('jumlah_tanggungan', $nasabah?->jumlah_tanggungan) }}">
                             @error('jumlah_tanggungan')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
@@ -101,11 +108,18 @@
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Status Rumah</label>
                             <select name="status_rumah" class="form-select">
-                                <option value="milik_sendiri" {{ $pengajuan->status_rumah == 'milik_sendiri' ? 'selected' : '' }}>Milik Sendiri</option>
-                                <option value="milik_keluarga" {{ $pengajuan->status_rumah == 'milik_keluarga' ? 'selected' : '' }}>Milik Keluarga</option>
-                                <option value="dinas" {{ $pengajuan->status_rumah == 'dinas' ? 'selected' : '' }}>Dinas</option>
-                                <option value="sewa" {{ $pengajuan->status_rumah == 'sewa' ? 'selected' : '' }}>sewa</option>
-                                <option value="kost" {{ $pengajuan->status_rumah == 'kost' ? 'selected' : '' }}>Kost</option>
+                                <option value="">-- Pilih --</option>
+                                @foreach([
+                                    'milik_sendiri' => 'Milik Sendiri',
+                                    'milik_keluarga' => 'Milik Keluarga',
+                                    'dinas' => 'Dinas',
+                                    'sewa' => 'Sewa',
+                                    'kost' => 'Kost',
+                                ] as $value => $label)
+                                    <option value="{{ $value }}" {{ old('status_rumah', $nasabah?->status_rumah) == $value ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('status_rumah')
                                 <span class="text-danger">{{ $message }}</span>
@@ -113,17 +127,83 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Lama Menetap (Tahun)</label>
-                            <input type="number" name="lama_menetap_tahun" class="form-control" value="{{ old('lama_menetap_tahun',$pengajuan->lama_menetap_tahun) }}">
+                            <input type="number" name="lama_menetap_tahun" class="form-control" value="{{ old('lama_menetap_tahun', $nasabah?->lama_menetap_tahun) }}">
                             @error('lama_menetap_tahun')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Lama Menetap (bulan)</label>
-                            <input type="number" name="lama_menetap_bulan" class="form-control" value="{{ old('lama_menetap_bulan',$pengajuan->lama_menetap_bulan) }}">
+                            <input type="number" name="lama_menetap_bulan" class="form-control" value="{{ old('lama_menetap_bulan', $nasabah?->lama_menetap_bulan) }}">
                             @error('lama_menetap_bulan')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Foto Nasabah</label>
+                            <input type="file" name="foto_nasabah" class="form-control" accept="image/jpeg,image/png,image/jpg">
+
+                            @error('foto_nasabah')
+                                <div class="text-danger small">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                            @if($nasabah?->foto_nasabah)
+                                <div class="mt-2">
+                                     <div class="mb-1">
+                                        <small class="text-muted">
+                                            Foto saat ini:
+                                        </small>
+                                    </div>
+                                    <img src="{{ asset('storage/' . $nasabah->foto_nasabah) }}" alt="Foto Nasabah"
+                                        class="img-thumbnail" style="max-width: 150px;">
+                                </div>
+                            @endif
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">KTP Nasabah</label>
+                            <input type="file" name="ktp_nasabah" class="form-control" accept="image/jpeg,image/png,image/jpg">
+
+                            @error('ktp_nasabah')
+                                <div class="text-danger small">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                            @if($nasabah?->ktp_nasabah)
+                                <div class="mt-2">
+                                     <div class="mb-1">
+                                        <small class="text-muted">
+                                            Foto saat ini:
+                                        </small>
+                                    </div>
+                                    <img src="{{ asset('storage/' . $nasabah->ktp_nasabah) }}" alt="Foto Nasabah"
+                                        class="img-thumbnail" style="max-width: 150px;">
+                                </div>
+                            @endif
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Akte Lahir Nasabah</label>
+                            <input type="file" name="akte_lahir_nasabah" class="form-control" accept="image/jpeg,image/png,image/jpg">
+
+                            @error('akte_lahir_nasabah')
+                                <div class="text-danger small">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+
+                            @if($nasabah?->akte_lahir_nasabah)
+                                <div class="mt-2">
+                                     <div class="mb-1">
+                                        <small class="text-muted">
+                                            Foto saat ini:
+                                        </small>
+                                    </div>
+                                    <img src="{{ asset('storage/' . $nasabah->akte_lahir_nasabah) }}" alt="Foto Nasabah"
+                                        class="img-thumbnail" style="max-width: 150px;">
+                                </div>
+                            @endif
                         </div>
                     </div>
                     <div class="row">
@@ -134,8 +214,14 @@
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Jenis Pekerjaan</label>
                             <select name="jenis_pekerjaan" class="form-select">
-                                <option value="wiraswasta" {{ $pengajuan->jenis_pekerjaan == 'wiraswasta' ? 'selected' : '' }}>Wiraswasta</option>
-                                <option value="karyawan" {{ $pengajuan->jenis_pekerjaan == 'karyawan' ? 'selected' : '' }}>Karyawan</option>
+                                <option value="wiraswasta"
+                                    {{ old('jenis_pekerjaan', $pekerjaan?->jenis_pekerjaan) == 'wiraswasta' ? 'selected' : '' }}>
+                                    Wiraswasta
+                                </option>
+                                <option value="karyawan"
+                                    {{ old('jenis_pekerjaan', $pekerjaan?->jenis_pekerjaan) == 'karyawan' ? 'selected' : '' }}>
+                                    Karyawan
+                                </option>
                             </select>
                             @error('jenis_pekerjaan')
                                 <span class="text-danger">{{ $message }}</span>
@@ -143,60 +229,67 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Penghasilan</label>
-                            <input type="text" name="penghasilan" class="form-control" value="{{ old('penghasilan',$pengajuan->penghasilan) }}">
+                            <input type="text" name="penghasilan" class="form-control" value="{{ old('penghasilan',$pekerjaan?->penghasilan) }}">
                             @error('penghasilan')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Nama Usaha</label>
-                            <input type="text" name="nama_usaha" class="form-control" value="{{ old('nama_usaha',$pengajuan->nama_usaha) }}">
+                            <input type="text" name="nama_usaha" class="form-control" value="{{ old('nama_usaha',$pekerjaan?->nama_usaha) }}">
                             @error('nama_usaha')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Jenis Usaha</label>
-                            <input type="text" name="jenis_usaha" class="form-control" value="{{ old('jenis_usaha',$pengajuan->jenis_usaha) }}">
+                            <input type="text" name="jenis_usaha" class="form-control" value="{{ old('jenis_usaha',$pekerjaan?->jenis_usaha) }}">
                             @error('jenis_usaha')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Lama Usaha</label>
-                            <input type="text" name="lama_usaha" class="form-control" value="{{ old('lama_usaha',$pengajuan->lama_usaha) }}">
+                            <input type="text" name="lama_usaha" class="form-control" value="{{ old('lama_usaha',$pekerjaan?->lama_usaha) }}">
                             @error('lama_usaha')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Jlh Pegawai</label>
-                            <input type="text" name="jumlah_pegawai" class="form-control" value="{{ old('jumlah_pegawai',$pengajuan->jumlah_pegawai) }}">
+                            <input type="text" name="jumlah_pegawai" class="form-control" value="{{ old('jumlah_pegawai',$pekerjaan?->jumlah_pegawai) }}">
                             @error('jumlah_pegawai')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Alamat Usaha</label>
-                            <input type="text" name="alamat_usaha" class="form-control" value="{{ old('alamat_usaha',$pengajuan->alamat_usaha) }}">
+                            <input type="text" name="alamat_usaha" class="form-control" value="{{ old('alamat_usaha',$pekerjaan?->alamat_usaha) }}">
                             @error('alamat_usaha')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Telephone Usaha</label>
-                            <input type="text" name="telpon_usaha" class="form-control" value="{{ old('telpon_usaha',$pengajuan->telpon_usaha) }}">
+                            <input type="text" name="telpon_usaha" class="form-control" value="{{ old('telpon_usaha',$pekerjaan?->telpon_usaha) }}">
                             @error('telpon_usaha')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Bangunan Usaha</label>
-                            <select name="bangunan_usaha" class="form-select">
-                                <option value="permanen" {{ $pengajuan->bangunan_usaha == 'permanen' ? 'selected' : '' }}>Permanen</option>
-                                <option value="kpr" {{ $pengajuan->bangunan_usaha == 'kpr' ? 'selected' : '' }}>KPR</option>
-                                <option value="kontrak" {{ $pengajuan->bangunan_usaha == 'kontrak' ? 'selected' : '' }}>Kontrak</option>
-                                <option value="biskon" {{ $pengajuan->bangunan_usaha == 'biskon' ? 'selected' : '' }}>Biskon</option>
+                             <select name="bangunan_usaha" class="form-select">
+                                <option value="">-- Pilih --</option>
+                                @foreach([
+                                    'permanen' => 'Permanen',
+                                    'kpr' => 'KPR',
+                                    'kontrak' => 'Kontrak',
+                                    'biskon' => 'Biskon',
+                                ] as $value => $label)
+                                    <option value="{{ $value }}" {{ old('bangunan_usaha', $pekerjaan?->bangunan_usaha) == $value ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('bangunan_usaha')
                                 <span class="text-danger">{{ $message }}</span>
@@ -204,12 +297,19 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Status Tempat Usaha</label>
-                            <select name="status_tempat_usaha" class="form-select">
-                                <option value="hak_milik" {{ $pengajuan->status_tempat_usaha == 'hak_milik' ? 'selected' : '' }}>Hak Milik</option>
-                                <option value="semi_permanen" {{ $pengajuan->status_tempat_usaha == 'semi_permanen' ? 'selected' : '' }}>Semi Permanen</option>
-                                <option value="tenda" {{ $pengajuan->status_tempat_usaha == 'tenda' ? 'selected' : '' }}>Tenda</option>
-                                <option value="gerobak" {{ $pengajuan->status_tempat_usaha == 'gerobak' ? 'selected' : '' }}>Gerobak</option>
-                                <option value="meja" {{ $pengajuan->status_tempat_usaha == 'meja' ? 'selected' : '' }}>Meja</option>
+                           <select name="status_tempat_usaha" class="form-select">
+                                <option value="">-- Pilih --</option>
+                                @foreach([
+                                    'hak_milik' => 'Hak Milik',
+                                    'semi_permanen' => 'Semi Permanen',
+                                    'tenda' => 'Tenda',
+                                    'gerobak' => 'Gerobak',
+                                    'meja' => 'Meja',
+                                ] as $value => $label)
+                                    <option value="{{ $value }}" {{ old('status_tempat_usaha', $pekerjaan?->status_tempat_usaha) == $value ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('status_tempat_usaha')
                                 <span class="text-danger">{{ $message }}</span>
@@ -218,9 +318,19 @@
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Aktivitas Usaha</label>
                             <select name="aktivitas_usaha" class="form-select">
-                                <option value="ramai" {{ $pengajuan->aktivitas_usaha == 'ramai' ? 'selected' : '' }}>ramai</option>
-                                <option value="sedang" {{ $pengajuan->aktivitas_usaha == 'sedang' ? 'selected' : '' }}>sedang</option>
-                                <option value="sepi" {{ $pengajuan->aktivitas_usaha == 'sepi' ? 'selected' : '' }}>sepi</option>
+                                <option value="">-- Pilih --</option>
+                                <option value="ramai"
+                                    {{ old('aktivitas_usaha', $pekerjaan?->aktivitas_usaha) == 'ramai' ? 'selected' : '' }}>
+                                    Ramai
+                                </option>
+                                <option value="sedang"
+                                    {{ old('aktivitas_usaha', $pekerjaan?->aktivitas_usaha) == 'sedang' ? 'selected' : '' }}>
+                                    Sedang
+                                </option>
+                                <option value="sepi"
+                                    {{ old('aktivitas_usaha', $pekerjaan?->aktivitas_usaha) == 'sepi' ? 'selected' : '' }}>
+                                    Sepi
+                                </option>
                             </select>
                             @error('aktivitas_usaha')
                                 <span class="text-danger">{{ $message }}</span>
