@@ -13,6 +13,7 @@ class PelunasanController extends Controller
 {
     public function __construct(protected PelunasanService $service) {}
 
+
     public function create(Pembiayaan $pembiayaan)
     {
         $pembiayaan->load([
@@ -107,20 +108,10 @@ class PelunasanController extends Controller
 
     public function show(Pelunasan $pelunasan)
     {
-        $pelunasan->load([
-            'pembiayaan.pengajuan.nasabah',
-            'creator',
-            'approver',
-            'payer',
-            'angsurans' => function ($q) {
-                $q->orderBy('angsuran_ke');
-            },
-        ]);
+        $pelunasan->load(['creator','pembiayaan','pembiayaan.pengajuan.nasabah',
+            'pembiayaan.pengajuan.marketing','pembiayaan.pengajuan.cabang','pembiayaan.akad','pembiayaan.akad.pencairan']);
 
-        return view(
-            'pelunasan.show',
-            compact('pelunasan')
-        );
+        return view('pelunasan.show',compact('pelunasan'));
     }
    
     public function cetak(Pelunasan $pelunasan, PdfService $pdfService)
@@ -129,109 +120,5 @@ class PelunasanController extends Controller
             'pembiayaan.pengajuan.cabang','pembiayaan.akad','pembiayaan.akad.pencairan',]);
     
         return $pdfService->pelunasan($pelunasan)->stream('Pelunasan-' .$pelunasan->nomor_pelunasan .'.pdf');
-    }
-
-    public function approve(Request $request,Pelunasan $pelunasan) 
-    {
-
-        $validated = $request->validate([
-
-            'diskon_disetujui' => [
-                'required',
-                'numeric',
-                'min:0'
-            ],
-
-            'catatan_approval' => [
-                'nullable',
-                'string'
-            ],
-
-        ]);
-
-        $this->service->approve(
-            $pelunasan,
-            $validated
-        );
-
-        return redirect()
-            ->route(
-                'pelunasan.show',
-                $pelunasan
-            )
-            ->with(
-                'success',
-                'Pengajuan pelunasan berhasil disetujui.'
-            );
-    }
-
-    public function reject(Request $request,Pelunasan $pelunasan) 
-    {
-
-        $validated = $request->validate([
-
-            'catatan_approval' => [
-                'required',
-                'string'
-            ],
-
-        ]);
-
-        $this->service->reject(
-            $pelunasan,
-            $validated
-        );
-
-        return redirect()
-            ->route(
-                'pelunasan.show',
-                $pelunasan
-            )
-            ->with(
-                'success',
-                'Pengajuan pelunasan berhasil ditolak.'
-            );
-    }
-
-    public function bayar(
-        Request $request,
-        Pelunasan $pelunasan
-    ) {
-        $validated = $request->validate([
-            'tanggal_bayar' => [
-                'required',
-                'date',
-            ],
-
-            'jumlah_bayar' => [
-                'required',
-                'numeric',
-                'min:1',
-            ],
-        ]);
-
-        try {
-
-            $pelunasan = $this->service->bayar(
-                $pelunasan,
-                $validated
-            );
-
-            return redirect()
-                ->route('pelunasan.show', $pelunasan)
-                ->with(
-                    'success',
-                    'Pembayaran pelunasan berhasil. Pembiayaan telah dinyatakan lunas.'
-                );
-
-        } catch (\Throwable $e) {
-
-            return back()
-                ->withInput()
-                ->with(
-                    'error',
-                    $e->getMessage()
-                );
-        }
     }
 }

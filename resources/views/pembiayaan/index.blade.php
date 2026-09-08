@@ -156,7 +156,7 @@
                                                     </li>
                                                 @endif
                                                 {{-- LUNAS --}}
-                                                @if($status=='lunas')
+                                                @if($status == 'lunas' && $item->pembiayaan->pelunasan)
                                                     <li>
                                                         <a class="dropdown-item" href="{{ route('pelunasan.show',$item->pembiayaan->pelunasan) }}">
                                                             <i class="ti ti-check me-2"></i>

@@ -22,7 +22,7 @@ class PembiayaanController extends Controller
     
     public function index()
     {
-        $pengajuans = Pengajuan::with(['nasabah','marketing','cabang','pembiayaan'])
+        $pengajuans = Pengajuan::with(['nasabah','marketing','cabang','pembiayaan.pelunasan',])
         ->where('status', 'disetujui')->latest()->get();
     
         return view('pembiayaan.index', compact('pengajuans'));

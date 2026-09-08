@@ -2,6 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Akad;
+use App\Models\Angsuran;
+use App\Models\AuditTrail;
+use App\Models\Pelunasan;
+use App\Models\Pengajuan;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

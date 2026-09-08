@@ -56,7 +56,8 @@ class AngsuranController extends Controller
             'pengajuan.cabang',
             'akad.pencairan',
             'angsurans' => function ($q) {
-                $q->orderBy('angsuran_ke');
+                $q->with('pelunasan')
+                ->orderBy('angsuran_ke');
             },
         ]);
 
@@ -571,6 +572,226 @@ public function getAngsuran(Angsuran $angsuran)
         // return $pdfService->history($angsuran)->stream('History-'.$angsuran->pembiayaan->nomor_pembiayaan.'.pdf');
         $filename = 'History-' .str_replace('/', '-', $angsuran->pembiayaan->nomor_pembiayaan) .'.pdf';
         return $pdfService->history($angsuran)->stream($filename);
+    }
+
+    public function getHistory(Angsuran $angsuran)
+    {
+        $angsuran->load([
+            'pembiayaan.pengajuan.nasabah',
+            'pembayaranAngsurans.creator',
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | HISTORY PEMBAYARAN
+        |--------------------------------------------------------------------------
+        */
+
+        $history = $angsuran->pembayaranAngsurans
+            ->sortByDesc(function ($item) {
+                return [
+                    optional($item->tanggal_bayar)->timestamp ?? 0,
+                    $item->id,
+                ];
+            })
+            ->values();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | FORMAT HISTORY
+        |--------------------------------------------------------------------------
+        */
+
+        $historyData = $history->map(function ($item) {
+
+            return [
+
+                'id' =>
+                    $item->id,
+
+                'tanggal' =>
+                    optional($item->tanggal_bayar)
+                        ->format('d-m-Y'),
+
+                'nomor' =>
+                    $item->nomor_pembayaran,
+
+                /*
+                |--------------------------------------------------------------------------
+                | ANGSURAN
+                |--------------------------------------------------------------------------
+                */
+
+                'jumlah_bayar' =>
+                    $item->jumlah_bayar,
+
+                'jumlah_bayar_format' =>
+                    number_format(
+                        $item->jumlah_bayar,
+                        0,
+                        ',',
+                        '.'
+                    ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | DENDA
+                |--------------------------------------------------------------------------
+                */
+
+                'denda' =>
+                    $item->denda,
+
+                'denda_format' =>
+                    number_format(
+                        $item->denda,
+                        0,
+                        ',',
+                        '.'
+                    ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | DISKON DENDA
+                |--------------------------------------------------------------------------
+                */
+
+                'diskon_denda' =>
+                    $item->diskon_denda,
+
+                'diskon_denda_format' =>
+                    number_format(
+                        $item->diskon_denda,
+                        0,
+                        ',',
+                        '.'
+                    ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | STATUS DISKON
+                |--------------------------------------------------------------------------
+                */
+
+                'status_diskon' =>
+                    $item->status_diskon,
+
+                /*
+                |--------------------------------------------------------------------------
+                | TOTAL PEMBAYARAN
+                |--------------------------------------------------------------------------
+                */
+
+                'total' =>
+                    $item->total_dibayar,
+
+                'total_format' =>
+                    number_format(
+                        $item->total_dibayar,
+                        0,
+                        ',',
+                        '.'
+                    ),
+
+                /*
+                |--------------------------------------------------------------------------
+                | METODE
+                |--------------------------------------------------------------------------
+                */
+
+                'metode' =>
+                    ucfirst($item->metode),
+
+                /*
+                |--------------------------------------------------------------------------
+                | KASIR
+                |--------------------------------------------------------------------------
+                */
+
+                'user' =>
+                    $item->creator?->name ?? '-',
+            ];
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSE
+        |--------------------------------------------------------------------------
+        */
+
+        return response()->json([
+
+            'success' => true,
+
+            /*
+            |--------------------------------------------------------------------------
+            | DATA ANGSURAN
+            |--------------------------------------------------------------------------
+            */
+
+            'nama' =>
+                $angsuran->pembiayaan
+                    ->pengajuan
+                    ->nasabah
+                    ->nama,
+
+            'nomor_pembiayaan' =>
+                $angsuran->pembiayaan
+                    ->nomor_pembiayaan,
+
+            'angsuran_ke' =>
+                $angsuran->angsuran_ke,
+
+            'status' =>
+                ucfirst(
+                    str_replace(
+                        '_',
+                        ' ',
+                        $angsuran->status
+                    )
+                ),
+
+            /*
+            |--------------------------------------------------------------------------
+            | RINGKASAN
+            |--------------------------------------------------------------------------
+            */
+
+            'total_tagihan' =>
+                number_format(
+                    $angsuran->total_angsuran,
+                    0,
+                    ',',
+                    '.'
+                ),
+
+            'total_terbayar' =>
+                number_format(
+                    $angsuran->total_terbayar,
+                    0,
+                    ',',
+                    '.'
+                ),
+
+            'sisa_tagihan' =>
+                number_format(
+                    $angsuran->sisa_tagihan,
+                    0,
+                    ',',
+                    '.'
+                ),
+
+            /*
+            |--------------------------------------------------------------------------
+            | HISTORY
+            |--------------------------------------------------------------------------
+            */
+
+            'history' =>
+                $historyData->values(),
+        ]);
     }
 
     private function syncStatusAngsuran(?int $pembiayaanId = null)

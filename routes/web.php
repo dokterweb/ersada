@@ -181,7 +181,7 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
         Route::get('/{angsuran}/create',[DiskonDendaController::class, 'create'])->name('diskon-denda.create');
         Route::post('/{angsuran}',[DiskonDendaController::class, 'store'])->name('diskon-denda.store');
           // Pimpinan
-        Route::get('/approval',[DiskonDendaController::class, 'indexApproval'])->name('diskon-denda.approval');
+    Route::get('/approval',[DiskonDendaController::class, 'indexApproval'])->name('diskon-denda.approval');
         Route::post('/{pengajuan}/approve',[DiskonDendaController::class, 'approve'])->name('diskon-denda.approve');
         Route::post('/{pengajuan}/reject',[DiskonDendaController::class, 'reject'])->name('diskon-denda.reject');
     });
@@ -194,8 +194,11 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
     Route::prefix('pelunasan')->name('pelunasan.')->group(function () {
         Route::get('/{pembiayaan}/create', [PelunasanController::class,'create'])->name('create');
         Route::post('/{pembiayaan}', [PelunasanController::class,'store'])->name('store');
-        Route::get('/{pelunasan}', [PelunasanController::class,'show'])->name('show');
+        Route::post('/{pelunasan}/approve',[PelunasanController::class, 'approve'])->name('approve');
+        Route::post('/{pelunasan}/reject',[PelunasanController::class, 'reject'])->name('reject');
+        Route::post('/{pelunasan}/bayar',[PelunasanController::class, 'bayar'])->name('bayar');
         Route::get('/{pelunasan}/cetak',[PelunasanController::class,'cetak'])->name('cetak');
+        Route::get('/{pelunasan}', [PelunasanController::class,'show'])->name('show');
     });    
 
     Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function () {

@@ -116,6 +116,15 @@
                         <td>:</td>
                         <td>Rp {{ number_format($pembayaran->denda,0,',','.') }}</td>
                     </tr>
+                    @if($pembayaran->diskon_denda > 0)
+                        <tr>
+                            <td>Diskon Denda</td>
+                            <td>:</td>
+                            <td>
+                                Rp {{ number_format($pembayaran->diskon_denda, 0, ',', '.') }}
+                            </td>
+                        </tr>
+                    @endif
                     <tr>
                         <td>Total Bayar</td>
                         <td>:</td>
@@ -131,11 +140,7 @@
                         <td>:</td>
                         <td>{{ \Carbon\Carbon::parse($pembayaran->tanggal_bayar)->translatedFormat('d F Y') }}</td>
                     </tr>
-                    <tr>
-                        <td>Metode</td>
-                        <td>:</td>
-                        <td>{{ ucfirst($pembayaran->metode) }}</td>
-                    </tr>
+                    
                 </table>
             </td>
             <td width="45%">
@@ -159,6 +164,11 @@
                         <td>Status</td>
                         <td>:</td>
                         <td>{{ strtoupper($pembayaran->angsuran->status) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Metode</td>
+                        <td>:</td>
+                        <td>{{ ucfirst($pembayaran->metode) }}</td>
                     </tr>
                     <tr>
                         <td>Kasir</td>

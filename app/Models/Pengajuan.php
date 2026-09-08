@@ -10,7 +10,7 @@ class Pengajuan extends Model
 {
     use HasFactory, SoftDeletes;
     
-    protected $fillable = [    'nomor_pengajuan', 'cabang_id', 'marketing_id', 'status', 'current_step', 'tanggal_pengajuan', 'nominal_pengajuan', 'tenor', 'angsuran', 'tujuan_pinjaman', 'kategori_nasabah', 'status_customer', 'documents_completed', 'catatan', 'catatan_marketing', 'submitted_at', 'plafond_disetujui', 'tenor_disetujui'];
+    protected $fillable = ['nomor_pengajuan', 'cabang_id', 'marketing_id', 'status', 'current_step', 'tanggal_pengajuan', 'nominal_pengajuan', 'tenor', 'angsuran', 'tujuan_pinjaman', 'kategori_nasabah', 'status_customer', 'documents_completed', 'catatan', 'catatan_marketing', 'submitted_at', 'plafond_disetujui', 'tenor_disetujui'];
 
 
     protected $casts = [

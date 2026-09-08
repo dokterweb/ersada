@@ -4,16 +4,23 @@
 <div class="page-wrapper">
     <!-- Page header -->
     <div class="page-header d-print-none">
-    <div class="container-xl">
-        <div class="row g-2 align-items-center">
-        <div class="col">
-            <h2 class="page-title">
-            Data Karyawan
-            </h2>
+        <div class="container-xl">
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <h2 class="page-title">
+                    Data Angsuran
+                    </h2>
+                </div>
+                @if($pembiayaan->status !== 'lunas')
+                <div class="col-auto ms-auto d-print-none">
+                    <a href="{{ route('pelunasan.create', $pembiayaan) }}" class="btn btn-primary">
+                         <i class="ti ti-cash"></i>
+                        Ajukan Pelunasan
+                    </a>
+                </div>
+                @endif
+            </div>
         </div>
-        
-        </div>
-    </div>
     </div>
     <!-- Page body -->
     <div class="page-body">
@@ -102,6 +109,7 @@
                                                 <th>Total Terbayar</th>
                                                 <th>Sisa Tagihan</th>
                                                 <th>Status</th>
+                                                <th>Sumber Pembayaran</th>
                                                 <th>Aksi</th>
                                             </tr>
                                         </thead>
@@ -137,6 +145,31 @@
                                                 {{ ucfirst(str_replace('_',' ',$item->status)) }}
                                                 </span>
                                             </td>
+                                            <td>
+    @if($item->pelunasan)
+
+        <span class="badge bg-info">
+            Pelunasan
+        </span>
+
+        <div class="small text-muted mt-1">
+            {{ $item->pelunasan->nomor_pelunasan }}
+        </div>
+
+    @elseif($item->status === 'dibayar')
+
+        <span class="badge bg-secondary">
+            Angsuran Biasa
+        </span>
+
+    @else
+
+        <span class="text-muted">
+            -
+        </span>
+
+    @endif
+</td>
                                             <td>
                                                 @if($item->status!='dibayar')
                                                    {{--  <a href="{{ route('angsuran.create',$item) }}" class="btn btn-success btn-sm">
@@ -304,79 +337,245 @@
 </div>
 
 <div class="modal fade" id="modalHistory" tabindex="-1">
+
     <div class="modal-dialog modal-xl">
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <h5 class="modal-title">
                     History Pembayaran Angsuran
                 </h5>
-                <button class="btn-close" data-bs-dismiss="modal"></button>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                ></button>
+
             </div>
+
+
             <div class="modal-body">
+
+                {{-- ===================================================== --}}
+                {{-- DATA ANGSURAN --}}
+                {{-- ===================================================== --}}
+
                 <div class="row">
+
                     <div class="col-md-4 mb-3">
-                        <label>Debitur</label>
-                        <input id="h_nama" class="form-control" readonly>
+
+                        <label class="form-label">
+                            Debitur
+                        </label>
+
+                        <input
+                            id="h_nama"
+                            class="form-control"
+                            readonly
+                        >
+
                     </div>
+
+
                     <div class="col-md-4 mb-3">
-                        <label>No Pembiayaan</label>
-                        <input id="h_nomor" class="form-control" readonly>
+
+                        <label class="form-label">
+                            No Pembiayaan
+                        </label>
+
+                        <input
+                            id="h_nomor"
+                            class="form-control"
+                            readonly
+                        >
+
                     </div>
+
+
                     <div class="col-md-2 mb-3">
-                        <label>Angsuran Ke</label>
-                        <input id="h_ke" class="form-control" readonly>
+
+                        <label class="form-label">
+                            Angsuran Ke
+                        </label>
+
+                        <input
+                            id="h_ke"
+                            class="form-control"
+                            readonly
+                        >
+
                     </div>
+
+
                     <div class="col-md-2 mb-3">
-                        <label>Status</label>
-                        <input id="h_status" class="form-control" readonly>
+
+                        <label class="form-label">
+                            Status
+                        </label>
+
+                        <input
+                            id="h_status"
+                            class="form-control"
+                            readonly
+                        >
+
                     </div>
+
                 </div>
 
+
+                {{-- ===================================================== --}}
+                {{-- HISTORY PEMBAYARAN --}}
+                {{-- ===================================================== --}}
+
                 <div class="table-responsive">
+
                     <table class="table table-bordered table-striped">
+
                         <thead class="table-light">
+
                             <tr>
+
                                 <th>Tanggal</th>
+
                                 <th>No Bukti</th>
-                                <th class="text-end">Bayar</th>
-                                <th class="text-end">Denda</th>
-                                <th class="text-end">Total</th>
-                                <th>Metode</th>
-                                <th>Kasir</th>
-                                <th width="80">Aksi</th>
+
+                                <th class="text-end">
+                                    Angsuran
+                                </th>
+
+                                <th class="text-end">
+                                    Denda
+                                </th>
+
+                                <th class="text-end">
+                                    Diskon Denda
+                                </th>
+
+                                <th class="text-end">
+                                    Total
+                                </th>
+
+                                <th>
+                                    Metode
+                                </th>
+
+                                <th>
+                                    Kasir
+                                </th>
+
+                                <th width="80">
+                                    Aksi
+                                </th>
+
                             </tr>
+
                         </thead>
+
+
                         <tbody id="historyBody">
+
                         </tbody>
+
                     </table>
+
                 </div>
+
+
                 <hr>
+
+
+                {{-- ===================================================== --}}
+                {{-- RINGKASAN --}}
+                {{-- ===================================================== --}}
+
                 <div class="row">
+
                     <div class="col-md-4">
-                        <label>Total Tagihan</label>
-                        <input id="h_tagihan" class="form-control" readonly>
+
+                        <label class="form-label">
+                            Total Tagihan
+                        </label>
+
+                        <input
+                            id="h_tagihan"
+                            class="form-control"
+                            readonly
+                        >
+
                     </div>
+
+
                     <div class="col-md-4">
-                        <label>Total Terbayar</label>
-                        <input id="h_terbayar" class="form-control" readonly>
+
+                        <label class="form-label">
+                            Total Terbayar
+                        </label>
+
+                        <input
+                            id="h_terbayar"
+                            class="form-control"
+                            readonly
+                        >
+
                     </div>
+
+
                     <div class="col-md-4">
-                        <label>Sisa Tagihan</label>
-                        <input id="h_sisa" class="form-control" readonly>
+
+                        <label class="form-label">
+                            Sisa Tagihan
+                        </label>
+
+                        <input
+                            id="h_sisa"
+                            class="form-control"
+                            readonly
+                        >
+
                     </div>
+
                 </div>
+
             </div>
+
+
+            {{-- ========================================================= --}}
+            {{-- FOOTER --}}
+            {{-- ========================================================= --}}
+
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal"
+                >
                     Tutup
                 </button>
-                <a id="btnCetakHistory" target="_blank" class="btn btn-danger">
+
+
+                <a
+                    id="btnCetakHistory"
+                    target="_blank"
+                    class="btn btn-danger"
+                >
+
                     <i class="ti ti-file-type-pdf"></i>
+
                     Cetak History
+
                 </a>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
 @endsection
@@ -1055,7 +1254,336 @@ $(function () {
 
 });
 
+$(document).on(
+    'click',
+    '.btn-history',
+    function () {
 
+        let id = $(this).data('id');
+
+
+        $.ajax({
+
+            url:
+                "/angsuran/jadwal/"
+                +
+                id
+                +
+                "/history",
+
+            type:
+                "GET",
+
+            dataType:
+                "json",
+
+
+            beforeSend: function () {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Bersihkan history lama
+                |--------------------------------------------------------------------------
+                */
+
+                $('#historyBody').html(`
+                    <tr>
+                        <td colspan="9" class="text-center">
+                            Memuat history...
+                        </td>
+                    </tr>
+                `);
+
+            },
+
+
+            success: function (r) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | DATA ANGSURAN
+                |--------------------------------------------------------------------------
+                */
+
+                $('#h_nama')
+                    .val(r.nama);
+
+                $('#h_nomor')
+                    .val(
+                        r.nomor_pembiayaan
+                    );
+
+                $('#h_ke')
+                    .val(
+                        r.angsuran_ke
+                    );
+
+                $('#h_status')
+                    .val(
+                        r.status
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | RINGKASAN
+                |--------------------------------------------------------------------------
+                */
+
+                $('#h_tagihan')
+                    .val(
+                        "Rp " +
+                        r.total_tagihan
+                    );
+
+                $('#h_terbayar')
+                    .val(
+                        "Rp " +
+                        r.total_terbayar
+                    );
+
+                $('#h_sisa')
+                    .val(
+                        "Rp " +
+                        r.sisa_tagihan
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | HISTORY
+                |--------------------------------------------------------------------------
+                */
+
+                let rows = [];
+
+
+                if (
+                    !r.history ||
+                    r.history.length === 0
+                ) {
+
+                    rows.push(`
+
+                        <tr>
+
+                            <td
+                                colspan="9"
+                                class="text-center text-muted py-4"
+                            >
+
+                                Belum ada pembayaran.
+
+                            </td>
+
+                        </tr>
+
+                    `);
+
+                } else {
+
+
+                    $.each(
+                        r.history,
+                        function (
+                            i,
+                            item
+                        ) {
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | STATUS DISKON
+                            |--------------------------------------------------------------------------
+                            */
+
+                            let diskonHtml =
+                                'Rp ' +
+                                item.diskon_denda_format;
+
+
+                            if (
+                                item.diskon_denda > 0 &&
+                                item.status_diskon === 'disetujui'
+                            ) {
+
+                                diskonHtml += `
+                                    <br>
+                                    <span class="badge bg-success mt-1">
+                                        Disetujui
+                                    </span>
+                                `;
+
+                            }
+
+
+                            rows.push(`
+
+                                <tr>
+
+                                    <td>
+                                        ${item.tanggal}
+                                    </td>
+
+
+                                    <td>
+                                        ${item.nomor}
+                                    </td>
+
+
+                                    <td class="text-end">
+                                        Rp
+                                        ${item.jumlah_bayar_format}
+                                    </td>
+
+
+                                    <td class="text-end">
+                                        Rp
+                                        ${item.denda_format}
+                                    </td>
+
+
+                                    <td class="text-end">
+
+                                        ${diskonHtml}
+
+                                    </td>
+
+
+                                    <td class="text-end fw-bold">
+                                        Rp
+                                        ${item.total_format}
+                                    </td>
+
+
+                                    <td>
+                                        ${item.metode}
+                                    </td>
+
+
+                                    <td>
+                                        ${item.user ?? '-'}
+                                    </td>
+
+
+                                    <td>
+
+                                        <a
+                                            target="_blank"
+                                            href="/angsuran/pembayaran/${item.id}/cetak"
+                                            class="btn btn-primary btn-sm"
+                                            title="Cetak Bukti"
+                                        >
+
+                                            <i
+                                                class="fa-solid fa-print"
+                                            ></i>
+
+                                        </a>
+
+                                    </td>
+
+                                </tr>
+
+                            `);
+
+                        }
+                    );
+
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | MASUKKAN ROW
+                |--------------------------------------------------------------------------
+                */
+
+                $('#historyBody')
+                    .html(
+                        rows.join('')
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | LINK CETAK HISTORY
+                |--------------------------------------------------------------------------
+                */
+
+                $('#btnCetakHistory')
+                    .attr(
+                        'href',
+                        '/angsuran/angsuran/'
+                        +
+                        id
+                        +
+                        '/history/cetak'
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | TAMPILKAN MODAL
+                |--------------------------------------------------------------------------
+                */
+
+                const modal =
+                    new bootstrap.Modal(
+                        document.getElementById(
+                            'modalHistory'
+                        )
+                    );
+
+
+                modal.show();
+
+            },
+
+
+            error: function (xhr) {
+
+                console.log(
+                    xhr
+                );
+
+                let message =
+                    'Gagal mengambil history pembayaran.';
+
+
+                if (
+                    xhr.responseJSON &&
+                    xhr.responseJSON.message
+                ) {
+
+                    message =
+                        xhr.responseJSON.message;
+
+                }
+
+
+                $('#historyBody').html(`
+
+                    <tr>
+
+                        <td
+                            colspan="9"
+                            class="text-center text-danger py-4"
+                        >
+
+                            ${message}
+
+                        </td>
+
+                    </tr>
+
+                `);
+
+            }
+
+        });
+
+    }
+);
 </script>
 
 @endsection

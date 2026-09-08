@@ -125,7 +125,7 @@
     </table>
 
     {{-- ===================================================== --}}
-    {{-- HISTORY --}}
+    {{-- HISTORY PEMBAYARAN --}}
     {{-- ===================================================== --}}
 
     <table class="table-history">
@@ -134,27 +134,35 @@
                 <th width="6%">No</th>
                 <th width="15%">Tanggal</th>
                 <th width="23%">No Bukti</th>
-                <th width="15%">Bayar</th>
+                <th width="15%">Angsuran</th>
                 <th width="12%">Denda</th>
-                <th width="12%">Diskon</th>
+                <th width="12%">Diskon Denda</th>
                 <th width="17%">Total</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($angsuran->pembayaranAngsurans as $item)
+            @forelse($angsuran->pembayaranAngsuransas $item)
                 <tr>
                     <td class="center">{{ $loop->iteration }}</td>
-                    <td>{{ \Carbon\Carbon::parse($item->tanggal_bayar)->format('d-m-Y') }}</td>
+                    <td>{{\Carbon\Carbon::parse($item->tanggal_bayar)->format('d-m-Y')}}</td>
                     <td>{{ $item->nomor_pembayaran }}</td>
-                    <td class="right">{{ number_format($item->jumlah_bayar,0,',','.') }}</td>
-                    <td class="right">{{ number_format($item->denda,0,',','.') }}</td>
-                    <td class="right">{{ number_format($item->diskon,0,',','.') }}</td>
-                    <td class="right">{{ number_format($item->total_dibayar,0,',','.') }}</td>
+                    <td class="right">{{number_format($item->jumlah_bayar,0,',','.')}}</td>
+                    <td class="right">{{number_format($item->denda,0,',','.')}}</td>
+                    <td class="right">
+                        @if($item->diskon_denda > 0)
+                            {{number_format($item->diskon_denda,0,',','.')}}
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td class="right bold">
+                        {{number_format($item->total_dibayar,0,',','.')}}
+                    </td>
                 </tr>
             @empty
-            <tr>
-                <td colspan="7" class="center">Belum ada pembayaran.</td>
-            </tr>
+                <tr>
+                    <td colspan="7" class="center" >Belum ada pembayaran.</td>
+                </tr>
             @endforelse
         </tbody>
     </table>
