@@ -229,7 +229,9 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label class="form-label">Penghasilan</label>
-                            <input type="text" name="penghasilan" class="form-control" value="{{ old('penghasilan',$pekerjaan?->penghasilan) }}">
+                            {{-- <input type="text" name="penghasilan" class="form-control" value="{{ old('penghasilan',$pekerjaan?->penghasilan) }}"> --}}
+                            <input type="text" name="penghasilan" id="penghasilan" class="form-control rupiah-input"
+                            value="{{ old('penghasilan', format_rupiah($pekerjaan?->penghasilan)) }}" inputmode="numeric" autocomplete="off">
                             @error('penghasilan')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
@@ -350,4 +352,48 @@
     </div>
     
 </div>
+@endsection
+
+@section('scripts')
+<script>
+$(document).ready(function () {
+
+    function formatRupiah(value) {
+        let angka = value.toString().replace(/[^0-9]/g, '');
+
+        if (angka === '') {
+            return '';
+        }
+
+        return new Intl.NumberFormat('id-ID').format(angka);
+    }
+
+    // Format saat user mengetik
+    $('.rupiah-input').on('input', function () {
+        $(this).val(formatRupiah($(this).val()));
+    });
+
+    // Format nilai awal
+    $('.rupiah-input').each(function () {
+        if ($(this).val()) {
+            $(this).val(formatRupiah($(this).val()));
+        }
+    });
+
+    // Bersihkan format sebelum submit
+    $('form').on('submit', function () {
+
+        $('.rupiah-input').each(function () {
+
+            let value = $(this).val()
+                .toString()
+                .replace(/[^0-9]/g, '');
+
+            $(this).val(value);
+        });
+
+    });
+
+});
+</script>
 @endsection

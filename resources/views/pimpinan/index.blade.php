@@ -101,6 +101,16 @@
                                 <a href="{{ route('pimpinan.show',$item) }}" class="btn btn-primary btn-sm">
                                     Review
                                 </a>
+                                 {{-- Lihat Hasil Survey --}}
+                                @php
+                                    $survey = $item->survey;
+                                @endphp
+
+                                @if($survey)
+                                    <a href="{{ route('pimpinan.survey.berkas', $item) }}" class="btn btn-info btn-sm">
+                                        <i class="fa fa-folder-open"></i>Lihat Survey
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                     @empty

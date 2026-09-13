@@ -85,12 +85,32 @@
                     {{-- FORM --}}
                     <h4 class="mb-3">Data Pencairan</h4>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Tanggal Pencairan</label>
                             <input type="date" name="tanggal_pencairan" value="{{ old('tanggal_pencairan',date('Y-m-d')) }}"
                                 class="form-control" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label for="tgl_telat_bayar" class="form-label">
+                                Tanggal Jatuh Tempo
+                            </label>
+
+                            <select name="tgl_telat_bayar" id="tgl_telat_bayar" class="form-select"required>
+                                @for ($i = 1; $i <= 30; $i++)
+                                    <option value="{{ $i }}"
+                                        {{ old('tgl_telat_bayar', 10) == $i ? 'selected' : '' }}>
+                                        Tanggal {{ $i }}
+                                    </option>
+                                @endfor
+                            </select>
+                            <div class="form-text">
+                                Tanggal setiap bulan yang menjadi batas pembayaran sebelum dihitung terlambat.
+                            </div>
+                            @error('tgl_telat_bayar')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Metode</label>
                             <select name="metode" id="metode" class="form-select">
                                 <option value="tunai">Tunai</option>
@@ -118,25 +138,31 @@
                     <hr class="my-2">
                     <h4 class="mb-3">Dokumen Pencairan</h4>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Bukti Pencairan</label>
                             <input type="file" name="bukti_pencairan" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
                             <div class="form-text">JPG, JPEG, PNG atau PDF.Maksimal 50 MB.</div>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Foto Akad 1</label>
                             <input type="file" name="foto_akad1" class="form-control" accept=".jpg,.jpeg,.png">
                             <div class="form-text">JPG, JPEG atau PNG.Maksimal 50 MB.</div>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Foto Akad 2</label>
                             <input type="file" name="foto_akad2" class="form-control" accept=".jpg,.jpeg,.png">
                             <div class="form-text">JPG, JPEG atau PNG.Maksimal 50 MB.</div>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Foto Akad 3</label>
                             <input type="file" name="foto_akad3" class="form-control" accept=".jpg,.jpeg,.png">
                             <div class="form-text">JPG, JPEG atau PNG.Maksimal 50 MB.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Video Pencairan</label>
+                            <input type="file" name="video" class="form-control"
+                                accept="video/mp4,video/mov,video/avi,video/mkv,video/webm">
+                            <div class="form-text">Format: MP4, MOV, AVI, MKV atau WEBM.Maksimal 100 MB.</div>
                         </div>
                     </div>
                     <div class="mb-3">

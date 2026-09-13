@@ -40,6 +40,9 @@
                 </ul>
             </div>
             @endif
+            <div class="text-center mb-4">
+              <img src="{{ asset('storage/img/logo.jpg') }}" alt="Safarindo Albarokah Umroh"style="max-width: 180px; height: auto;">
+            </div>
             <h2 class="h2 text-center mb-4">Login to your account</h2>
             <form action="{{ route('login') }}" method="POST" autocomplete="off" novalidate>
                 @csrf

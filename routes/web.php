@@ -98,6 +98,11 @@ Route::prefix('pimpinan')->middleware(['auth','role:komisaris|direktur|kacab'])
         Route::get('/dashboard',[PimpinanController::class,'dashboard'])->name('pimpinan.dashboard');
         Route::get('/',[PimpinanController::class,'index'])->name('pimpinan.index');
         Route::get('/{pengajuan}',[PimpinanController::class,'show'])->name('pimpinan.show');
+        // SURVEY - READ ONLY
+        Route::get('/{pengajuan}/survey/berkas',[PimpinanController::class, 'surveyBerkas'])->name('pimpinan.survey.berkas');
+        Route::get('/{pengajuan}/survey/dokumentasi',[PimpinanController::class, 'surveyDokumentasi'])->name('pimpinan.survey.dokumentasi');
+        Route::get('/{pengajuan}/survey/review',[PimpinanController::class, 'surveyReview'])->name('pimpinan.survey.review');
+        // APPROVAL PIMPINAN
         Route::post('/{pengajuan}/submit',[PimpinanController::class,'submit'])->name('pimpinan.submit');
     });
 

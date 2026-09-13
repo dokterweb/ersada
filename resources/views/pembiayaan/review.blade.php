@@ -103,6 +103,10 @@
                                             <th>Biaya Survey</th>
                                             <td>Rp {{ number_format($pembiayaan->biaya_survei,0,',','.') }}</td>
                                         </tr>
+                                        <tr>
+                                            <th>Biaya Notaris</th>
+                                            <td>Rp {{ number_format($pembiayaan->biaya_notaris,0,',','.') }}</td>
+                                        </tr>
                                     </table>
                                 </div>
                             </div>

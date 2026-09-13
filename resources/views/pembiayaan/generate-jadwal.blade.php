@@ -48,11 +48,14 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <form action="{{ route('pembiayaan.storeJadwal',$pembiayaan) }}" method="POST">
-                                @csrf
-                                <a href="{{ route('pembiayaan.review',$pembiayaan) }}" class="btn btn-secondary">Kembali</a>
-                                <button class="btn btn-success">Simpan Jadwal Angsuran</button>
-                            </form>
+                             <div class="card-footer text-end">
+                                <form action="{{ route('pembiayaan.storeJadwal',$pembiayaan) }}" method="POST">
+                                    @csrf
+                                    <a href="{{ route('pembiayaan.review',$pembiayaan) }}" class="btn btn-secondary">Kembali</a>
+                                    <button class="btn btn-success">Simpan Jadwal Angsuran</button>
+                                </form>
+                            </div>
+                            
                         </div>
                     </div>
                     

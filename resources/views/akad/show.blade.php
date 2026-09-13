@@ -131,32 +131,24 @@
                             $angsuranTerakhir = $akad->pembiayaan->angsurans->sortByDesc('angsuran_ke')->first();
                         @endphp
                         <div class="row">
-                            <div class="mb-3">
-                                <div class="small text-secondary">
-                                    Total Angsuran
-                                </div>
-                                <strong>{{ $akad->pembiayaan->angsurans->count() }} Kali</strong>
-                            </div>
-                            <div class="mb-3">
-                                <div class="small text-secondary">
-                                    Angsuran / Bulan
-                                </div>
-                                <strong>
-                                    Rp {{ number_format(optional($angsuranPertama)->total_angsuran,0,',','.') }}
-                                </strong>
-                            </div>
-                            <div class="mb-3">
-                                <div class="small text-secondary">
-                                    Jatuh Tempo Pertama
-                                </div>
-                                <strong>{{ \Carbon\Carbon::parse(optional($angsuranPertama)->tanggal_jatuh_tempo)->format('d M Y') }}</strong>
-                            </div>
-                            <div class="mb-3">
-                                <div class="small text-secondary">
-                                    Jatuh Tempo Terakhir
-                                </div>
-                                <strong>{{ \Carbon\Carbon::parse(optional($angsuranTerakhir)->tanggal_jatuh_tempo)->format('d M Y') }}</strong>
-                            </div>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <th width="180">Total Angsuran</th>
+                                    <td>{{ $akad->pembiayaan->angsurans->count() }} Kali</td>
+                                </tr>
+                                <tr>
+                                    <th>Angsuran / Bulan</th>
+                                    <td>Rp {{ number_format(optional($angsuranPertama)->total_angsuran,0,',','.') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Jatuh Tempo Pertama</th>
+                                    <td>{{ \Carbon\Carbon::parse(optional($angsuranPertama)->tanggal_jatuh_tempo)->format('d M Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Jatuh Tempo Terakhir</th>
+                                    <td>{{ \Carbon\Carbon::parse(optional($angsuranTerakhir)->tanggal_jatuh_tempo)->format('d M Y') }}</td>
+                                </tr>    
+                            </table>
                         </div>
                     </div>
                 </div>

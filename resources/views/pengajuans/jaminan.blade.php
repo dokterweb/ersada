@@ -101,27 +101,24 @@
                                                 -- Pilih Jenis Jaminan --
                                             </option>
 
-                                            <option
-                                                value="BPKB Motor"
-                                                {{ $jaminan->jenis_jaminan == 'BPKB Motor' ? 'selected' : '' }}
-                                            >
+                                            <option value="BPKB Motor"
+                                                {{ $jaminan->jenis_jaminan == 'BPKB Motor' ? 'selected' : '' }}>
                                                 BPKB Motor
                                             </option>
 
-                                            <option
-                                                value="BPKB Mobil"
-                                                {{ $jaminan->jenis_jaminan == 'BPKB Mobil' ? 'selected' : '' }}
-                                            >
+                                            <option value="BPKB Mobil"
+                                                {{ $jaminan->jenis_jaminan == 'BPKB Mobil' ? 'selected' : '' }}>
                                                 BPKB Mobil
                                             </option>
 
-                                            <option
-                                                value="Surat Tanah"
-                                                {{ $jaminan->jenis_jaminan == 'Surat Tanah' ? 'selected' : '' }}
-                                            >
+                                            <option value="Surat Tanah"
+                                                {{ $jaminan->jenis_jaminan == 'Surat Tanah' ? 'selected' : '' }}>
                                                 Surat Tanah
                                             </option>
-
+                                            <option value="SK Kerja"
+                                                {{ $jaminan->jenis_jaminan == 'SK Kerja' ? 'selected' : '' }}>
+                                                SK Kerja
+                                            </option>
                                         </select>
 
                                     </div>
@@ -423,16 +420,11 @@
                                 {{-- DATA SURAT TANAH --}}
                                 {{-- ================================================= --}}
 
-                                <div
-                                    class="data-tanah"
-                                    style="{{ $jaminan->jenis_jaminan == 'Surat Tanah' ? '' : 'display:none;' }}"
-                                >
-
+                                <div class="data-tanah"
+                                    style="{{ $jaminan->jenis_jaminan == 'Surat Tanah' ? '' : 'display:none;' }}">
                                     <div class="alert alert-warning">
                                         <strong>DATA SURAT TANAH</strong>
                                     </div>
-
-
                                     <div class="row">
 
                                         {{-- SKT/SPGR --}}
@@ -581,9 +573,45 @@
                                         </div>
 
                                     </div>
-
                                 </div>
 
+                                {{-- ================================================= --}}
+                                {{-- DATA SK KERJA --}}
+                                {{-- ================================================= --}}
+
+                                <div class="data-sk-kerja"
+                                    style="{{ $jaminan->jenis_jaminan == 'SK Kerja' ? '' : 'display:none;' }}">
+                                    <div class="alert alert-success">
+                                        <strong>DATA SK KERJA</strong>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Nomor SK Kerja
+                                                <span class="text-danger">*</span>
+                                            </label>
+
+                                            <input type="text" name="jaminan[{{ $index }}][no_sk_kerja]" class="form-control"
+                                                value="{{ old(
+                                                    "jaminan.$index.no_sk_kerja",
+                                                    $jaminan->no_sk_kerja
+                                                ) }}"
+                                                placeholder="Masukkan nomor SK Kerja"
+                                            >
+
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="alert alert-info mb-0">
+                                                <strong>Dokumen SK Kerja</strong>
+                                                <br>
+                                                Upload SK Kerja dalam bentuk:
+                                                <br>
+                                                JPG, JPEG, PNG atau PDF.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
 
                                 {{-- ================================================= --}}
                                 {{-- NILAI & DESKRIPSI --}}
@@ -1143,22 +1171,11 @@ $(document).ready(function () {
     function toggleJaminan(container)
     {
 
-        let jenis =
-            container
-                .find('.jenis-jaminan')
-                .val();
-
-
-        let kendaraan =
-            container
-                .find('.data-kendaraan');
-
-
-        let tanah =
-            container
-                .find('.data-tanah');
-
-
+        let jenis =container.find('.jenis-jaminan').val();
+        let kendaraan =container.find('.data-kendaraan');
+        let tanah =container.find('.data-tanah');
+        let skKerja =container.find('.data-sk-kerja');
+        let nilaiUmum =container.find('.data-nilai-umum');
         /*
         |--------------------------------------------------------------------------
         | BPKB MOTOR / MOBIL
@@ -1170,15 +1187,10 @@ $(document).ready(function () {
             jenis === 'BPKB Mobil'
         ) {
 
-            kendaraan
-                .stop(true, true)
-                .slideDown(200);
-
-
-            tanah
-                .stop(true, true)
-                .hide();
-
+            kendaraan.stop(true, true).slideDown(200);
+            tanah.stop(true, true).hide();
+            skKerja.stop(true, true).hide();
+            nilaiUmum.stop(true, true).slideDown(200);
         }
 
 
@@ -1191,19 +1203,26 @@ $(document).ready(function () {
         else if (
             jenis === 'Surat Tanah'
         ) {
-
-            kendaraan
-                .stop(true, true)
-                .hide();
-
-
-            tanah
-                .stop(true, true)
-                .slideDown(200);
+            kendaraan.stop(true, true).hide();
+            tanah.stop(true, true).slideDown(200);
+            skKerja.stop(true, true).hide();
+            nilaiUmum.stop(true, true).slideDown(200);
 
         }
+        /*
+        |--------------------------------------------------------------------------
+        | SK KERJA
+        |--------------------------------------------------------------------------
+        */
 
-
+        else if (
+            jenis === 'SK Kerja'
+        ) {
+            kendaraan.stop(true, true).hide();
+            tanah.stop(true, true).hide();
+            skKerja.stop(true, true).slideDown(200);
+            nilaiUmum.stop(true, true).hide();
+        }
         /*
         |--------------------------------------------------------------------------
         | BELUM MEMILIH
@@ -1211,16 +1230,10 @@ $(document).ready(function () {
         */
 
         else {
-
-            kendaraan
-                .stop(true, true)
-                .hide();
-
-
-            tanah
-                .stop(true, true)
-                .hide();
-
+            kendaraan.stop(true, true).hide();
+            tanah.stop(true, true).hide();
+            skKerja.stop(true, true).hide();
+            nilaiUmum.stop(true, true).slideDown(200);
         }
 
     }
@@ -1335,7 +1348,9 @@ $(document).ready(function () {
                             <option value="Surat Tanah">
                                 Surat Tanah
                             </option>
-
+                            <option value="SK Kerja">
+                                SK Kerja
+                            </option>
                         </select>
 
                     </div>
@@ -1619,10 +1634,7 @@ $(document).ready(function () {
 
                 {{-- DATA SURAT TANAH --}}
 
-                <div
-                    class="data-tanah"
-                    style="display:none;"
-                >
+                <div class="data-tanah"style="display:none;">
 
                     <div class="alert alert-warning">
 
@@ -1773,15 +1785,64 @@ $(document).ready(function () {
 
                 </div>
 
+{{-- DATA SK KERJA --}}
 
+<div class="data-sk-kerja" style="display:none;">
+
+    <div class="alert alert-success">
+
+        <strong>
+            DATA SK KERJA
+        </strong>
+
+    </div>
+
+    <div class="row">
+
+        <div class="col-md-6 mb-3">
+
+            <label class="form-label">
+
+                Nomor SK Kerja
+
+                <span class="text-danger">*</span>
+
+            </label>
+
+            <input
+                type="text"
+                name="jaminan[${index}][no_sk_kerja]"
+                class="form-control"
+                placeholder="Masukkan nomor SK Kerja"
+            >
+
+        </div>
+
+        <div class="col-md-6 mb-3">
+
+            <div class="alert alert-info mb-0">
+
+                <strong>
+                    Dokumen SK Kerja
+                </strong>
+
+                <br>
+
+                JPG, JPEG, PNG atau PDF.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
                 {{-- NILAI DAN DESKRIPSI --}}
-
+            <div class="data-nilai-umum">
                 <hr>
 
                 <div class="row">
-
                     <div class="col-md-4 mb-3">
-
                         <label class="form-label">
                             Nilai Taksiran
                         </label>
@@ -1825,6 +1886,7 @@ $(document).ready(function () {
                     </div>
 
                 </div>
+            </div>
 
 
                 {{-- DOKUMEN JAMINAN --}}

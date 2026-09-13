@@ -102,7 +102,9 @@
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Jumlah Penghasilan</label>
-                                        <input type="number" class="form-control" name="pasangan[pekerjaan][penghasilan]" value="{{ old('pasangan.pekerjaan.penghasilan', $pasangan?->pekerjaan?->penghasilan ?? '') }}">
+                                        <input type="text" class="form-control rupiah-input" name="pasangan[pekerjaan][penghasilan]"
+                                        value="{{ old('pasangan.pekerjaan.penghasilan', format_rupiah($pasangan?->pekerjaan?->penghasilan)) }}"
+                                        inputmode="numeric"autocomplete="off">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Nama Usaha</label>
@@ -120,7 +122,7 @@
                                         <label class="form-label">Jlh Pegawai</label>
                                         <input type="text" name="pasangan[pekerjaan][jumlah_pegawai]" class="form-control" value="{{ old('pasangan.pekerjaan.jumlah_pegawai', $pasangan?->pekerjaan?->jumlah_pegawai ?? '') }}">
                                     </div>
-                                    <div class="col-md-3 mb-3">
+                                    <div class="col-md-4 mb-3">
                                         <label class="form-label">Alamat Usaha</label>
                                         <input type="text" name="pasangan[pekerjaan][alamat_usaha]" class="form-control" value="{{ old('pasangan.pekerjaan.alamat_usaha', $pasangan?->pekerjaan?->alamat_usaha ?? '') }}">
                                     </div>
@@ -174,7 +176,9 @@
                                     <div class="row">
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Jumlah Penghasilan</label>
-                                            <input type="number" class="form-control" name="penjamin[pekerjaan][penghasilan]" value="{{ old('penjamin.pekerjaan.penghasilan', $penjamin?->pekerjaan?->penghasilan ?? '') }}">
+                                            <input type="text" class="form-control rupiah-input" name="penjamin[pekerjaan][penghasilan]"
+                                                value="{{ old('penjamin.pekerjaan.penghasilan', format_rupiah($penjamin?->pekerjaan?->penghasilan)) }}"
+                                                inputmode="numeric" autocomplete="off">
                                         </div>
                                         <div class="col-md-4 mb-3">
                                             <label class="form-label">Nama Usaha</label>
@@ -291,116 +295,223 @@
 @section('scripts')
 
 <script>
+$(document).ready(function(){
 
-    $(document).ready(function(){
-        // PASANGAN
-        $('#has_pasangan').on('change', function(){
+    // =========================================================
+    // FORMAT RUPIAH
+    // =========================================================
 
-            if($('#has_pasangan').is(':checked')){
-                $('#pasangan_form').show();
-            }
+    function formatRupiah(value) {
 
-            if($('#pasangan_pekerjaan_check').is(':checked')){
-                $('#pasangan_job').show();
-            }
+        let angka = value
+            .toString()
+            .replace(/[^0-9]/g, '');
 
-            if($('#has_penjamin').is(':checked')){
-                $('#penjamin_form').show();
-            }
+        if (angka === '') {
+            return '';
+        }
 
-            if($('#penjamin_job_check').is(':checked')){
-                $('#penjamin_job').show();
-            }
+        return new Intl.NumberFormat('id-ID').format(angka);
+    }
 
-            
-            if($(this).is(':checked')){
-                $('#pasangan_form').slideDown();
-            }else{
-                $('#pasangan_form').slideUp();
-                $('#pasangan_job').hide();
-                $('#pasangan_pekerjaan_check').prop('checked', false);
-            }
-        });
-    
-        //pekerjaan pasangan
-        
-        $('#pasangan_pekerjaan_check').on('change', function(){
-            if($(this).is(':checked')){
-                $('#pasangan_job').slideDown();
-            }else{
-                $('#pasangan_job').slideUp();
-            }
-        });
-    
-        // PENJAMIN
-        
-        $('#has_penjamin').on('change', function(){
-            if($(this).is(':checked')){
-                $('#penjamin_form').slideDown();
-            }else{
-                $('#penjamin_form').slideUp();
-                $('#penjamin_job').hide();
-                $('#penjamin_job_check').prop('checked', false);
-            }
-        });
-    
-        //pekerjaan penjamin
-        
-        $('#penjamin_job_check').on('change', function(){
-            if($(this).is(':checked')){
-                $('#penjamin_job').slideDown();
-            }else{
-                $('#penjamin_job').slideUp();
-            }
-        });
-    
-        // SAUDARA DYNAMIC
-        let index = {{ $saudaras->count() }};
-        $('#addSaudara').click(function(){
-            let html = `
-            <div class="card mt-3 p-3">
-                <h5>Saudara ${index}</h5>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Nama KTP</label>
-                        <input class="form-control" name="saudara[${index}][nama]" placeholder="Nama">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Tempat Lahir</label>
-                        <input class="form-control" name="saudara[${index}][tempat_lahir]" placeholder="Tempat lahir">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Tgl Lahir</label>
-                        <input class="form-control" type="date" name="saudara[${index}][tgl_lahir]">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Hubungan</label>
-                        <input class="form-control" name="saudara[${index}][hubungan]" placeholder="Hubungan">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">No. HP</label>
-                        <input class="form-control" name="saudara[${index}][no_hp]" placeholder="No HP">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Alamat</label>
-                        <input class="form-control" name="saudara[${index}][alamat]" placeholder="alamat">
-                    </div>
-                    <button type="button" class="btn btn-danger removeSaudara">Hapus Saudara</button>
-                </div>
-            </div>
-            `;
-            index++;
-            $('#saudara_wrapper').append(html);
-        });
-    
-        // hapus saudara
-    
-        $(document).on('click','.removeSaudara',function(){
-            $(this).closest('.card').remove();
-            }
+
+    // Format saat mengetik
+    $(document).on('input', '.rupiah-input', function () {
+
+        $(this).val(
+            formatRupiah($(this).val())
         );
-    
+
     });
+
+
+    // Format nilai awal
+    $('.rupiah-input').each(function () {
+
+        if ($(this).val()) {
+
+            $(this).val(
+                formatRupiah($(this).val())
+            );
+
+        }
+
+    });
+
+
+    // Bersihkan format sebelum submit
+    $('form').on('submit', function () {
+
+        $('.rupiah-input').each(function () {
+
+            let value = $(this).val()
+                .toString()
+                .replace(/[^0-9]/g, '');
+
+            $(this).val(value);
+
+        });
+
+    });
+
+
+    // =========================================================
+    // PASANGAN
+    // =========================================================
+
+    $('#has_pasangan').on('change', function(){
+
+        if($('#has_pasangan').is(':checked')){
+            $('#pasangan_form').show();
+        }
+
+        if($('#pasangan_pekerjaan_check').is(':checked')){
+            $('#pasangan_job').show();
+        }
+
+        if($('#has_penjamin').is(':checked')){
+            $('#penjamin_form').show();
+        }
+
+        if($('#penjamin_job_check').is(':checked')){
+            $('#penjamin_job').show();
+        }
+
+        if($(this).is(':checked')){
+            $('#pasangan_form').slideDown();
+        }else{
+            $('#pasangan_form').slideUp();
+            $('#pasangan_job').hide();
+            $('#pasangan_pekerjaan_check').prop('checked', false);
+        }
+    });
+
+
+    // pekerjaan pasangan
+
+    $('#pasangan_pekerjaan_check').on('change', function(){
+
+        if($(this).is(':checked')){
+            $('#pasangan_job').slideDown();
+        }else{
+            $('#pasangan_job').slideUp();
+        }
+
+    });
+
+
+    // =========================================================
+    // PENJAMIN
+    // =========================================================
+
+    $('#has_penjamin').on('change', function(){
+
+        if($(this).is(':checked')){
+            $('#penjamin_form').slideDown();
+        }else{
+            $('#penjamin_form').slideUp();
+            $('#penjamin_job').hide();
+            $('#penjamin_job_check').prop('checked', false);
+        }
+
+    });
+
+
+    // pekerjaan penjamin
+
+    $('#penjamin_job_check').on('change', function(){
+
+        if($(this).is(':checked')){
+            $('#penjamin_job').slideDown();
+        }else{
+            $('#penjamin_job').slideUp();
+        }
+
+    });
+
+
+    // =========================================================
+    // SAUDARA DYNAMIC
+    // =========================================================
+
+    let index = {{ $saudaras->count() }};
+
+    $('#addSaudara').click(function(){
+
+        let html = `
+        <div class="card mt-3 p-3">
+
+            <h5>Saudara ${index}</h5>
+
+            <div class="row">
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Nama KTP</label>
+                    <input class="form-control"
+                           name="saudara[${index}][nama]"
+                           placeholder="Nama">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tempat Lahir</label>
+                    <input class="form-control"
+                           name="saudara[${index}][tempat_lahir]"
+                           placeholder="Tempat lahir">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Tgl Lahir</label>
+                    <input class="form-control"
+                           type="date"
+                           name="saudara[${index}][tgl_lahir]">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Hubungan</label>
+                    <input class="form-control"
+                           name="saudara[${index}][hubungan]"
+                           placeholder="Hubungan">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">No. HP</label>
+                    <input class="form-control"
+                           name="saudara[${index}][no_hp]"
+                           placeholder="No HP">
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Alamat</label>
+                    <input class="form-control"
+                           name="saudara[${index}][alamat]"
+                           placeholder="Alamat">
+                </div>
+
+                <button type="button"
+                        class="btn btn-danger removeSaudara">
+                    Hapus Saudara
+                </button>
+
+            </div>
+        </div>
+        `;
+
+        index++;
+
+        $('#saudara_wrapper').append(html);
+
+    });
+
+
+    // hapus saudara
+
+    $(document).on('click', '.removeSaudara', function(){
+
+        $(this).closest('.card').remove();
+
+    });
+
+});
     
 </script>
 

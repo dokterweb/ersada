@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ApprovalPengajuan;
 use App\Models\Pengajuan;
+use App\Models\Survey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -191,6 +192,100 @@ class PimpinanController extends Controller
         return redirect()->route('pimpinan.dashboard')->with('success', 'Keputusan berhasil disimpan.');
     }
 
+    private function getSurveyForPimpinan(Pengajuan $pengajuan): Survey
+    {
+        return Survey::where('pengajuan_id', $pengajuan->id)
+            ->firstOrFail();
+    }
+
+    public function surveyBerkas(Pengajuan $pengajuan)
+    {
+        $survey = $this->getSurveyForPimpinan($pengajuan);
+
+        $survey->load([
+            'pengajuan.nasabah',
+            'pengajuan.marketing',
+            'pengajuan.cabang',
+
+            'assignedTo',
+            'assignedBy',
+
+            'berkas',
+
+            /*
+            |--------------------------------------------------------------------------
+            | DOKUMEN PENGAJUAN
+            |--------------------------------------------------------------------------
+            */
+
+            'pengajuan.dokumenPengajuans',
+
+            /*
+            |--------------------------------------------------------------------------
+            | DOKUMEN PAYROLL
+            |--------------------------------------------------------------------------
+            */
+
+            'pengajuan.dokumenPayrolls',
+
+            /*
+            |--------------------------------------------------------------------------
+            | JAMINAN + DOKUMEN JAMINAN
+            |--------------------------------------------------------------------------
+            */
+
+            'pengajuan.jaminanPengajuans.dokumenJaminans',
+        ]);
+
+        return view(
+            'pimpinan.survey.berkas',
+            compact('survey', 'pengajuan')
+        );
+    }
+
+
+      
+public function surveyReview(Pengajuan $pengajuan)
+{
+    $survey = $this->getSurveyForPimpinan($pengajuan);
+
+    $survey->load([
+        'pengajuan',
+        'pengajuan.nasabah',
+        'pengajuan.nasabah.pekerjaanNasabah',
+        'pengajuan.marketing',
+        'pengajuan.cabang',
+        'pengajuan.jaminanPengajuans',
+        'pengajuan.referensis',
+        'berkas',
+        'dokumentasis',
+        'assignedTo',
+    ]);
+
+    $rumah = $survey->dokumentasis
+        ->where('kategori', 'rumah');
+
+    $usaha = $survey->dokumentasis
+        ->where('kategori', 'usaha');
+
+    $jaminan = $survey->dokumentasis
+        ->where('kategori', 'jaminan');
+
+    $videos = $survey->dokumentasis
+        ->where('kategori', 'video');
+
+    return view(
+        'pimpinan.survey.review',
+        compact(
+            'survey',
+            'pengajuan',
+            'rumah',
+            'usaha',
+            'jaminan',
+            'videos'
+        )
+    );
+}
 /* 
     public function submit(Request $request, Pengajuan $pengajuan)
     {

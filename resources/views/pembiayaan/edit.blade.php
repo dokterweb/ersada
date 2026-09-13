@@ -85,14 +85,20 @@
                         
                                         <div class="mb-3">
                                             <label>Materai</label>
-                                            <input type="number" class="form-control hitung"  id="materai" name="materai" value="{{ old('materai',$pembiayaan->materai ?? 10000) }}">
+                                            <input type="text" class="form-control hitung rupiah-input" id="materai" name="materai"
+                                            value="{{ angka(old('materai', $pembiayaan->materai ?? 10000)) }}" inputmode="numeric" autocomplete="off">
                                         </div>
                         
                                         <div class="mb-3">
                                             <label>Biaya Survey</label>
-                                            <input type="number" class="form-control hitung" id="biaya_survei" name="biaya_survei" value="{{ old('biaya_survei',$pembiayaan->biaya_survei ?? 0) }}">
+                                            <input type="text" class="form-control hitung rupiah-input" id="biaya_survei" name="biaya_survei"
+                                            value="{{ angka(old('biaya_survei', $pembiayaan->biaya_survei ?? 0)) }}" inputmode="numeric" autocomplete="off">
                                         </div>
-                        
+                                        <div class="mb-3">
+                                            <label>Biaya Notaris</label>
+                                            <input type="text" class="form-control hitung rupiah-input" id="biaya_notaris" name="biaya_notaris"
+                                                value="{{ angka(old('biaya_notaris', $pembiayaan->biaya_notaris ?? 0)) }}" inputmode="numeric" autocomplete="off">
+                                        </div>
                                         <div class="mb-3">
                                             <label>Tanggal Jatuh Tempo Pertama</label>
                                             <input type="date" class="form-control" name="tanggal_jatuh_tempo_pertama" 
@@ -191,58 +197,127 @@
 </div>
 @endsection
 
-
 @section('scripts')
 <script>
-$(function(){
-    hitungPembiayaan();
-    $('#materai,#biaya_survei').on('keyup change',function(){
+
+$(function () {
+
+    // FORMAT INPUT RUPIAH
+    $('.rupiah-input').on('input', function () {
+        let value = $(this).val();
+        value = value.replace(/[^0-9]/g, '');
+        if (value === '') {
+            $(this).val('');
+            hitungPembiayaan();
+            return;
+        }
+        $(this).val(formatRupiah(parseInt(value, 10)));
+
         hitungPembiayaan();
     });
+
+
+    // HITUNG SAAT HALAMAN DIBUKA
+
+    hitungPembiayaan();
+
+    // PLAFOND / TENOR
+    $('#plafond, #tenor').on('keyup change', function () {
+            hitungPembiayaan();
+        });
+
 });
 
-function hitungPembiayaan(){
-    let plafond = parseFloat($('#plafond').val()) || 0;
-    let tenor = parseInt($('#tenor').val()) || 0;
-    let materai = parseFloat($('#materai').val()) || 0;
-    let survey = parseFloat($('#biaya_survei').val()) || 0;
-    let bunga = 0;
-    let admin = plafond * 3 / 100;
-    let diterima = plafond - admin - materai - survey;
 
+/*
+|--------------------------------------------------------------------------
+| PARSE RUPIAH JAVASCRIPT
+|--------------------------------------------------------------------------
+|
+| 1.500.000 → 1500000
+|
+*/
+
+function parseRupiahJS(value)
+{
+    if (!value) {
+        return 0;
+    }
+    return parseFloat(value.toString().replace(/[^0-9]/g, '')) || 0;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| HITUNG PEMBIAYAAN
+|--------------------------------------------------------------------------
+*/
+function hitungPembiayaan()
+{
+    let plafond =parseRupiahJS($('#plafond').val());
+    let tenor =parseInt($('#tenor').val()) || 0;
+    let materai =parseRupiahJS($('#materai').val());
+    let survey =parseRupiahJS($('#biaya_survei').val());
+    let notaris =parseRupiahJS($('#biaya_notaris').val());
+    let bunga = 0;
+
+    /*
+    |--------------------------------------------------------------------------
+    | ADMINISTRASI
+    |--------------------------------------------------------------------------
+    */
+    let admin = plafond * 3 / 100;
+    let diterima =plafond- admin- materai- survey- notaris;
     $('#persen_administrasi').val('3 %');
     $('#biaya_administrasi').val(formatRupiah(admin));
     $('#dana_diterima').val(formatRupiah(diterima));
-
-    if(tenor <= 5){
-        // TENOR PENDEK
+    /*
+    |--------------------------------------------------------------------------
+    | TENOR PENDEK
+    |--------------------------------------------------------------------------
+    */
+    if (tenor <= 5) {
         $('#panel-panjang').hide();
         $('#panel-pendek').show();
         $('#jenis_tenor').val('Pendek');
-        bunga = plafond * 6 / 100;
+        bunga =plafond * 6 / 100;
         $('#persen_bunga').val('6 %');
         $('#pendek_bunga').val(formatRupiah(bunga));
         $('#pendek_angsuran').val(formatRupiah(bunga));
-        $('#pendek_pelunasan').val(
-            formatRupiah(plafond + bunga)
-        );
-    }else{
-        // TENOR PANJANG
+        $('#pendek_pelunasan').val(formatRupiah(plafond + bunga));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TENOR PANJANG
+    |--------------------------------------------------------------------------
+    */
+    else {
         $('#panel-pendek').hide();
         $('#panel-panjang').show();
         $('#jenis_tenor').val('Panjang');
         $('#persen_bunga').val('2.5 %');
-        let pokok = plafond / tenor;
-        let bunga = plafond * 2.5 / 100;
-        let total = pokok + bunga;
+        let pokok =plafond / tenor;
+        let bunga =plafond * 2.5 / 100;
+        let total =pokok + bunga;
         $('#panjang_pokok').val(formatRupiah(pokok));
         $('#panjang_bunga').val(formatRupiah(bunga));
         $('#panjang_total').val(formatRupiah(total));
     }
+
 }
 
-function formatRupiah(angka){
-    return new Intl.NumberFormat('id-ID').format(angka);
+
+/*
+|--------------------------------------------------------------------------
+| FORMAT RUPIAH
+|--------------------------------------------------------------------------
+*/
+
+function formatRupiah(angka)
+{
+    return new Intl.NumberFormat('id-ID').format(angka || 0);
 }
+
 </script>
 @endsection

@@ -42,6 +42,7 @@ class PencairanController extends Controller
 
         $request->validate([
             'tanggal_pencairan' => ['required','date',],
+            'tanggal_pencairan' => ['required', 'date'],
             'metode'            => ['required','in:tunai,transfer',],
             'bank'              => ['nullable','string','max:100',],
             'no_rekening'       => ['nullable','string','max:100',],
@@ -50,6 +51,7 @@ class PencairanController extends Controller
             'foto_akad1'        => ['nullable','image','mimes:jpg,jpeg,png','max:51200',],
             'foto_akad2'        => ['nullable','image','mimes:jpg,jpeg,png','max:51200',],
             'foto_akad3'        => ['nullable','image','mimes:jpg,jpeg,png','max:51200',],
+            'video'             => ['nullable','file','mimes:mp4,mov,avi,mkv,webm','max:102400',],
             'keterangan'        => ['nullable','string','max:1000',],
 
         ]);
@@ -67,6 +69,7 @@ class PencairanController extends Controller
                 'foto_akad1' => 'foto_akad1',
                 'foto_akad2' => 'foto_akad2',
                 'foto_akad3' => 'foto_akad3',
+                'video'      => 'video',
             ];
 
             $filePaths = [];
@@ -84,6 +87,7 @@ class PencairanController extends Controller
                 'akad_id' => $akad->id,
                 'nomor_pencairan' => $this->generateNomor(),
                 'tanggal_pencairan' => $request->tanggal_pencairan,
+                'tgl_telat_bayar' => $request->tgl_telat_bayar,
                 /*
                 |--------------------------------------------------------------------------
                 | JUMLAH DICAIRKAN
@@ -94,16 +98,17 @@ class PencairanController extends Controller
                 |
                 */
                 'jumlah_dicairkan' => $pembiayaan->dana_diterima,
-                'metode' =>$request->metode,
-                'bank' =>$request->bank,
-                'no_rekening' =>$request->no_rekening,
-                'atas_nama' =>$request->atas_nama,
+                'metode'        =>$request->metode,
+                'bank'          =>$request->bank,
+                'no_rekening'   =>$request->no_rekening,
+                'atas_nama'     =>$request->atas_nama,
                 'bukti_pencairan' =>$filePaths['bukti_pencairan'] ?? null,
-                'foto_akad1' =>$filePaths['foto_akad1'] ?? null,
-                'foto_akad2' =>$filePaths['foto_akad2'] ?? null,
-                'foto_akad3' =>$filePaths['foto_akad3'] ?? null,
-                'keterangan' =>$request->keterangan,
-                'created_by' =>auth()->id(),
+                'foto_akad1'    =>$filePaths['foto_akad1'] ?? null,
+                'foto_akad2'    =>$filePaths['foto_akad2'] ?? null,
+                'foto_akad3'    =>$filePaths['foto_akad3'] ?? null,
+                'video'         => $filePaths['video'] ?? null,
+                'keterangan'    =>$request->keterangan,
+                'created_by'    =>auth()->id(),
             ]);
 
             $pembiayaan->update([

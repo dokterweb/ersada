@@ -92,28 +92,103 @@
                                 </tr>
                             </table>
                         </div>
+                        <div class="col-md-6">
+                            <h3>Data Transfer</h3>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th width="35%">Bank</th>
+                                    <td>{{ $pencairan->bank ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>No Rekening</th>
+                                    <td>{{ $pencairan->no_rekening ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Atas Nama</th>
+                                    <td>{{ $pencairan->atas_nama ?? '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Keterangan</th>
+                                    <td>{{ $pencairan->keterangan ?? '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
                     
                     <hr>
-                    <h3>Data Transfer</h3>
-                    <table class="table table-bordered">
-                        <tr>
-                            <th width="35%">Bank</th>
-                            <td>{{ $pencairan->bank ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>No Rekening</th>
-                            <td>{{ $pencairan->no_rekening ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Atas Nama</th>
-                            <td>{{ $pencairan->atas_nama ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Keterangan</th>
-                            <td>{{ $pencairan->keterangan ?? '-' }}</td>
-                        </tr>
-                    </table>
+                    <h3>Foto dan Video</h3>
+                    <div class="row g-3">
+
+                    @if ($pencairan->foto_akad1)
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <a href="{{ asset('storage/'.$pencairan->foto_akad1) }}" target="_blank" class="d-block">
+                                <img src="{{ asset('storage/' . $pencairan->foto_akad1) }}"
+                                    class="card-img-top"
+                                    style="height: 250px; object-fit: cover;"
+                                    alt="Foto Akad 1">
+                                </a>
+                                <div class="card-body text-center">
+                                    <strong>Foto Akad 1</strong>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($pencairan->foto_akad2)
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <a href="{{ asset('storage/'.$pencairan->foto_akad2) }}" target="_blank" class="d-block">
+                                <img src="{{ asset('storage/' . $pencairan->foto_akad2) }}"
+                                    class="card-img-top"
+                                    style="height: 250px; object-fit: cover;"
+                                    alt="Foto Akad 2">
+                                </a>
+                                <div class="card-body text-center">
+                                    <strong>Foto Akad 2</strong>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($pencairan->foto_akad3)
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <a href="{{ asset('storage/'.$pencairan->foto_akad3) }}" target="_blank" class="d-block">
+                                <img src="{{ asset('storage/' . $pencairan->foto_akad3) }}"
+                                    class="card-img-top"
+                                    style="height: 250px; object-fit: cover;"
+                                    alt="Foto Akad 3">
+                                </a>
+                                <div class="card-body text-center">
+                                    <strong>Foto Akad 3</strong>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                </div>
+
+
+                {{-- VIDEO --}}
+                @if ($pencairan->video)
+                    <hr class="my-4">
+
+                    <h6 class="mb-3">Video Pencairan</h6>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <video controls
+                                class="w-100 rounded"
+                                style="max-height: 500px;">
+                                <source src="{{ asset('storage/' . $pencairan->video) }}"
+                                        type="video/mp4">
+
+                                Browser Anda tidak mendukung pemutar video.
+                            </video>
+                        </div>
+                    </div>
+                @endif
                 </div>
                 <div class="card-footer text-end">
                     <a href="{{ route('pencairan.index') }}" class="btn btn-secondary">

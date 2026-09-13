@@ -51,6 +51,27 @@ class DocumentService
             'Kartu Keluarga'
         );
 
+        /*
+        |--------------------------------------------------------------------------
+        | DOKUMEN OPTIONAL SEMUA NASABAH
+        |--------------------------------------------------------------------------
+        |
+        | BI Checking berlaku untuk semua nasabah:
+        |
+        | - Payrol
+        | - Non Payrol
+        | - Menikah
+        | - Belum menikah
+        |
+        | Dan sifatnya OPTIONAL.
+        |
+        */
+
+        $this->add(
+            $optional,
+            'bi_checking',
+            'BI Checking'
+        );
 
         /*
         |--------------------------------------------------------------------------

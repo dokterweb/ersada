@@ -123,30 +123,31 @@
                         </thead>
                         <tbody>
                           @forelse($pengajuanTerbaru as $item)
-                          <tr>
-                              <td>{{ $loop->iteration }}</td>
-                              <td><strong>{{ $item->nomor_pengajuan }}</strong></td>
-                              <td>{{ \Carbon\Carbon::parse($item->tanggal_pengajuan)->format('d/m/Y') }}</td>
-                              <td>{{ $item->cabang->nama_cabang }}</td>
-                              <td>{{ $item->marketing?->user?->name }}</td>
-                              <td>{{ $item->nasabah?->nama }}</td>
-                              <td class="text-end">Rp {{ number_format($item->nominal_pengajuan,0,',','.') }}</td>
-                              <td>
-                                  <a href="{{ route('pimpinan.show',$item->id) }}"
-                                     class="btn btn-primary btn-sm"><i class="fa fa-eye"></i>
-                                      Review
-                                  </a>
-                              </td>
-                          </tr>
-                      @empty
-                          <tr>
-                              <td colspan="8" class="text-center text-muted py-4">
-                                  <i class="fa fa-folder-open fa-2x mb-2"></i>
-                                  <br>
-                                  Tidak ada pengajuan yang menunggu review.
-                              </td>
-                          </tr>
-                      @endforelse
+                            <tr>
+                                <td>{{ $loop->iteration }}</td>
+                                <td><strong>{{ $item->nomor_pengajuan }}</strong></td>
+                                <td>{{ \Carbon\Carbon::parse($item->tanggal_pengajuan)->format('d/m/Y') }}</td>
+                                <td>{{ $item->cabang->nama_cabang }}</td>
+                                <td>{{ $item->marketing?->user?->name }}</td>
+                                <td>{{ $item->nasabah?->nama }}</td>
+                                <td class="text-end">Rp {{ number_format($item->nominal_pengajuan,0,',','.') }}</td>
+                                <td>
+                                    <a href="{{ route('pimpinan.show',$item->id) }}"
+                                      class="btn btn-primary btn-sm"><i class="fa fa-eye"></i>
+                                        Review
+                                    </a>
+                                    
+                                </td>
+                            </tr>
+                          @empty
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="fa fa-folder-open fa-2x mb-2"></i>
+                                    <br>
+                                    Tidak ada pengajuan yang menunggu review.
+                                </td>
+                            </tr>
+                          @endforelse
                         </tbody>
                     </table>
                 </div>

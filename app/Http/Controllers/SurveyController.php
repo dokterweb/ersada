@@ -421,11 +421,7 @@ public function store(Request $request, Pengajuan $pengajuan)
             'pengajuan.jaminanPengajuans.dokumenJaminans',
         ]);
 
-
-        return view(
-            'survey.berkas',
-            compact('survey')
-        );
+        return view('survey.berkas',compact('survey'));
     }
 
     public function storeStepBerkas(Request $request, Survey $survey)

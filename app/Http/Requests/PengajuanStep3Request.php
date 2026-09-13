@@ -185,4 +185,25 @@ class PengajuanStep3Request extends FormRequest
                 'Penghasilan penjamin wajib diisi',
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        $pasangan = $this->input('pasangan', []);
+        $penjamin = $this->input('penjamin', []);
+
+        if (isset($pasangan['pekerjaan']['penghasilan'])) {
+            $pasangan['pekerjaan']['penghasilan'] =
+                parse_rupiah($pasangan['pekerjaan']['penghasilan']);
+        }
+
+        if (isset($penjamin['pekerjaan']['penghasilan'])) {
+            $penjamin['pekerjaan']['penghasilan'] =
+                parse_rupiah($penjamin['pekerjaan']['penghasilan']);
+        }
+
+        $this->merge([
+            'pasangan' => $pasangan,
+            'penjamin' => $penjamin,
+        ]);
+    }
 }

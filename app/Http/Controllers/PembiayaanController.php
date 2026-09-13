@@ -20,13 +20,83 @@ class PembiayaanController extends Controller
     }
 
     
-    public function index()
-    {
-        $pengajuans = Pengajuan::with(['nasabah','marketing','cabang','pembiayaan.pelunasan',])
-        ->where('status', 'disetujui')->latest()->get();
-    
-        return view('pembiayaan.index', compact('pengajuans'));
+   public function index()
+{
+    $user = auth()->user();
+
+    $rolesCabang = [
+        'kacab',
+        'spvmarketing',
+        'marketing',
+        'spvsurveyor',
+        'surveyor',
+        'admincabang',
+    ];
+
+    $query = Pengajuan::with([
+        'nasabah',
+        'marketing',
+        'cabang',
+        'pembiayaan.pelunasan',
+    ])
+    ->where('status', 'disetujui');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | AKSES BERDASARKAN CABANG
+    |--------------------------------------------------------------------------
+    |
+    | Komisaris & Direktur:
+    |   - Bisa melihat semua cabang
+    |
+    | Kacab, SPV Marketing, Marketing, SPV Surveyor,
+    | Surveyor, Admin Cabang:
+    |   - Hanya bisa melihat cabangnya sendiri
+    |
+    */
+
+    if ($user->hasAnyRole($rolesCabang)) {
+
+        $karyawan = $user->karyawan;
+
+        /*
+        |--------------------------------------------------------------
+        | USER BELUM MEMILIKI DATA KARYAWAN
+        |--------------------------------------------------------------
+        */
+
+        if (!$karyawan) {
+            abort(
+                403,
+                'Data karyawan tidak ditemukan.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------
+        | FILTER CABANG
+        |--------------------------------------------------------------
+        */
+
+        $query->where(
+            'cabang_id',
+            $karyawan->cabang_id
+        );
     }
+
+
+    $pengajuans = $query
+        ->latest()
+        ->get();
+
+
+    return view(
+        'pembiayaan.index',
+        compact('pengajuans')
+    );
+}
 
     public function create(Pengajuan $pengajuan)
     {
@@ -48,6 +118,14 @@ class PembiayaanController extends Controller
 
     public function store(Request $request, Pengajuan $pengajuan)
     {
+        // NORMALISASI NILAI RUPIAH
+        $request->merge([
+            'plafond' => parse_rupiah($request->plafond) ?? 0,
+            'materai' => parse_rupiah($request->materai) ?? 0,
+            'biaya_survei' => parse_rupiah($request->biaya_survei) ?? 0,
+            'biaya_notaris' => parse_rupiah($request->biaya_notaris) ?? 0,
+        ]);
+
         $request->validate([
             'plafond' => 'required|numeric|min:1',
             'tenor' => 'required|integer',
@@ -104,6 +182,15 @@ class PembiayaanController extends Controller
     {
         abort_if($pembiayaan->status != 'draft',403,'Pembiayaan sudah diproses.');
 
+        
+        // NORMALISASI NILAI RUPIAH
+        $request->merge([
+            'plafond' => parse_rupiah($request->plafond) ?? 0,
+            'materai' => parse_rupiah($request->materai) ?? 0,
+            'biaya_survei' =>parse_rupiah($request->biaya_survei) ?? 0,
+            'biaya_notaris' =>parse_rupiah($request->biaya_notaris) ?? 0,
+        ]);
+        
         $request->validate([
             'materai' => 'required|numeric|min:0',
             'biaya_survei' => 'required|numeric|min:0',

@@ -24,7 +24,8 @@
                     <h3 class="card-title">Data Pembiayaan</h3>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('pembiayaan.store',$pengajuan->id) }}" method="POST">
+                    <form action="{{ route('pembiayaan.update',$pembiayaan) }}" method="POST">
+                        @method('PUT')
                         @csrf
                         <div class="row">
                             {{-- ================= DATA DEBITUR ================= --}}
@@ -84,24 +85,24 @@
                         
                                         <div class="mb-3">
                                             <label>Materai</label>
-                                            <input type="text" class="form-control hitung rupiah-input" id="materai"
-                                                name="materai" value="{{ angka(old('materai', 10000)) }}" inputmode="numeric" autocomplete="off">
+                                            <input type="text" class="form-control hitung rupiah-input" id="materai" name="materai"
+                                            value="{{ angka(old('materai', $pembiayaan->materai ?? 10000)) }}" inputmode="numeric" autocomplete="off">
                                         </div>
                         
                                         <div class="mb-3">
                                             <label>Biaya Survey</label>
-                                            <input type="text" class="form-control hitung rupiah-input" id="biaya_survei"
-                                            name="biaya_survei" value="{{ angka(old('biaya_survei', 0)) }}" inputmode="numeric" autocomplete="off">
+                                            <input type="text" class="form-control hitung rupiah-input" id="biaya_survei" name="biaya_survei"
+                                            value="{{ angka(old('biaya_survei', $pembiayaan->biaya_survei ?? 0)) }}" inputmode="numeric" autocomplete="off">
                                         </div>
                                         <div class="mb-3">
                                             <label>Biaya Notaris</label>
                                             <input type="text" class="form-control hitung rupiah-input" id="biaya_notaris" name="biaya_notaris"
-                                                value="{{ angka(old('biaya_notaris', 0)) }}" inputmode="numeric" autocomplete="off">
+                                                value="{{ angka(old('biaya_notaris', $pembiayaan->biaya_notaris ?? 0)) }}" inputmode="numeric" autocomplete="off">
                                         </div>
-                        
                                         <div class="mb-3">
                                             <label>Tanggal Jatuh Tempo Pertama</label>
-                                            <input type="date" class="form-control" name="tanggal_jatuh_tempo_pertama" required>
+                                            <input type="date" class="form-control" name="tanggal_jatuh_tempo_pertama" 
+                                            value="{{ old('tanggal_jatuh_tempo_pertama',isset($pembiayaan)? $pembiayaan->tanggal_jatuh_tempo_pertama->format('Y-m-d'): '') }}" required>
                                         </div>
                                     </div>
                                 </div>
@@ -196,120 +197,58 @@
 </div>
 @endsection
 
+
 @section('scripts')
 <script>
-
-$(function () {
-
-    /*
-    |--------------------------------------------------------------------------
-    | FORMAT INPUT RUPIAH SAAT DIKETIK
-    |--------------------------------------------------------------------------
-    */
-    $('.rupiah-input').on('input', function () {
-        let value = $(this).val();
-        value = value.replace(/[^0-9]/g, '');
-        if (value === '') {
-            $(this).val('');
-            hitungPembiayaan();
-            return;
-        }
-
-        $(this).val(formatRupiah(parseInt(value, 10)));
+$(function(){
+    hitungPembiayaan();
+    $('#materai,#biaya_survei').on('keyup change',function(){
         hitungPembiayaan();
     });
-
-
-    // HITUNG AWAL
-    hitungPembiayaan();
-
 });
 
-
-/*
-|--------------------------------------------------------------------------
-| AMBIL NILAI RUPIAH
-|--------------------------------------------------------------------------
-|
-| 1.500.000 → 1500000
-|
-*/
-
-function parseRupiahJS(value)
-{
-    if (!value) {
-        return 0;
-    }
-
-    return parseFloat(value.toString().replace(/[^0-9]/g, '')) || 0;
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| HITUNG PEMBIAYAAN
-|--------------------------------------------------------------------------
-*/
-
-function hitungPembiayaan()
-{
-    let plafond = parseRupiahJS($('#plafond').val());
-    let tenor =parseInt($('#tenor').val()) || 0;
-    let materai =parseRupiahJS($('#materai').val());
-    let survey =parseRupiahJS($('#biaya_survei').val());
-    let notaris =parseRupiahJS($('#biaya_notaris').val());
+function hitungPembiayaan(){
+    let plafond = parseFloat($('#plafond').val()) || 0;
+    let tenor = parseInt($('#tenor').val()) || 0;
+    let materai = parseFloat($('#materai').val()) || 0;
+    let survey = parseFloat($('#biaya_survei').val()) || 0;
     let bunga = 0;
-    let admin =plafond * 3 / 100;
-    let diterima =plafond- admin- materai- survey- notaris;
+    let admin = plafond * 3 / 100;
+    let diterima = plafond - admin - materai - survey;
 
-    // ADMINISTRASI
     $('#persen_administrasi').val('3 %');
     $('#biaya_administrasi').val(formatRupiah(admin));
     $('#dana_diterima').val(formatRupiah(diterima));
 
-    /*
-    |--------------------------------------------------------------------------
-    | TENOR PENDEK
-    |--------------------------------------------------------------------------
-    */
-    if (tenor <= 5) {
+    if(tenor <= 5){
+        // TENOR PENDEK
         $('#panel-panjang').hide();
         $('#panel-pendek').show();
         $('#jenis_tenor').val('Pendek');
-        bunga =plafond * 6 / 100;
+        bunga = plafond * 6 / 100;
         $('#persen_bunga').val('6 %');
         $('#pendek_bunga').val(formatRupiah(bunga));
         $('#pendek_angsuran').val(formatRupiah(bunga));
-        $('#pendek_pelunasan').val(formatRupiah(plafond + bunga));
-    }
-    /*
-    |--------------------------------------------------------------------------
-    | TENOR PANJANG
-    |--------------------------------------------------------------------------
-    */
-    else {
+        $('#pendek_pelunasan').val(
+            formatRupiah(plafond + bunga)
+        );
+    }else{
+        // TENOR PANJANG
         $('#panel-pendek').hide();
         $('#panel-panjang').show();
         $('#jenis_tenor').val('Panjang');
         $('#persen_bunga').val('2.5 %');
-        let pokok =plafond / tenor;
-        let bunga =plafond * 2.5 / 100;
-        let total =pokok + bunga;
+        let pokok = plafond / tenor;
+        let bunga = plafond * 2.5 / 100;
+        let total = pokok + bunga;
         $('#panjang_pokok').val(formatRupiah(pokok));
         $('#panjang_bunga').val(formatRupiah(bunga));
         $('#panjang_total').val(formatRupiah(total));
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| FORMAT RUPIAH
-|--------------------------------------------------------------------------
-*/
-function formatRupiah(angka)
-{
-    return new Intl.NumberFormat('id-ID').format(angka || 0);
+function formatRupiah(angka){
+    return new Intl.NumberFormat('id-ID').format(angka);
 }
-
 </script>
 @endsection

@@ -82,7 +82,7 @@
                                 <td>{{ $item->pengajuan->nomor_pengajuan }}</td>
                                 <td>{{ optional($item->pengajuan->nasabah)->nama }}</td>
                                 <td>{{ optional($item->pengajuan->marketing->user)->name }}</td>
-                                <td>{{ optional($item->pengajuan->cabang)->nama }}</td>
+                                <td>{{ optional($item->pengajuan->cabang)->nama_cabang }}</td>
                                 <td>
                                     @switch($item->status)
                                         @case('waiting')

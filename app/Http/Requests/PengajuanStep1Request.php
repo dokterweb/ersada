@@ -25,6 +25,14 @@ class PengajuanStep1Request extends FormRequest
         ];
     }
 
+   protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'nominal_pengajuan' => parse_rupiah(
+                $this->input('nominal_pengajuan')
+            ),
+        ]);
+    }
     public function messages(): array
     {
         return [

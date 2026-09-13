@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('foto_akad1')->nullable();
             $table->string('foto_akad2')->nullable();
             $table->string('foto_akad3')->nullable();
+            $table->string('video')->nullable();
             $table->text('keterangan')->nullable();
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();

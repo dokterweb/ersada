@@ -84,12 +84,20 @@
                         
                                         <div class="mb-3">
                                             <label>Materai</label>
-                                            <input type="number" class="form-control hitung"  id="materai" name="materai" value="10000">
+                                            <input type="text" class="form-control hitung rupiah-input" id="materai"
+                                                name="materai" value="{{ angka(old('materai', 10000)) }}" inputmode="numeric" autocomplete="off">
                                         </div>
                         
                                         <div class="mb-3">
                                             <label>Biaya Survey</label>
-                                            <input type="number" class="form-control hitung" id="biaya_survey" name="biaya_survey" value="0">
+                                            <input type="text" class="form-control hitung rupiah-input" id="biaya_survei"
+                                            name="biaya_survei" value="{{ angka(old('biaya_survei', 0)) }}" inputmode="numeric" autocomplete="off">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Biaya Notaris</label>
+                                            <input type="number" class="form-control hitung" id="biaya_notaris" name="biaya_notaris" value="0">
+                                             <input type="text" class="form-control hitung rupiah-input" id="biaya_notaris" name="biaya_notaris"
+                                                value="{{ angka(old('biaya_notaris', 0)) }}" inputmode="numeric" autocomplete="off">
                                         </div>
                         
                                         <div class="mb-3">
@@ -129,27 +137,45 @@
                                             <input id="biaya_administrasi" class="form-control"readonly>
                                         </div>
 
-                                        <hr>
-
-                                        <div class="mb-3">
-                                            <label>Porsi Pokok / Bulan</label>
-                                            <input id="porsi_pokok" class="form-control" readonly>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <label>Porsi Bunga</label>
-                                            <input id="porsi_bunga" class="form-control" readonly>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <label>Total Angsuran</label>
-                                            <input id="total_angsuran" class="form-control" readonly>
-                                        </div>
-                                        
-                                        <hr>
                                         <div class="mb-3">
                                             <label>Dana Diterima</label>
                                             <input id="dana_diterima" class="form-control" readonly>
+                                        </div>
+
+                                        <div id="panel-pendek" style="display:none;">
+                                            <div class="alert alert-warning">
+                                                <strong>Sistem Pembayaran Tenor Pendek</strong>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label>Bunga per Bulan</label>
+                                                <input id="pendek_bunga" class="form-control" readonly>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label>Angsuran Bulan 1 s/d Sebelum Pelunasan</label>
+                                                <input id="pendek_angsuran" class="form-control" readonly>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label>Pelunasan Bulan Terakhir</label>
+                                                <input id="pendek_pelunasan" class="form-control"readonly>
+                                            </div>
+                                        </div>
+
+                                        <div id="panel-panjang" style="display:none;">
+                                            <div class="alert alert-info">
+                                                <strong>Sistem Angsuran Tetap</strong>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label>Porsi Pokok / Bulan</label>
+                                                <input id="panjang_pokok" class="form-control" readonly>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label>Porsi Bunga / Bulan</label>
+                                                <input id="panjang_bunga" class="form-control" readonly>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label>Total Angsuran / Bulan</label>
+                                                <input id="panjang_total" class="form-control" readonly>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -176,7 +202,7 @@
 <script>
 $(function(){
     hitungPembiayaan();
-    $('#materai,#biaya_survey').on('keyup change',function(){
+    $('#materai,#biaya_survei').on('keyup change',function(){
         hitungPembiayaan();
     });
 });
@@ -185,35 +211,41 @@ function hitungPembiayaan(){
     let plafond = parseFloat($('#plafond').val()) || 0;
     let tenor = parseInt($('#tenor').val()) || 0;
     let materai = parseFloat($('#materai').val()) || 0;
-    let survey = parseFloat($('#biaya_survey').val()) || 0;
-    let jenisTenor='';
-    let bunga=0;
-    let porsiPokok = 0;
-    let porsiBunga = 0;
-    let totalAngsuran = 0;
+    let survey = parseFloat($('#biaya_survei').val()) || 0;
+    let notaris = parseFloat($('#biaya_notaris').val()) || 0;
+    let bunga = 0;
+    let admin = plafond * 3 / 100;
+    let diterima = plafond - admin - materai - survey - notaris;
 
-    if(tenor<=5){
-        jenisTenor='Pendek';
-        bunga=6;
-        porsiPokok = plafond;
-        porsiBunga = plafond * (6/100);
-        totalAngsuran = porsiBunga;
-    }else{
-        jenisTenor='Panjang';
-        bunga=2.5;
-        porsiPokok = plafond / tenor;
-        porsiBunga = plafond * (2.5/100);
-        totalAngsuran = porsiPokok + porsiBunga;
-    }
-
-    let persenAdmin=3;
-    let admin=(plafond*persenAdmin)/100;
-    let diterima=plafond-admin-materai-survey;
-    $('#jenis_tenor').val(jenisTenor);
-    $('#persen_bunga').val(bunga+' %');
-    $('#persen_administrasi').val(persenAdmin+' %');
+    $('#persen_administrasi').val('3 %');
     $('#biaya_administrasi').val(formatRupiah(admin));
     $('#dana_diterima').val(formatRupiah(diterima));
+
+    if(tenor <= 5){
+        // TENOR PENDEK
+        $('#panel-panjang').hide();
+        $('#panel-pendek').show();
+        $('#jenis_tenor').val('Pendek');
+        bunga = plafond * 6 / 100;
+        $('#persen_bunga').val('6 %');
+        $('#pendek_bunga').val(formatRupiah(bunga));
+        $('#pendek_angsuran').val(formatRupiah(bunga));
+        $('#pendek_pelunasan').val(
+            formatRupiah(plafond + bunga)
+        );
+    }else{
+        // TENOR PANJANG
+        $('#panel-pendek').hide();
+        $('#panel-panjang').show();
+        $('#jenis_tenor').val('Panjang');
+        $('#persen_bunga').val('2.5 %');
+        let pokok = plafond / tenor;
+        let bunga = plafond * 2.5 / 100;
+        let total = pokok + bunga;
+        $('#panjang_pokok').val(formatRupiah(pokok));
+        $('#panjang_bunga').val(formatRupiah(bunga));
+        $('#panjang_total').val(formatRupiah(total));
+    }
 }
 
 function formatRupiah(angka){

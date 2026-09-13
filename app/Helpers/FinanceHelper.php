@@ -17,37 +17,24 @@ if (! function_exists('checklist')) {
 
 
 if (!function_exists('format_rupiah')) {
-
     function format_rupiah($value, $prefix = '')
     {
         if ($value === null || $value === '') {
             return '';
         }
-
-        return $prefix . number_format(
-            (float) $value,
-            0,
-            ',',
-            '.'
-        );
+        return $prefix . number_format((float) $value,0,',','.');
     }
 }
 
 
 if (!function_exists('angka')) {
-
     function angka($value)
     {
         if ($value === null || $value === '') {
             return '';
         }
 
-        return number_format(
-            (float) $value,
-            0,
-            ',',
-            '.'
-        );
+        return number_format((float) $value,0,',','.');
     }
 }
 
@@ -60,27 +47,17 @@ if (!function_exists('persen')) {
             return '0%';
         }
 
-        return number_format(
-            (float) $value,
-            2,
-            ',',
-            '.'
-        ) . '%';
+        return number_format((float) $value,2,',','.') . '%';
     }
 }
 
 if (!function_exists('parse_rupiah')) {
-
     function parse_rupiah($value): ?int
     {
         if ($value === null || $value === '') {
             return null;
         }
 
-        return (int) preg_replace(
-            '/[^0-9]/',
-            '',
-            $value
-        );
+        return (int) preg_replace('/[^0-9]/','',$value);
     }
 }

@@ -212,7 +212,16 @@
 
                                     </div>
 
+                                {{-- KHUSUS BI CHECKING --}}
+                                @if($doc['code'] === 'bi_checking')
 
+                                    <div class="small text-muted mt-1">
+                                        Dokumen BI Checking dapat diupload
+                                        untuk semua jenis nasabah.
+                                    </div>
+
+                                @endif
+                                
                                     {{-- FILE --}}
 
                                     <div class="col-md-5">

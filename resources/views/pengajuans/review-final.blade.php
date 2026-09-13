@@ -726,11 +726,8 @@
                                             {{ $dokumen->nama_file }}
 
 
-                                            <a
-                                                href="{{ asset('storage/' . $dokumen->file_path) }}"
-                                                target="_blank"
-                                                class="btn btn-sm btn-outline-primary"
-                                            >
+                                            <a href="{{ asset('storage/' . $dokumen->file_path) }}"
+                                                target="_blank" class="btn btn-sm btn-outline-primary">
                                                 Lihat
                                             </a>
 

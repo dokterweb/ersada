@@ -43,7 +43,8 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Tanggal Masuk</label>
-                            <input type="date" name="tanggal_pengajuan" class="form-control" value="{{ old('tanggal_pengajuan',$pengajuan->tanggal_pengajuan ?? '') }}">
+                            {{-- <input type="date" name="tanggal_pengajuan" class="form-control" value="{{ old('tanggal_pengajuan',$pengajuan->tanggal_pengajuan ?? '') }}"> --}}
+                            <input type="date" name="tanggal_pengajuan" class="form-control" value="{{ old('tanggal_pengajuan', optional($pengajuan->tanggal_pengajuan)->format('Y-m-d')) }}">
                             @error('tanggal_pengajuan')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
@@ -77,7 +78,10 @@
 
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Nominal Pengajuan</label>
-                            <input type="number" name="nominal_pengajuan" class="form-control" value="{{ old('nominal_pengajuan',$pengajuan->nominal_pengajuan ?? '') }}">
+                            <input type="text" name="nominal_pengajuan" class="form-control rupiah-input"
+                            {{-- value="{{ format_rupiah(old('nominal_pengajuan', $pengajuan->nominal_pengajuan ?? '')) }}" inputmode="numeric" autocomplete="off" placeholder="Contoh: 10.000.000">
+                            <input type="text" name="nominal_pengajuan" class="form-control rupiah-input"  --}}
+                            value="{{ format_rupiah(old('nominal_pengajuan', $pengajuan?->nominal_pengajuan)) }}" inputmode="numeric" autocomplete="off"placeholder="Contoh: 10.000.000">
                             @error('nominal_pengajuan')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
@@ -145,4 +149,31 @@
     </div>
     
 </div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    document.querySelectorAll('.rupiah-input').forEach(function (input) {
+
+        function formatRupiah(value) {
+            let angka = value.replace(/\D/g, '');
+
+            if (!angka) {
+                return '';
+            }
+
+            return new Intl.NumberFormat('id-ID').format(angka);
+        }
+
+        input.addEventListener('input', function () {
+            this.value = formatRupiah(this.value);
+        });
+
+    });
+
+});
+</script>
+
 @endsection
