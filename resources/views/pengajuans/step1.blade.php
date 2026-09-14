@@ -43,8 +43,7 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Tanggal Masuk</label>
-                            {{-- <input type="date" name="tanggal_pengajuan" class="form-control" value="{{ old('tanggal_pengajuan',$pengajuan->tanggal_pengajuan ?? '') }}"> --}}
-                            <input type="date" name="tanggal_pengajuan" class="form-control" value="{{ old('tanggal_pengajuan', optional($pengajuan->tanggal_pengajuan)->format('Y-m-d')) }}">
+                            <input type="date" name="tanggal_pengajuan" class="form-control" value="{{ old('tanggal_pengajuan', $pengajuan?->tanggal_pengajuan?->format('Y-m-d') ?? now()->format('Y-m-d')) }}">
                             @error('tanggal_pengajuan')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
