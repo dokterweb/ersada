@@ -89,7 +89,7 @@ Route::prefix('pengajuans')->middleware('role:marketing|spvmarketing|admincabang
     Route::get('/{pengajuan}/review-final',[PengajuanController::class, 'reviewFinal'])->name('pengajuan.reviewFinal');
     Route::post('/{pengajuan}/review-final/save',[PengajuanController::class, 'saveReviewFinal'])->name('pengajuan.reviewFinal.save');
     Route::post('/{pengajuan}/review-final/submit',[PengajuanController::class, 'submitReviewFinal'])->name('pengajuan.reviewFinal.submit');
-
+    Route::post('/{pengajuan}/mulai-revisi',[PengajuanController::class, 'mulaiRevisi'])->name('pengajuan.mulaiRevisi');
     Route::get('/{pengajuan}',[PengajuanController::class,'show'])->name('pengajuan.show');
 });
 

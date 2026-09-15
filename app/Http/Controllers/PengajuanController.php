@@ -143,12 +143,18 @@ class PengajuanController extends Controller
 
     public function editStep1(Pengajuan $pengajuan)
     {
-        if ($pengajuan->status != 'draft') {
-            abort(403, 'Pengajuan sudah dikirim');
+        if (!in_array($pengajuan->status, ['draft', 'ditolak'])) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
         }
-
         $user = Auth::user();
-
+        if (!$user->hasAnyRole([
+                'marketing',
+                'spvmarketing',
+                'admincabang'
+            ])) {
+                abort(403, 'Anda tidak memiliki hak untuk mengedit pengajuan.');
+        }
+            
         if ($user->hasRole('admincabang')) {
             $karyawan = $user->karyawan;
             if (!$karyawan) {
@@ -170,8 +176,8 @@ class PengajuanController extends Controller
 
     public function updateStep1(PengajuanStep1Request $request,Pengajuan $pengajuan) 
     {
-        if ($pengajuan->status != 'draft') {
-            abort(403, 'Pengajuan sudah dikirim');
+        if (!in_array($pengajuan->status, ['draft', 'ditolak'])) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
         }
 
         $user = Auth::user();
@@ -285,8 +291,8 @@ class PengajuanController extends Controller
 
     public function step2(Pengajuan $pengajuan)
     {
-        if ($pengajuan->status != 'draft') {
-            abort(403);
+        if (!$this->bolehEditPengajuan($pengajuan)) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
         }
 
         $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah',]);
@@ -300,8 +306,11 @@ class PengajuanController extends Controller
 
     public function storeStep2(Request $request, Pengajuan $pengajuan)
     {
-        if ($pengajuan->status != 'draft') {
-            abort(403, 'Pengajuan sudah dikirim');
+        // if ($pengajuan->status != 'draft') {
+        //     abort(403, 'Pengajuan sudah dikirim');
+        // }
+        if (!$this->bolehEditPengajuan($pengajuan)) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
         }
 
         $nasabahLama = Nasabah::where('pengajuan_id',$pengajuan->id)->first();
@@ -499,8 +508,8 @@ class PengajuanController extends Controller
 
     public function step3(Pengajuan $pengajuan)
     {
-        if($pengajuan->status != 'draft'){
-            abort(403);
+         if (!$this->bolehEditPengajuan($pengajuan)) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
         }
     
         $pengajuan->load(['referensis','referensis.pekerjaan']);
@@ -1019,7 +1028,9 @@ class PengajuanController extends Controller
     }
 
     public function step4(Pengajuan $pengajuan,DocumentService $documentService) {
-        abort_if($pengajuan->status != 'draft',403);
+        if (!$this->bolehEditPengajuan($pengajuan)) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
+        }
     
         $documents = $documentService->getDocuments($pengajuan);
     
@@ -1375,8 +1386,8 @@ class PengajuanController extends Controller
 
     public function jaminan(Pengajuan $pengajuan)
     {
-        if ($pengajuan->status != 'draft') {
-            abort(403, 'Pengajuan sudah dikirim.');
+        if (!$this->bolehEditPengajuan($pengajuan)) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
         }
         $pengajuan->load(['jaminanPengajuans.dokumenJaminans',]);
 
@@ -1394,11 +1405,9 @@ class PengajuanController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        abort_if(
-            $pengajuan->status != 'draft',
-            403
-        );
-
+         if (!$this->bolehEditPengajuan($pengajuan)) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -1584,30 +1593,30 @@ class PengajuanController extends Controller
                 $isTanah =$jenisJaminan ==='Surat Tanah';
                 $isSKKerja = $jenisJaminan === 'SK Kerja';
 
-/*
-|--------------------------------------------------------------------------
-| VALIDASI KHUSUS SK KERJA
-|--------------------------------------------------------------------------
-*/
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI KHUSUS SK KERJA
+        |--------------------------------------------------------------------------
+        */
 
-if ($isSKKerja) {
+        if ($isSKKerja) {
 
-    if (empty($data['no_sk_kerja'])) {
+            if (empty($data['no_sk_kerja'])) {
 
-        throw new \Exception(
-            'Nomor SK Kerja wajib diisi.'
-        );
+                throw new \Exception(
+                    'Nomor SK Kerja wajib diisi.'
+                );
 
-    }
+            }
 
-    if (empty($data['files'])) {
+            if (empty($data['files'])) {
 
-        throw new \Exception(
-            'Dokumen SK Kerja wajib diupload.'
-        );
+                throw new \Exception(
+                    'Dokumen SK Kerja wajib diupload.'
+                );
 
-    }
-}
+            }
+        }
                 /*
                 |--------------------------------------------------------------------------
                 | DATA JAMINAN
@@ -2030,8 +2039,8 @@ if ($isSKKerja) {
     
     public function reviewFinal(Pengajuan $pengajuan)
     {
-        if ($pengajuan->status != 'draft') {
-            abort(403);
+       if (!$this->bolehEditPengajuan($pengajuan)) {
+            abort(403, 'Pengajuan tidak dapat diedit.');
         }
     
         $pengajuan->load(['nasabah','nasabah.pekerjaanNasabah','referensis','referensis.pekerjaan','marketing','cabang','analisa',
@@ -2075,7 +2084,7 @@ if ($isSKKerja) {
 
     public function submitReviewFinal(Request $request, Pengajuan $pengajuan)
     {
-        if ($pengajuan->status != 'draft') {
+        if (!in_array($pengajuan->status, ['draft', 'ditolak'])) {
             abort(403);
         }
 
@@ -2196,4 +2205,45 @@ if ($isSKKerja) {
         return collect();
     }
 
+    private function bolehEditPengajuan(Pengajuan $pengajuan): bool
+    {
+        return in_array($pengajuan->status, [
+            'draft',
+            'ditolak',
+        ]);
+    }
+
+    public function mulaiRevisi(Pengajuan $pengajuan)
+    {
+        if ($pengajuan->status !== 'ditolak') {
+            abort(403, 'Pengajuan ini tidak dalam status ditolak.');
+        }
+
+        $user = Auth::user();
+
+        if (!$user->hasAnyRole(['marketing','spvmarketing','admincabang'])) 
+        {
+            abort(403, 'Anda tidak memiliki hak untuk melakukan revisi.');
+        }
+
+        if ($user->hasRole('admincabang')) {
+
+            $karyawan = $user->karyawan;
+
+            if (!$karyawan) {
+                abort(403, 'Data karyawan tidak ditemukan.');
+            }
+
+            if ($pengajuan->cabang_id != $karyawan->cabang_id) {
+                abort(403, 'Pengajuan bukan milik cabang Anda.');
+            }
+        }
+
+        $pengajuan->update([
+            'current_step' => 1,
+        ]);
+
+        return redirect()->route('pengajuan.step1', $pengajuan->id)
+            ->with('info','Pengajuan dibuka untuk revisi. Silakan periksa dan perbarui data mulai dari Step 1.');
+    }
 }

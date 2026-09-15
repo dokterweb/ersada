@@ -141,7 +141,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($angsuran->pembayaranAngsuransas $item)
+            @forelse($angsuran->pembayaranAngsurans as $item)
                 <tr>
                     <td class="center">{{ $loop->iteration }}</td>
                     <td>{{\Carbon\Carbon::parse($item->tanggal_bayar)->format('d-m-Y')}}</td>

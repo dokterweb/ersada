@@ -22,38 +22,144 @@ class SurveyController extends Controller
     public function index()
     {
         $user = auth()->user();
-    
+
+        $karyawan = $user->karyawan;
+
+        if (!$karyawan) {
+            abort(403, 'Data karyawan tidak ditemukan.');
+        }
+
+        if (!$karyawan->cabang_id) {
+            abort(403, 'Cabang pengguna belum ditentukan.');
+        }
+
+        $cabangId = $karyawan->cabang_id;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SPV SURVEYOR
+        |--------------------------------------------------------------------------
+        */
+
         if ($user->hasRole('spvsurveyor')) {
-    
-            // Pengajuan yang belum dibuatkan survey
-            $pengajuans = Pengajuan::with(['nasabah','marketing.user','cabang'])
+
+            /*
+            |--------------------------------------------------------------------------
+            | PENGAJUAN YANG BELUM DIBUATKAN SURVEY
+            |--------------------------------------------------------------------------
+            */
+
+            $pengajuans = Pengajuan::with([
+                    'nasabah',
+                    'marketing.user',
+                    'cabang'
+                ])
+                ->where('cabang_id', $cabangId)
                 ->where('status', 'menunggu_survey')
                 ->latest()
-                ->paginate(10, ['*'], 'pengajuan');
-    
-            $surveySaya = Survey::with(['pengajuan.nasabah','pengajuan.marketing.user','pengajuan.cabang'])
-            ->where('assigned_to',$user->id)->whereIn('status',['waiting','accepted','progress','revision'])
-            ->latest()->paginate(10,['*'],'surveySaya');
-            
-            // Hasil survey yang sudah dikirim Surveyor
-            $surveys = Survey::with(['pengajuan.nasabah','pengajuan.marketing.user','pengajuan.cabang','assignedTo'])
+                ->paginate(
+                    10,
+                    ['*'],
+                    'pengajuan'
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | SURVEY YANG DITUGASKAN KEPADA SPV INI
+            |--------------------------------------------------------------------------
+            */
+
+            $surveySaya = Survey::with([
+                    'pengajuan.nasabah',
+                    'pengajuan.marketing.user',
+                    'pengajuan.cabang'
+                ])
+                ->where('assigned_to', $user->id)
+                ->whereHas('pengajuan', function ($query) use ($cabangId) {
+                    $query->where('cabang_id', $cabangId);
+                })
+                ->whereIn(
+                    'status',
+                    [
+                        'waiting',
+                        'accepted',
+                        'progress',
+                        'revision'
+                    ]
+                )
+                ->latest()
+                ->paginate(
+                    10,
+                    ['*'],
+                    'surveySaya'
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HASIL SURVEY YANG SUDAH DIKIRIM SURVEYOR
+            |--------------------------------------------------------------------------
+            */
+
+            $surveys = Survey::with([
+                    'pengajuan.nasabah',
+                    'pengajuan.marketing.user',
+                    'pengajuan.cabang',
+                    'assignedTo'
+                ])
+                ->whereHas('pengajuan', function ($query) use ($cabangId) {
+                    $query->where('cabang_id', $cabangId);
+                })
                 ->where('status', 'submitted')
                 ->latest()
-                ->paginate(10, ['*'], 'survey');
-    
-            return view('survey.index', compact('pengajuans','surveySaya','surveys'));
+                ->paginate(
+                    10,
+                    ['*'],
+                    'survey'
+                );
+
+
+            return view(
+                'survey.index',
+                compact(
+                    'pengajuans',
+                    'surveySaya',
+                    'surveys'
+                )
+            );
         }
-    
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SURVEYOR
+        |--------------------------------------------------------------------------
+        */
+
         if ($user->hasRole('surveyor')) {
-    
-            $surveys = Survey::with(['pengajuan.nasabah','pengajuan.marketing.user','pengajuan.cabang'])
+
+            $surveys = Survey::with([
+                    'pengajuan.nasabah',
+                    'pengajuan.marketing.user',
+                    'pengajuan.cabang'
+                ])
                 ->where('assigned_to', $user->id)
+                ->whereHas('pengajuan', function ($query) use ($cabangId) {
+                    $query->where('cabang_id', $cabangId);
+                })
                 ->latest()
                 ->paginate(15);
-    
-            return view('survey.index', compact('surveys'));
+
+
+            return view(
+                'survey.index',
+                compact('surveys')
+            );
         }
-    
+
+
         abort(403);
     }
 

@@ -35,7 +35,7 @@
                 </div>
             </div>
                   
-            <div class="col-md-6">
+            <div class="col-md-5">
                 <div class="card">
                     <div class="card-header bg-success">
                         <h3 class="card-title">DATA PENGAJUAN</h3>
@@ -62,7 +62,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-5">
                 <div class="card">
                     <div class="card-header bg-success">
                         <h3 class="card-title">DATA NASABAH</h3>
@@ -82,6 +82,23 @@
                                 <td>{{ $pengajuan->nasabah->no_hp }}</td>
                             </tr>
                         </table>
+                    </div>
+                </div>
+            </div>
+             <div class="col-md-2">
+                <div class="card">
+                    <div class="card-header bg-success text-lime-fg">
+                        <h3 class="card-title">FOTO NASABAH</h3>
+                    </div>
+                    <div class="card-body">
+                        @if($pengajuan->nasabah?->foto_nasabah)
+                            <div class="mt-2">
+                                <a href="{{ asset('storage/'.$pengajuan->nasabah->foto_nasabah) }}" target="_blank">
+                                <img src="{{ asset('storage/' . $pengajuan->nasabah->foto_nasabah) }}" alt="Foto Nasabah"
+                                    class="img-thumbnail" style="max-width: 200px;">
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -1384,7 +1401,47 @@
                                 </div>
                             </div>
                             @endif
-                        </table>
+                        @if($pengajuan->status === 'ditolak')
+
+                        <div class="alert alert-danger">
+
+                            <h5 class="alert-heading">
+                                Pengajuan Ditolak
+                            </h5>
+
+                            <hr>
+
+                            <p class="mb-2">
+                                <strong>Alasan Penolakan:</strong>
+                            </p>
+
+                            <p>
+                                {{ $pengajuan->alasan_ditolak ?? $pengajuan->catatan }}
+                            </p>
+
+                            <p class="mb-3">
+                                Anda dapat memperbaiki data pengajuan
+                                dan mengajukannya kembali.
+                            </p>
+
+                            <form
+                                action="{{ route('pengajuan.mulaiRevisi', $pengajuan) }}"
+                                method="POST"
+                            >
+                                @csrf
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-warning"
+                                >
+                                    <i class="bi bi-pencil-square"></i>
+                                    Mulai Revisi
+                                </button>
+                            </form>
+
+                        </div>
+
+                    @endif
                        </div>
                     </div>
                 </div>

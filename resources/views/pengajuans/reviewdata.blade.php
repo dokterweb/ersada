@@ -34,9 +34,9 @@
                 </div>
             </div>
                   
-            <div class="col-md-6">
+            <div class="col-md-5">
                 <div class="card">
-                    <div class="card-header bg-success">
+                    <div class="card-header bg-success ext-lime-fg">
                         <h3 class="card-title">DATA PENGAJUAN</h3>
                     </div>
                     <div class="card-body">
@@ -61,9 +61,9 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-5">
                 <div class="card">
-                    <div class="card-header bg-success">
+                    <div class="card-header bg-success ext-lime-fg">
                         <h3 class="card-title">DATA NASABAH</h3>
                     </div>
                     <div class="card-body">
@@ -81,6 +81,23 @@
                                 <td>{{ $pengajuan->nasabah->no_hp }}</td>
                             </tr>
                         </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-header bg-success text-lime-fg">
+                        <h3 class="card-title">FOTO NASABAH</h3>
+                    </div>
+                    <div class="card-body">
+                        @if($pengajuan->nasabah?->foto_nasabah)
+                            <div class="mt-2">
+                                <a href="{{ asset('storage/'.$pengajuan->nasabah->foto_nasabah) }}" target="_blank">
+                                <img src="{{ asset('storage/' . $pengajuan->nasabah->foto_nasabah) }}" alt="Foto Nasabah"
+                                    class="img-thumbnail" style="max-width: 200px;">
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
