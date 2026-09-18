@@ -45,65 +45,75 @@ class PelunasanController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function store(
-        Request $request,
-        Pembiayaan $pembiayaan
-    ) {
+public function store(Request $request, Pembiayaan $pembiayaan)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | Parse Rupiah
+    |--------------------------------------------------------------------------
+    */
+    $request->merge([
+        'diskon' => parse_rupiah($request->input('diskon')),
+    ]);
 
-        $validated = $request->validate([
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+    $validated = $request->validate([
+        'tanggal_pelunasan' => [
+            'required',
+            'date'
+        ],
 
-            'tanggal_pelunasan' => [
-                'required',
-                'date'
-            ],
+        'diskon' => [
+            'nullable',
+            'numeric',
+            'min:0'
+        ],
 
-            'diskon' => [
-                'nullable',
-                'numeric',
-                'min:0'
-            ],
+        'alasan_diskon' => [
+            'nullable',
+            'string'
+        ],
 
-            'alasan_diskon' => [
-                'nullable',
-                'string'
-            ],
+        'keterangan' => [
+            'nullable',
+            'string'
+        ],
+    ]);
 
-            'keterangan' => [
-                'nullable',
-                'string'
-            ],
-        ]);
+    /*
+    |--------------------------------------------------------------------------
+    | Store Pelunasan
+    |--------------------------------------------------------------------------
+    */
+    $pelunasan = $this->service->store(
+        $pembiayaan,
+        $validated
+    );
 
-        $pelunasan = $this->service->store(
-            $pembiayaan,
-            $validated
-        );
+    /*
+    |--------------------------------------------------------------------------
+    | Pesan
+    |--------------------------------------------------------------------------
+    */
+    if ($pelunasan->jenis_pelunasan === 'dengan_diskon') {
 
-        /*
-         * Jika menggunakan diskon,
-         * berarti menunggu persetujuan.
-         */
-        if ($pelunasan->jenis_pelunasan === 'dengan_diskon') {
+        $message =
+            'Pengajuan pelunasan dengan diskon berhasil disimpan dan menunggu persetujuan pimpinan.';
 
-            $message =
-                'Pengajuan pelunasan dengan diskon berhasil disimpan dan menunggu persetujuan pimpinan.';
+    } else {
 
-        } else {
-
-            $message =
-                'Pengajuan pelunasan berhasil disimpan dan siap dibayar.';
-        }
-
-        return redirect()
-            ->route(
-                'operasional.show',
-                $pembiayaan
-            )
-            ->with(
-                'success',
-                $message
-            );
+        $message =
+            'Pengajuan pelunasan berhasil disimpan dan siap dibayar.';
     }
+
+    return redirect()
+        ->route('operasional.show', $pembiayaan)
+        ->with('success', $message);
+}
 
     public function show(Pelunasan $pelunasan)
     {
@@ -136,33 +146,14 @@ class PelunasanController extends Controller
 
         $validated = $request->validate([
 
-            'diskon_disetujui' => [
-                'required',
-                'numeric',
-                'min:0'
-            ],
-
-            'catatan_approval' => [
-                'nullable',
-                'string'
-            ],
-
+            'diskon_disetujui' => ['required','numeric','min:0'],
+            'catatan_approval' => ['nullable','string'],
         ]);
 
-        $this->service->approve(
-            $pelunasan,
-            $validated
-        );
+        $this->service->approve($pelunasan,$validated);
 
-        return redirect()
-            ->route(
-                'pelunasan.show',
-                $pelunasan
-            )
-            ->with(
-                'success',
-                'Pengajuan pelunasan berhasil disetujui.'
-            );
+        return redirect()->route('pelunasan.show',$pelunasan)
+            ->with('success','Pengajuan pelunasan berhasil disetujui.');
     }
 
     public function reject(Request $request,Pelunasan $pelunasan) 
@@ -233,5 +224,65 @@ class PelunasanController extends Controller
                     $e->getMessage()
                 );
         }
+    }
+
+    public function persetujuanDiskon()
+    {
+        $pelunasans = Pelunasan::with([
+            'pembiayaan.pengajuan.nasabah',
+            'pembiayaan.pengajuan.marketing.user',
+            'pembiayaan.pengajuan.cabang',
+            'creator',
+        ])
+        ->where('status', 'menunggu_persetujuan')
+        ->where('jenis_pelunasan', 'dengan_diskon')
+        ->latest()
+        ->paginate(15);
+
+        return view(
+            'pelunasan.persetujuan-diskon',
+            compact('pelunasans')
+        );
+    }
+
+    public function pengajuanDiskon()
+    {
+        $pelunasans = Pelunasan::with([
+            'pembiayaan.pengajuan.nasabah',
+            'pembiayaan.pengajuan.cabang',
+            'creator',
+            'approver',
+        ])
+        ->where('jenis_pelunasan', 'dengan_diskon')
+        ->where('created_by', auth()->id())
+        ->latest()
+        ->paginate(15);
+
+        return view(
+            'pelunasan.pengajuan-diskon',
+            compact('pelunasans')
+        );
+    }
+
+    public function bayarTanpaDiskon(Request $request,Pelunasan $pelunasan) 
+    {
+        $validated = $request->validate([
+            'tanggal_bayar' => [
+                'required',
+                'date'
+            ],
+        ]);
+
+        $this->service->bayarTanpaDiskon(
+            $pelunasan,
+            $validated
+        );
+
+        return redirect()
+            ->route('pelunasan.show', $pelunasan)
+            ->with(
+                'success',
+                'Pelunasan tanpa diskon berhasil diproses dan siap dibayar.'
+            );
     }
 }

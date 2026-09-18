@@ -21,82 +21,58 @@ class PembiayaanController extends Controller
 
     
    public function index()
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    $rolesCabang = [
-        'kacab',
-        'spvmarketing',
-        'marketing',
-        'spvsurveyor',
-        'surveyor',
-        'admincabang',
-    ];
+        $rolesCabang = ['kacab','spvmarketing','marketing','spvsurveyor','surveyor','admincabang',];
 
-    $query = Pengajuan::with([
-        'nasabah',
-        'marketing',
-        'cabang',
-        'pembiayaan.pelunasan',
-    ])
-    ->where('status', 'disetujui');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | AKSES BERDASARKAN CABANG
-    |--------------------------------------------------------------------------
-    |
-    | Komisaris & Direktur:
-    |   - Bisa melihat semua cabang
-    |
-    | Kacab, SPV Marketing, Marketing, SPV Surveyor,
-    | Surveyor, Admin Cabang:
-    |   - Hanya bisa melihat cabangnya sendiri
-    |
-    */
-
-    if ($user->hasAnyRole($rolesCabang)) {
-
-        $karyawan = $user->karyawan;
+        $query = Pengajuan::with(['nasabah','marketing','cabang','pembiayaan.pelunasan',])
+        ->where('status', 'disetujui');
 
         /*
-        |--------------------------------------------------------------
-        | USER BELUM MEMILIKI DATA KARYAWAN
-        |--------------------------------------------------------------
+        |--------------------------------------------------------------------------
+        | AKSES BERDASARKAN CABANG
+        |--------------------------------------------------------------------------
+        |
+        | Komisaris & Direktur:
+        |   - Bisa melihat semua cabang
+        |
+        | Kacab, SPV Marketing, Marketing, SPV Surveyor,
+        | Surveyor, Admin Cabang:
+        |   - Hanya bisa melihat cabangnya sendiri
+        |
         */
-
-        if (!$karyawan) {
-            abort(
-                403,
-                'Data karyawan tidak ditemukan.'
-            );
+        if ($user->hasAnyRole($rolesCabang)) {
+            $karyawan = $user->karyawan;
+            /*
+            |--------------------------------------------------------------
+            | USER BELUM MEMILIKI DATA KARYAWAN
+            |--------------------------------------------------------------
+            */
+            if (!$karyawan) {abort(403,'Data karyawan tidak ditemukan.');}
+            /*
+            |--------------------------------------------------------------
+            | FILTER CABANG
+            |--------------------------------------------------------------
+            */
+            $query->where('cabang_id',$karyawan->cabang_id);
         }
-
-
         /*
-        |--------------------------------------------------------------
-        | FILTER CABANG
-        |--------------------------------------------------------------
-        */
+            |--------------------------------------------------------------------------
+            | MARKETING & SPV MARKETING
+            |--------------------------------------------------------------------------
+            |
+            | Hanya melihat pengajuan dengan marketing_id miliknya.
+            |
+            */
+            if ($user->hasAnyRole(['marketing','spvmarketing',])) {
+                $query->where('marketing_id',$user->karyawan->id);
+            }
+            
+        $pengajuans = $query->latest()->get();
 
-        $query->where(
-            'cabang_id',
-            $karyawan->cabang_id
-        );
+        return view('pembiayaan.index',compact('pengajuans'));
     }
-
-
-    $pengajuans = $query
-        ->latest()
-        ->get();
-
-
-    return view(
-        'pembiayaan.index',
-        compact('pengajuans')
-    );
-}
 
     public function create(Pengajuan $pengajuan)
     {
@@ -118,13 +94,21 @@ class PembiayaanController extends Controller
 
     public function store(Request $request, Pengajuan $pengajuan)
     {
+        // ============================================================
         // NORMALISASI NILAI RUPIAH
+        // ============================================================
+
         $request->merge([
             'plafond' => parse_rupiah($request->plafond) ?? 0,
             'materai' => parse_rupiah($request->materai) ?? 0,
             'biaya_survei' => parse_rupiah($request->biaya_survei) ?? 0,
             'biaya_notaris' => parse_rupiah($request->biaya_notaris) ?? 0,
         ]);
+
+
+        // ============================================================
+        // VALIDASI
+        // ============================================================
 
         $request->validate([
             'plafond' => 'required|numeric|min:1',
@@ -134,8 +118,12 @@ class PembiayaanController extends Controller
             'tanggal_jatuh_tempo_pertama' => 'required|date',
             'biaya_notaris' => 'nullable|numeric|min:0',
         ]);
-    
-        // Hitung ulang menggunakan Service
+
+
+        // ============================================================
+        // HITUNG PEMBIAYAAN
+        // ============================================================
+
         $hasil = $this->service->hitung(
             $request->plafond,
             $request->tenor,
@@ -143,26 +131,174 @@ class PembiayaanController extends Controller
             $request->biaya_survei ?? 0,
             $request->biaya_notaris ?? 0,
         );
-    
+
+
+        // ============================================================
+        // CARI PEMBIAYAAN LAMA
+        // KHUSUS REPEAT ORDER
+        // ============================================================
+
+        $pembiayaanLamaId = null;
+
+        if ($pengajuan->status_customer === 'repeat_order') {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Ambil NIK nasabah dari pengajuan sekarang
+            |--------------------------------------------------------------------------
+            */
+
+            $pengajuan->loadMissing('nasabah');
+
+            $nik = $pengajuan->nasabah?->nik;
+
+            if (!$nik) {
+
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'NIK nasabah tidak ditemukan. Pembiayaan repeat order tidak dapat diproses.'
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cari pembiayaan lama yang masih aktif
+            |--------------------------------------------------------------------------
+            */
+
+            $pembiayaanLama = Pembiayaan::query()
+                ->where('status', 'dicairkan')
+                ->whereHas('pengajuan.nasabah', function ($query) use ($nik) {
+
+                    $query->where('nik', $nik);
+
+                })
+                ->get();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Tidak ditemukan
+            |--------------------------------------------------------------------------
+            */
+
+            if ($pembiayaanLama->isEmpty()) {
+
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'Pengajuan ditandai sebagai repeat order, tetapi tidak ditemukan pembiayaan lama yang masih aktif dengan NIK tersebut.'
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Jika lebih dari satu pembiayaan aktif
+            |--------------------------------------------------------------------------
+            */
+
+            if ($pembiayaanLama->count() > 1) {
+
+                return back()
+                    ->withInput()
+                    ->with(
+                        'error',
+                        'Nasabah memiliki lebih dari satu pembiayaan aktif. Pembiayaan lama harus ditentukan terlebih dahulu.'
+                    );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Ambil satu-satunya pembiayaan lama
+            |--------------------------------------------------------------------------
+            */
+
+            $pembiayaanLamaId =
+                $pembiayaanLama->first()->id;
+        }
+
+
+        // ============================================================
+        // SIMPAN PEMBIAYAAN BARU
+        // ============================================================
+
         $pembiayaan = Pembiayaan::create([
-            'pengajuan_id'          => $pengajuan->id,
-            'nomor_pembiayaan'      => $this->service->generateNomor(),
-            'plafond'               => $request->plafond,
-            'tenor'                 => $request->tenor,
-            'jenis_tenor'           => $hasil['jenis_tenor'],
-            'persen_bunga'          => $hasil['persen_bunga'],
-            'persen_administrasi'   => $hasil['persen_administrasi'],
-            'biaya_administrasi'    => $hasil['biaya_administrasi'],
-            'materai'               => $hasil['materai'],
-            'biaya_survei'          => $hasil['biaya_survei'],
-            'biaya_notaris'         => $hasil['biaya_notaris'],
-            'dana_diterima'         => $hasil['dana_diterima'],
-            'tanggal_jatuh_tempo_pertama' => $request->tanggal_jatuh_tempo_pertama,
-            'status'                => 'draft',
-            'created_by'            => auth()->id(),
+
+            'pengajuan_id' =>
+                $pengajuan->id,
+
+            'nomor_pembiayaan' =>
+                $this->service->generateNomor(),
+
+            'plafond' =>
+                $request->plafond,
+
+            'tenor' =>
+                $request->tenor,
+
+            'jenis_tenor' =>
+                $hasil['jenis_tenor'],
+
+            'persen_bunga' =>
+                $hasil['persen_bunga'],
+
+            'persen_administrasi' =>
+                $hasil['persen_administrasi'],
+
+            'biaya_administrasi' =>
+                $hasil['biaya_administrasi'],
+
+            'materai' =>
+                $hasil['materai'],
+
+            'biaya_survei' =>
+                $hasil['biaya_survei'],
+
+            'biaya_notaris' =>
+                $hasil['biaya_notaris'],
+
+            'dana_diterima' =>
+                $hasil['dana_diterima'],
+
+            /*
+            |--------------------------------------------------------------------------
+            | PEMBIAYAAN LAMA
+            |--------------------------------------------------------------------------
+            */
+
+            'pembiayaan_lama_id' =>
+                $pembiayaanLamaId,
+
+            'tanggal_jatuh_tempo_pertama' =>
+                $request->tanggal_jatuh_tempo_pertama,
+
+            'status' =>
+                'draft',
+
+            'created_by' =>
+                auth()->id(),
         ]);
-    
-        return redirect()->route('pembiayaan.review', $pembiayaan->id)->with('success', 'Pembiayaan berhasil disimpan.');
+
+
+        // ============================================================
+        // REDIRECT REVIEW
+        // ============================================================
+
+        return redirect()
+            ->route(
+                'pembiayaan.review',
+                $pembiayaan->id
+            )
+            ->with(
+                'success',
+                'Pembiayaan berhasil disimpan.'
+            );
     }
 
     public function edit(Pembiayaan $pembiayaan)

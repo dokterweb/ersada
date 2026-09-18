@@ -129,16 +129,10 @@ class PelunasanService
     |--------------------------------------------------------------------------
     */
 
-    public function store(
-        Pembiayaan $pembiayaan,
-        array $data
-    ): Pelunasan {
-
-        return DB::transaction(function () use (
-            $pembiayaan,
-            $data
-        ) {
-
+    public function store(Pembiayaan $pembiayaan,array $data): Pelunasan 
+    {
+        return DB::transaction(function () use ($pembiayaan,$data) 
+        {
             if ($pembiayaan->status === 'lunas') {
 
                 throw new \Exception(
@@ -210,39 +204,19 @@ class PelunasanService
 
             $pelunasan = Pelunasan::create([
 
-                'pembiayaan_id' =>
-                    $pembiayaan->id,
-
-                'nomor_pelunasan' =>
-                    $this->paymentService
-                        ->generateNumber('PLN-'),
-
-                'tanggal_pelunasan' =>
-                    $data['tanggal_pelunasan'],
-
-                'jenis_pelunasan' =>
-                    $jenisPelunasan,
-
-                'status' =>
-                    $status,
-
-                'sisa_pokok' =>
-                    $perhitungan['sisa_pokok'],
-
-                'sisa_bunga' =>
-                    $perhitungan['sisa_bunga'],
-
-                'denda' =>
-                    $perhitungan['denda'],
-
-                'total_sebelum_diskon' =>
-                    $perhitungan['total_sebelum_diskon'],
-
+                'pembiayaan_id' => $pembiayaan->id,
+                'nomor_pelunasan' =>$this->paymentService->generateNumber('PLN-'),
+                'tanggal_pelunasan' =>$data['tanggal_pelunasan'],
+                'jenis_pelunasan' =>$jenisPelunasan,
+                'status' =>$status,
+                'sisa_pokok' =>$perhitungan['sisa_pokok'],
+                'sisa_bunga' =>$perhitungan['sisa_bunga'],
+                'denda' =>$perhitungan['denda'],
+                'total_sebelum_diskon' =>$perhitungan['total_sebelum_diskon'],
                 /*
                  * Diskon yang DIMINTA.
                  */
-                'diskon' =>
-                    $diskon,
+                'diskon' =>$diskon,
 
                 /*
                  * Normal:
@@ -251,10 +225,7 @@ class PelunasanService
                  * Dengan diskon:
                  * null sampai pimpinan menyetujui.
                  */
-                'diskon_disetujui' =>
-                    $diskon > 0
-                        ? null
-                        : 0,
+                'diskon_disetujui' =>$diskon > 0? null: 0,
 
                 /*
                  * Untuk sementara total akhir masih
@@ -263,17 +234,10 @@ class PelunasanService
                  * Jika approval diberikan,
                  * nilai ini akan dihitung ulang.
                  */
-                'total_pelunasan' =>
-                    $totalPelunasan,
-
-                'alasan_diskon' =>
-                    $data['alasan_diskon'] ?? null,
-
-                'keterangan' =>
-                    $data['keterangan'] ?? null,
-
-                'created_by' =>
-                    auth()->id(),
+                'total_pelunasan' =>$totalPelunasan,
+                'alasan_diskon' =>$data['alasan_diskon'] ?? null,
+                'keterangan' =>$data['keterangan'] ?? null,
+                'created_by' =>auth()->id(),
             ]);
 
             /*
@@ -691,6 +655,93 @@ class PelunasanService
                 'approver',
                 'payer',
             ]);
+        });
+    }
+
+    public function bayarTanpaDiskon(Pelunasan $pelunasan,array $data): Pelunasan 
+    {
+
+        return DB::transaction(function () use (
+            $pelunasan,
+            $data
+        ) {
+
+            $pelunasan = Pelunasan::lockForUpdate()
+                ->findOrFail($pelunasan->id);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Validasi status
+            |--------------------------------------------------------------------------
+            */
+
+            if ($pelunasan->status !== 'ditolak') {
+
+                throw new \Exception(
+                    'Pelunasan tidak dapat diproses.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Pastikan memang sebelumnya dengan diskon
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $pelunasan->jenis_pelunasan !== 'dengan_diskon'
+            ) {
+
+                throw new \Exception(
+                    'Pelunasan ini bukan pengajuan diskon.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Diskon ditolak
+            |--------------------------------------------------------------------------
+            */
+
+            $pelunasan->update([
+
+                'diskon_disetujui' => 0,
+
+                'total_pelunasan' =>
+                    $pelunasan->total_sebelum_diskon,
+
+                'status' => 'siap_dibayar',
+
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Audit Trail
+            |--------------------------------------------------------------------------
+            */
+
+            $this->auditTrail->log(
+                $pelunasan->pembiayaan,
+                'Pelunasan',
+                'Pembayaran Tanpa Diskon',
+                'Nomor Pelunasan : ' .
+                $pelunasan->nomor_pelunasan .
+                ' | Total : Rp ' .
+                number_format(
+                    $pelunasan->total_sebelum_diskon,
+                    0,
+                    ',',
+                    '.'
+                ) .
+                ' | Pengajuan diskon ditolak.'
+            );
+
+
+            return $pelunasan->fresh();
         });
     }
 }

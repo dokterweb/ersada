@@ -1,3 +1,9 @@
+@inject('roleTaskService', 'App\Services\RoleTaskService')
+
+@php
+    $roleTask = $roleTaskService->getForUser();
+@endphp
+
 <header class="navbar navbar-expand-md d-print-none" >
     <div class="container-xl">
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,6 +29,285 @@
           </a>
           
         </div>
+
+
+{{-- TUGAS SAYA --}}
+<div class="nav-item dropdown ms-2">
+
+    <a href="#"
+       class="nav-link px-0"
+       data-bs-toggle="dropdown"
+       aria-label="Tugas saya"
+       title="Tugas Saya"
+       data-bs-toggle="tooltip"
+       data-bs-placement="bottom">
+
+        {{-- sementara gunakan SVG/icon sederhana --}}
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="icon"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             stroke-width="2"
+             stroke="currentColor"
+             fill="none"
+             stroke-linecap="round"
+             stroke-linejoin="round">
+
+            <path stroke="none"
+                  d="M0 0h24v24H0z"
+                  fill="none"/>
+
+            <path d="M10 5h-6a2 2 0 0 0 -2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2 -2v-6"/>
+
+            <path d="M14 3h7v7"/>
+
+            <path d="M10 14l11 -11"/>
+        </svg>
+
+    </a>
+
+
+    <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card"
+         style="width: 380px;">
+
+        <div class="card">
+
+            {{-- HEADER --}}
+            <div class="card-header">
+
+                <div class="d-flex align-items-center">
+
+                    <span class="avatar avatar-sm bg-{{ $roleTask['color'] }}-lt me-3">
+
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             width="24"
+                             height="24"
+                             viewBox="0 0 24 24"
+                             stroke-width="2"
+                             stroke="currentColor"
+                             fill="none"
+                             stroke-linecap="round"
+                             stroke-linejoin="round">
+
+                            <path stroke="none"
+                                  d="M0 0h24v24H0z"
+                                  fill="none"/>
+
+                            <path d="M12 3l8 4v5c0 5 -3.5 8 -8 9c-4.5 -1 -8 -4 -8 -9v-5l8 -4"/>
+                            <path d="M9 12l2 2l4 -4"/>
+
+                        </svg>
+
+                    </span>
+
+                    <div>
+
+                        <h3 class="card-title mb-1">
+                            {{ $roleTask['title'] }}
+                        </h3>
+
+                        <div class="text-secondary small">
+                            {{ $roleTask['description'] }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- TASKS --}}
+
+            <div class="card-body">
+
+                <div class="text-uppercase text-secondary fw-bold small mb-3">
+                    Yang Perlu Anda Kerjakan
+                </div>
+
+
+                @if(count($roleTask['tasks']) > 0)
+
+                    <div class="list-group list-group-flush">
+
+                        @foreach($roleTask['tasks'] as $task)
+
+                            <a href="{{ $task['url'] }}"
+                              class="list-group-item list-group-item-action px-0">
+
+                                <div class="row align-items-center">
+
+                                    {{-- ICON --}}
+                                    <div class="col-auto">
+
+                                        <span class="avatar avatar-sm bg-{{ $roleTask['color'] }}-lt">
+
+                                            @if($task['icon'] === 'file-text')
+
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                    width="20"
+                                                    height="20"
+                                                    viewBox="0 0 24 24"
+                                                    stroke-width="2"
+                                                    stroke="currentColor"
+                                                    fill="none"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round">
+
+                                                    <path stroke="none"
+                                                          d="M0 0h24v24H0z"
+                                                          fill="none"/>
+
+                                                    <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                                                    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/>
+                                                    <path d="M9 17h6"/>
+                                                    <path d="M9 13h6"/>
+                                                </svg>
+
+                                            @else
+
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                    width="20"
+                                                    height="20"
+                                                    viewBox="0 0 24 24"
+                                                    stroke-width="2"
+                                                    stroke="currentColor"
+                                                    fill="none"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round">
+
+                                                    <path stroke="none"
+                                                          d="M0 0h24v24H0z"
+                                                          fill="none"/>
+
+                                                    <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/>
+                                                    <path d="M9 5a3 3 0 0 1 6 0"/>
+                                                    <path d="M9 12h6"/>
+                                                    <path d="M9 16h6"/>
+                                                </svg>
+
+                                            @endif
+
+                                        </span>
+
+                                    </div>
+
+
+                                    {{-- TITLE --}}
+                                    <div class="col">
+
+                                        <div class="text-body small fw-medium">
+                                            {{ $task['title'] }}
+                                        </div>
+
+                                        <div class="text-secondary small">
+                                            Perlu ditindaklanjuti
+                                        </div>
+
+                                    </div>
+
+
+                                    {{-- COUNT --}}
+                                    <div class="col-auto">
+
+                                        <span class="badge bg-red text-white">
+                                            {{ $task['count'] }}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </a>
+
+                        @endforeach
+
+                    </div>
+
+                @else
+
+                    <div class="text-center py-3">
+
+                        <span class="avatar avatar-lg bg-success-lt mb-2">
+
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                stroke-width="2"
+                                stroke="currentColor"
+                                fill="none"
+                                stroke-linecap="round"
+                                stroke-linejoin="round">
+
+                                <path stroke="none"
+                                      d="M0 0h24v24H0z"
+                                      fill="none"/>
+
+                                <path d="M5 12l5 5l10 -10"/>
+
+                            </svg>
+
+                        </span>
+
+                        <div class="text-secondary small">
+                            Tidak ada pekerjaan yang perlu ditindaklanjuti.
+                        </div>
+
+                    </div>
+
+                @endif
+
+            </div>
+
+
+
+            {{-- WORKFLOW --}}
+            <div class="card-footer">
+
+                <div class="text-uppercase text-secondary fw-bold small mb-2">
+                    Alur Pekerjaan
+                </div>
+
+                <div class="text-secondary small">
+
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="16"
+                         height="16"
+                         viewBox="0 0 24 24"
+                         stroke-width="2"
+                         stroke="currentColor"
+                         fill="none"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         class="me-1">
+
+                        <path stroke="none"
+                              d="M0 0h24v24H0z"
+                              fill="none"/>
+
+                        <path d="M5 12l14 0"/>
+                        <path d="M13 18l6 -6"/>
+                        <path d="M13 6l6 6"/>
+
+                    </svg>
+
+                    {{ $roleTask['flow'] }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
         <div class="nav-item dropdown">
           <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
             @auth
@@ -46,6 +331,7 @@
           </div>
         </div>
       </div>
+
       @role('superadmin')
       <div class="collapse navbar-collapse" id="navbar-menu">
         <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
@@ -130,12 +416,20 @@
         </div>
       </div>
       @endrole
-      @role('marketing|admincabang')
+      @role('spvmarketing|marketing|admincabang')
       <div class="collapse navbar-collapse" id="navbar-menu">
         <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
           <ul class="navbar-nav">
             <li class="nav-item">
-              <a class="nav-link" href="{{route('marketing.dashboard')}}" >
+                @if(auth()->user()->hasRole('spvmarketing'))
+                    <a class="nav-link" href="{{ route('spvmarketing.dashboard') }}">
+
+                @elseif(auth()->user()->hasRole('marketing'))
+                    <a class="nav-link" href="{{ route('marketing.dashboard') }}">
+
+                @elseif(auth()->user()->hasRole('admincabang'))
+                    <a class="nav-link" href="{{ route('admincabang.dashboard') }}">
+                @endif
                 <span class="nav-link-icon d-md-none d-lg-inline-block">
                   <i class="fa-solid fa-house"></i>
                 </span>
@@ -168,6 +462,16 @@
                 <span class="nav-link-title">Angsuran</span>
               </a>
             </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ route('pelunasan.pengajuan.diskon') }}">
+                  <span class="nav-link-icon d-md-none d-lg-inline-block">
+                      <i class="fa-solid fa-file-invoice-dollar"></i>
+                  </span>
+                  <span class="nav-link-title">
+                      Pengajuan Diskon
+                  </span>
+              </a>
+          </li>
             <li class="nav-item">
               <a class="nav-link" href="{{ route('operasional.index') }}" >
                 <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -242,7 +546,16 @@
                 <span class="nav-link-title">Diskon Denda</span>
               </a>
             </li>
-
+            <li class="nav-item">
+              <a class="nav-link" href="{{ route('pelunasan.persetujuan.diskon') }}">
+                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                    <i class="fa-solid fa-file-signature"></i>
+                </span>
+                <span class="nav-link-title">
+                    Persetujuan Diskon
+                </span>
+              </a>
+            </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#navbar-help" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false" >
                 <span class="nav-link-icon d-md-none d-lg-inline-block">

@@ -15,7 +15,7 @@ class Pembiayaan extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['pengajuan_id', 'nomor_pembiayaan', 'plafond', 'tenor', 'jenis_tenor', 'persen_bunga', 'persen_administrasi', 'biaya_administrasi', 
+    protected $fillable = ['pengajuan_id', 'pembiayaan_lama_id','nomor_pembiayaan', 'plafond', 'tenor', 'jenis_tenor', 'persen_bunga', 'persen_administrasi', 'biaya_administrasi', 
     'materai', 'biaya_survei', 'biaya_notaris','dana_diterima', 'tanggal_akad', 'tanggal_pencairan', 'tanggal_jatuh_tempo_pertama', 'status','created_by'];
 
     protected $casts = [
@@ -54,6 +54,24 @@ class Pembiayaan extends Model
         return $this->hasMany(AuditTrail::class);
     }
 
+       // Pembiayaan lama yang dilunasi oleh pembiayaan ini
+    public function pembiayaanLama()
+    {
+        return $this->belongsTo(
+            Pembiayaan::class,
+            'pembiayaan_lama_id'
+        );
+    }
+
+    // Pembiayaan baru hasil Top Up
+    public function pembiayaanTopUp()
+    {
+        return $this->hasOne(
+            Pembiayaan::class,
+            'pembiayaan_lama_id'
+        );
+    }
+    
     public function getStatusBadgeAttribute(): string
     {
         return match ($this->status) {
@@ -64,5 +82,6 @@ class Pembiayaan extends Model
             'lunas' => '<span class="badge bg-success">Lunas</span>',
             default => '<span class="badge bg-dark">'.$this->status.'</span>',
         };
-    }    
+    }
+
 }

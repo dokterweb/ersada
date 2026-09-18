@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('pengajuan_id')->constrained()->cascadeOnDelete();
             $table->string('nama');
-            $table->string('nik')->unique();
+            $table->string('nik')->index();
             $table->string('tempat_lahir')->nullable();
             $table->date('tgl_lahir')->nullable();
             $table->string('no_hp')->nullable();
@@ -25,6 +25,9 @@ return new class extends Migration
             $table->string('status_rumah')->nullable();
             $table->integer('lama_menetap_tahun')->nullable();
             $table->integer('lama_menetap_bulan')->nullable();
+            $table->string('foto_nasabah');
+            $table->string('ktp_nasabah')->nullable();
+            $table->string('akte_lahir_nasabah')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

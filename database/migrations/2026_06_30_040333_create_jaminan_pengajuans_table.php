@@ -33,8 +33,8 @@ return new class extends Migration
             $table->string('no_sk_kerja')->nullable();
             $table->text('detail_jaminan')->nullable();
             $table->bigInteger('nilai_taksiran')->nullable();
-            $table->string('file_jaminan')->nullable()->after('nilai_taksiran');
-            $table->unsignedBigInteger('file_size')->nullable()->after('file_jaminan');
+            $table->string('file_jaminan')->nullable();
+            $table->unsignedBigInteger('file_size')->nullable();
             $table->timestamps();
         });
     }

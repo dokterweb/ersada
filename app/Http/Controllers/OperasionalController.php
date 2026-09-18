@@ -103,9 +103,294 @@ class OperasionalController extends Controller
             'pembayaranBulanIni','pelunasanBulanIni','outstandingCabang','outstandingMarketing','cabangs','marketings'));
     }
 
-    public function show(Pembiayaan $pembiayaan)
+/*     public function show(Pembiayaan $pembiayaan)
     {
         $pembiayaan->load(['pengajuan.nasabah','pengajuan.marketing','pengajuan.cabang','akad','akad.pencairan','angsurans','pelunasan','auditTrails.user',]);
         return view('operasional.show', compact('pembiayaan'));
+    } */
+/* 
+    public function show(Pembiayaan $pembiayaan)
+    {
+        $pembiayaan->load([
+            
+            // PENGAJUAN
+            'pengajuan.nasabah',
+            'pengajuan.nasabah.pekerjaanNasabah',
+
+            'pengajuan.referensis',
+            'pengajuan.referensis.pekerjaan',
+
+            'pengajuan.dokumenPengajuans',
+
+            'pengajuan.marketing.user',
+            'pengajuan.cabang',
+
+            'pengajuan.analisa',
+
+            'pengajuan.jaminanPengajuans',
+            'pengajuan.jaminanPengajuans.dokumenJaminans',
+
+            'pengajuan.kapital',
+
+            'pengajuan.approvals.user',
+
+            //TOP UP
+
+            'pembiayaanLama',
+            'pembiayaanLama.pengajuan.nasabah',
+
+            //AKAD & PENCAIRAN
+            'akad',
+            'akad.pencairan',
+            
+            // ANGSURAN & PELUNASAN
+            'angsurans', 'pelunasan',
+
+            // AUDIT
+            'auditTrails.user',
+        ]);
+
+        
+        // REFERENSI
+        
+        $referensis = $pembiayaan->pengajuan->referensis;
+
+        $pasangan = $referensis->firstWhere('jenis','pasangan');
+
+        $penjamin = $referensis->firstWhere('jenis','penjamin');
+
+        $saudaras = $referensis->where('jenis','saudara');
+
+        return view('operasional.show', [
+            'pembiayaan' => $pembiayaan,
+            'pasangan' => $pasangan,
+            'penjamin' => $penjamin,
+            'saudaras' => $saudaras,
+        ]);
+    } */
+
+        public function show(Pembiayaan $pembiayaan)
+{
+    $pembiayaan->load([
+
+        /*
+        |--------------------------------------------------------------------------
+        | PENGAJUAN
+        |--------------------------------------------------------------------------
+        */
+
+        'pengajuan.nasabah',
+        'pengajuan.nasabah.pekerjaanNasabah',
+
+        'pengajuan.referensis',
+        'pengajuan.referensis.pekerjaan',
+
+        /*
+        | Dokumen pengajuan
+        */
+
+        'pengajuan.dokumenPengajuans',
+
+        /*
+        | Dokumen payroll
+        */
+
+        'pengajuan.dokumenPayrolls',
+
+        /*
+        | Marketing & Cabang
+        */
+
+        'pengajuan.marketing.user',
+        'pengajuan.cabang',
+
+        /*
+        | Analisa
+        */
+
+        'pengajuan.analisa',
+
+        /*
+        | Jaminan + Dokumen Jaminan
+        */
+
+        'pengajuan.jaminanPengajuans',
+        'pengajuan.jaminanPengajuans.dokumenJaminans',
+
+        /*
+        | Kapital
+        */
+
+        'pengajuan.kapital',
+
+        /*
+        | Approval
+        */
+
+        'pengajuan.approvals.user',
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SURVEY
+        |--------------------------------------------------------------------------
+        */
+
+        'pengajuan.survey',
+
+        /*
+        | Berkas Survey
+        */
+
+        'pengajuan.survey.berkas',
+
+        /*
+        | Dokumentasi Survey
+        */
+
+        'pengajuan.survey.dokumentasis',
+
+        /*
+        |--------------------------------------------------------------------------
+        | TOP UP / REPEAT ORDER
+        |--------------------------------------------------------------------------
+        */
+
+        'pembiayaanLama',
+        'pembiayaanLama.pengajuan.nasabah',
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AKAD & PENCAIRAN
+        |--------------------------------------------------------------------------
+        */
+
+        'akad',
+        'akad.pencairan',
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ANGSURAN & PELUNASAN
+        |--------------------------------------------------------------------------
+        */
+
+        'angsurans',
+        'pelunasan',
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | AUDIT TRAIL
+        |--------------------------------------------------------------------------
+        */
+
+        'auditTrails.user',
+
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REFERENSI
+    |--------------------------------------------------------------------------
+    */
+
+    $referensis =
+        $pembiayaan->pengajuan->referensis;
+
+
+    $pasangan =
+        $referensis->firstWhere(
+            'jenis',
+            'pasangan'
+        );
+
+
+    $penjamin =
+        $referensis->firstWhere(
+            'jenis',
+            'penjamin'
+        );
+
+
+    $saudaras =
+        $referensis->where(
+            'jenis',
+            'saudara'
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DOKUMENTASI SURVEY
+    |--------------------------------------------------------------------------
+    */
+
+    $survey =
+        $pembiayaan->pengajuan->survey;
+
+
+    $rumah = collect();
+
+    $usaha = collect();
+
+    $jaminan = collect();
+
+    $videos = collect();
+
+
+    if ($survey) {
+
+        $rumah =
+            $survey->dokumentasis
+                ->where('kategori', 'rumah');
+
+        $usaha =
+            $survey->dokumentasis
+                ->where('kategori', 'usaha');
+
+        $jaminan =
+            $survey->dokumentasis
+                ->where('kategori', 'jaminan');
+
+        $videos =
+            $survey->dokumentasis
+                ->where('kategori', 'video');
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RETURN VIEW
+    |--------------------------------------------------------------------------
+    */
+
+    return view('operasional.show', [
+
+        'pembiayaan' => $pembiayaan,
+
+        'pasangan' => $pasangan,
+
+        'penjamin' => $penjamin,
+
+        'saudaras' => $saudaras,
+
+        /*
+        | Survey
+        */
+
+        'survey' => $survey,
+
+        'rumah' => $rumah,
+
+        'usaha' => $usaha,
+
+        'jaminan' => $jaminan,
+
+        'videos' => $videos,
+
+    ]);
+}
 }

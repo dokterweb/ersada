@@ -22,23 +22,135 @@ class AngsuranController extends Controller
 
     public function index(Request $request)
     {
-        $query = Pembiayaan::with(['pengajuan.nasabah','pengajuan.marketing', 'pengajuan.cabang'])
+        $user = auth()->user();
+
+        $rolesCabang = [
+            'kacab',
+            'spvmarketing',
+            'marketing',
+            'spvsurveyor',
+            'surveyor',
+            'admincabang',
+        ];
+
+        $query = Pembiayaan::with([
+            'pengajuan.nasabah',
+            'pengajuan.marketing',
+            'pengajuan.cabang',
+        ])
         ->where('status', 'dicairkan');
 
-        // Pencarian
-        if ($request->filled('keyword')) {
-            $keyword = $request->keyword;
-            $query->where(function ($q) use ($keyword) {
-                $q->where('nomor_pembiayaan', 'like', "%{$keyword}%")
-                ->orWhereHas('pengajuan.nasabah', function ($q2) use ($keyword) {
-                    $q2->where('nama', 'like', "%{$keyword}%");
-                });
+
+        /*
+        |--------------------------------------------------------------------------
+        | AKSES BERDASARKAN CABANG
+        |--------------------------------------------------------------------------
+        |
+        | Kacab, SPV Marketing, Marketing, SPV Surveyor,
+        | Surveyor dan Admin Cabang hanya dapat melihat
+        | pembiayaan dari cabangnya sendiri.
+        |
+        */
+
+        if ($user->hasAnyRole($rolesCabang)) {
+
+            $karyawan = $user->karyawan;
+
+            if (!$karyawan) {
+                abort(403, 'Data karyawan tidak ditemukan.');
+            }
+
+            $query->whereHas('pengajuan', function ($q) use ($karyawan) {
+
+                $q->where(
+                    'cabang_id',
+                    $karyawan->cabang_id
+                );
+
             });
         }
 
-        $pembiayaans = $query->latest()->paginate(15);
 
-        return view('angsuran.index', compact('pembiayaans'));
+        /*
+        |--------------------------------------------------------------------------
+        | AKSES MARKETING
+        |--------------------------------------------------------------------------
+        |
+        | Marketing dan SPV Marketing hanya dapat melihat
+        | pembiayaan dari marketing_id miliknya sendiri.
+        |
+        */
+
+        if ($user->hasAnyRole([
+            'marketing',
+            'spvmarketing',
+        ])) {
+
+            $karyawan = $user->karyawan;
+
+            if (!$karyawan) {
+                abort(403, 'Data karyawan tidak ditemukan.');
+            }
+
+            $query->whereHas('pengajuan', function ($q) use ($karyawan) {
+
+                $q->where(
+                    'marketing_id',
+                    $karyawan->id
+                );
+
+            });
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PENCARIAN
+        |--------------------------------------------------------------------------
+        */
+
+        if ($request->filled('keyword')) {
+
+            $keyword = $request->keyword;
+
+            $query->where(function ($q) use ($keyword) {
+
+                $q->where(
+                    'nomor_pembiayaan',
+                    'like',
+                    "%{$keyword}%"
+                )
+
+                ->orWhereHas('pengajuan.nasabah', function ($q2) use ($keyword) {
+
+                    $q2->where(
+                        'nama',
+                        'like',
+                        "%{$keyword}%"
+                    );
+
+                });
+
+            });
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DATA
+        |--------------------------------------------------------------------------
+        */
+
+        $pembiayaans = $query
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+
+        return view(
+            'angsuran.index',
+            compact('pembiayaans')
+        );
     }
 
     /**
@@ -121,73 +233,57 @@ class AngsuranController extends Controller
     }
 
    
-    public function store(
-        Request $request,
-        Angsuran $angsuran
-    ) {
+   public function store(Request $request, Angsuran $angsuran)
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | NORMALISASI NOMINAL RUPIAH
+        |--------------------------------------------------------------------------
+        |
+        | Contoh:
+        |
+        | 150.000     -> 150000
+        | 1.500.000   -> 1500000
+        |
+        */
 
-        $request->validate([
-
-            'tanggal_bayar' =>
-                'required|date',
-
-            'jumlah_bayar' =>
-                'required|numeric|min:1',
-
-            'metode' =>
-                'required|in:tunai,transfer',
-
-            'keterangan' =>
-                'nullable|string',
-
-            'diskon' =>
-                'nullable|numeric|min:0',
+        $request->merge([
+            'jumlah_bayar' => parse_rupiah(
+                $request->input('jumlah_bayar')
+            ),
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI
+        |--------------------------------------------------------------------------
+        */
+        $validated = $request->validate([
+            'tanggal_bayar' => ['required','date',],
+            'jumlah_bayar' => ['required','numeric','min:1',],
+            'metode' => ['required','in:tunai,transfer',],
+            'keterangan' => ['nullable','string',],
+            // 'diskon' => ['nullable','numeric','min:0',],
+        ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | PROSES PEMBAYARAN
+        |--------------------------------------------------------------------------
+        */
         try {
 
-            $result =
-                $this->service->bayar(
-                    $angsuran,
-                    $request->all()
-                );
-
-
+            $result = $this->service->bayar($angsuran,$validated);
             return response()->json([
-
-                'success' =>
-                    true,
-
-                'message' =>
-                    'Pembayaran berhasil.',
-
-                'nominal' =>
-                    number_format(
-                        $request->jumlah_bayar,
-                        0,
-                        ',',
-                        '.'
-                    ),
-
-                'row' =>
-                    $result['row'],
-
-                'summary' =>
-                    $result['summary'],
+                'success' => true,
+                'message' => 'Pembayaran berhasil.',
+                'nominal' => format_rupiah($validated['jumlah_bayar']),
+                'row' => $result['row'],
+                'summary' => $result['summary'],
             ]);
 
         } catch (\Exception $e) {
-
-            return response()->json([
-
-                'success' =>
-                    false,
-
-                'message' =>
-                    $e->getMessage(),
-
-            ], 422);
+            return response()->json(['success' => false,'message' => $e->getMessage(),], 422);
         }
     }
 

@@ -68,23 +68,15 @@ class DiskonDendaController extends Controller
             ->pengajuanDiskonDendaPending;
 
 
-        return view(
-            'diskon-denda.create',
-            compact(
-                'angsuran',
-                'preview',
-                'pengajuanPending'
-            )
-        );
+        return view('diskon-denda.create',compact('angsuran','preview','pengajuanPending'));
     }
 
 
     /**
      * Simpan pengajuan diskon denda
      */
-    public function store(Request $request,Angsuran $angsuran) 
+    public function store(Request $request, Angsuran $angsuran)
     {
-
         /*
         |--------------------------------------------------------------------------
         | CEK STATUS
@@ -99,15 +91,14 @@ class DiskonDendaController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | VALIDASI INPUT
+        | VALIDASI INPUT DASAR
         |--------------------------------------------------------------------------
         */
 
-        $validated = $request->validate([
+        $request->validate([
             'diskon_denda' => [
                 'required',
-                'numeric',
-                'min:1',
+                'string',
             ],
 
             'alasan' => [
@@ -128,13 +119,12 @@ class DiskonDendaController extends Controller
             $angsuran
         );
 
-
         $denda = (int) $preview['denda_tersisa'];
 
 
         /*
         |--------------------------------------------------------------------------
-        | VALIDASI DENDA
+        | CEK DENDA
         |--------------------------------------------------------------------------
         */
 
@@ -149,7 +139,38 @@ class DiskonDendaController extends Controller
         }
 
 
-        $diskon = (int) $validated['diskon_denda'];
+        /*
+        |--------------------------------------------------------------------------
+        | PARSE RUPIAH
+        |--------------------------------------------------------------------------
+        |
+        | Contoh:
+        |
+        | "500.000"   → 500000
+        | "1.000.000" → 1000000
+        |
+        */
+
+        $diskon = parse_rupiah(
+            $request->diskon_denda
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDASI HASIL PARSING
+        |--------------------------------------------------------------------------
+        */
+
+        if ($diskon === null || $diskon < 1) {
+
+            return back()
+                ->withErrors([
+                    'diskon_denda' =>
+                        'Nominal diskon denda harus lebih dari Rp 0.'
+                ])
+                ->withInput();
+        }
 
 
         /*
@@ -175,8 +196,7 @@ class DiskonDendaController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $pending = $angsuran
-            ->pengajuanDiskonDendaPending;
+        $pending = $angsuran->pengajuanDiskonDendaPending;
 
         if ($pending) {
 
@@ -211,7 +231,7 @@ class DiskonDendaController extends Controller
             $denda,
             $diskon,
             $dendaSetelahDiskon,
-            $validated
+            $request
         ) {
 
             PengajuanDiskonDenda::create([
@@ -229,7 +249,7 @@ class DiskonDendaController extends Controller
                     $dendaSetelahDiskon,
 
                 'alasan' =>
-                    $validated['alasan'],
+                    $request->alasan,
 
                 'status' =>
                     'pending',

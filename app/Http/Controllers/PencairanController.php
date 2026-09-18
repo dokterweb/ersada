@@ -3,13 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Akad;
+use App\Models\Pembiayaan;
 use App\Models\Pencairan;
+use App\Services\PelunasanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PencairanController extends Controller
 {
+    protected $service;
+
+    public function __construct(PelunasanService $service)
+    {
+        $this->service = $service;
+    }
+
     public function index()
     {
         $pencairans = Pencairan::with([
@@ -22,104 +31,687 @@ class PencairanController extends Controller
         return view('pencairan.index', compact('pencairans'));
     }
 
-    public function create(Akad $akad)
+   public function create(Akad $akad)
     {
-        $akad->load(['pembiayaan','pembiayaan.pengajuan.nasabah','pembiayaan.pengajuan.marketing.user','pembiayaan.pengajuan.cabang','pencairan',]);
-    
-       abort_if($akad->status != 'signed' ||$akad->pembiayaan->status != 'signed',403,'Akad belum ditandatangani.');
-    
-        if ($akad->pencairan) {return redirect()
-                ->route('pencairan.show', $akad->pencairan)
-                ->with('warning', 'Pencairan sudah pernah dilakukan.');
-        }
-    
-        return view('pencairan.create', compact('akad'));
-    }
-   
-    public function store(Request $request, Akad $akad)
-    {
-        abort_if($akad->status != 'signed' ||$akad->pembiayaan->status != 'signed',403,'Akad belum ditandatangani.');
-
-        $request->validate([
-            'tanggal_pencairan' => ['required','date',],
-            'tanggal_pencairan' => ['required', 'date'],
-            'metode'            => ['required','in:tunai,transfer',],
-            'bank'              => ['nullable','string','max:100',],
-            'no_rekening'       => ['nullable','string','max:100',],
-            'atas_nama'         => ['nullable','string','max:100',],
-            'bukti_pencairan'   => ['nullable','file','mimes:jpg,jpeg,png,pdf','max:51200',],
-            'foto_akad1'        => ['nullable','image','mimes:jpg,jpeg,png','max:51200',],
-            'foto_akad2'        => ['nullable','image','mimes:jpg,jpeg,png','max:51200',],
-            'foto_akad3'        => ['nullable','image','mimes:jpg,jpeg,png','max:51200',],
-            'video'             => ['nullable','file','mimes:mp4,mov,avi,mkv,webm','max:102400',],
-            'keterangan'        => ['nullable','string','max:1000',],
-
+        $akad->load([
+            'pembiayaan',
+            'pembiayaan.pengajuan.nasabah',
+            'pembiayaan.pengajuan.marketing.user',
+            'pembiayaan.pengajuan.cabang',
+            'pembiayaan.pembiayaanLama',
+            'pembiayaan.pembiayaanLama.pengajuan.nasabah',
+            'pembiayaan.pembiayaanLama.angsurans',
+            'pembiayaan.pembiayaanLama.akad.pencairan',
+            'pencairan',
         ]);
 
+        abort_if(
+            $akad->status != 'signed' ||
+            $akad->pembiayaan->status != 'signed',
+            403,
+            'Akad belum ditandatangani.'
+        );
+
         if ($akad->pencairan) {
-            return back()->with('error','Pencairan sudah pernah dibuat.');
+
+            return redirect()
+                ->route('pencairan.show', $akad->pencairan)
+                ->with(
+                    'warning',
+                    'Pencairan sudah pernah dilakukan.'
+                );
         }
 
-        DB::transaction(function () use ($request, $akad) {
-            $pembiayaan = $akad->pembiayaan;
-            $folder = "pencairan/{$akad->id}";
+        /*
+        |--------------------------------------------------------------------------
+        | PEMBIAYAAN LAMA
+        |--------------------------------------------------------------------------
+        */
 
-            $files = [
-                'bukti_pencairan' => 'bukti_pencairan',
-                'foto_akad1' => 'foto_akad1',
-                'foto_akad2' => 'foto_akad2',
-                'foto_akad3' => 'foto_akad3',
-                'video'      => 'video',
-            ];
+        $pembiayaanLama =
+            $akad->pembiayaan->pembiayaanLama;
 
-            $filePaths = [];
+        /*
+        |--------------------------------------------------------------------------
+        | PERHITUNGAN PELUNASAN SEMENTARA
+        |--------------------------------------------------------------------------
+        */
 
-            foreach ($files as $field => $prefix) {
-                if ($request->hasFile($field)) {
-                    $file = $request->file($field);
-                    $extension = $file->getClientOriginalExtension();
-                    $fileName = $prefix. '_'. $akad->id. '_'. now()->format('YmdHis'). '_'. uniqid(). '.'. $extension;
-                    $filePaths[$field] =$file->storeAs($folder,$fileName,'public');
+        $perhitunganPelunasan = null;
+
+        if (
+            $akad->pembiayaan
+                ->pengajuan
+                ->status_customer === 'repeat_order'
+            &&
+            $pembiayaanLama
+        ) {
+
+            try {
+
+                $perhitunganPelunasan =
+                    $this->service->hitungPelunasan(
+                        $pembiayaanLama,
+                        now()->toDateString()
+                    );
+
+            } catch (\Throwable $e) {
+
+                return back()->with(
+                    'error',
+                    'Gagal menghitung pelunasan pembiayaan lama: '
+                    . $e->getMessage()
+                );
+            }
+        }
+
+        return view(
+            'pencairan.create',
+            compact(
+                'akad',
+                'pembiayaanLama',
+                'perhitunganPelunasan'
+            )
+        );
+    }
+   
+public function store(Request $request, Akad $akad)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDASI AKAD
+    |--------------------------------------------------------------------------
+    */
+
+    abort_if(
+        $akad->status != 'signed' ||
+        $akad->pembiayaan->status != 'signed',
+        403,
+        'Akad belum ditandatangani.'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDASI REQUEST
+    |--------------------------------------------------------------------------
+    */
+
+    $request->validate([
+
+        'tanggal_pencairan' => [
+            'required',
+            'date',
+        ],
+
+        'tgl_telat_bayar' => [
+            'required',
+            'integer',
+            'min:1',
+            'max:30',
+        ],
+
+        'metode' => [
+            'required',
+            'in:tunai,transfer',
+        ],
+
+        'bank' => [
+            'nullable',
+            'string',
+            'max:100',
+        ],
+
+        'no_rekening' => [
+            'nullable',
+            'string',
+            'max:100',
+        ],
+
+        'atas_nama' => [
+            'nullable',
+            'string',
+            'max:100',
+        ],
+
+        'bukti_pencairan' => [
+            'nullable',
+            'file',
+            'mimes:jpg,jpeg,png,pdf',
+            'max:51200',
+        ],
+
+        'foto_akad1' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png',
+            'max:51200',
+        ],
+
+        'foto_akad2' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png',
+            'max:51200',
+        ],
+
+        'foto_akad3' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png',
+            'max:51200',
+        ],
+
+        'video' => [
+            'nullable',
+            'file',
+            'mimes:mp4,mov,avi,mkv,webm',
+            'max:102400',
+        ],
+
+        'keterangan' => [
+            'nullable',
+            'string',
+            'max:1000',
+        ],
+
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CEK PENCAIRAN SUDAH ADA
+    |--------------------------------------------------------------------------
+    */
+
+    if ($akad->pencairan) {
+
+        return back()
+            ->with(
+                'error',
+                'Pencairan sudah pernah dibuat.'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TRANSACTION
+    |--------------------------------------------------------------------------
+    */
+
+    try {
+
+        $pencairan = DB::transaction(function () use (
+            $request,
+            $akad
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | LOCK PEMBIAYAAN BARU
+            |--------------------------------------------------------------------------
+            */
+
+            $pembiayaan = Pembiayaan::query()
+                ->whereKey($akad->pembiayaan->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | PASTIKAN BELUM DICAIRKAN
+            |--------------------------------------------------------------------------
+            */
+
+            if ($pembiayaan->status !== 'signed') {
+
+                throw new \Exception(
+                    'Pembiayaan tidak dalam status siap dicairkan.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | CEK PENGAJUAN
+            |--------------------------------------------------------------------------
+            */
+
+            $pembiayaan->loadMissing([
+                'pengajuan.nasabah',
+                'pembiayaanLama',
+            ]);
+
+            $pengajuan = $pembiayaan->pengajuan;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DEFAULT
+            |--------------------------------------------------------------------------
+            */
+
+            $jumlahDicairkan =
+                (int) $pembiayaan->dana_diterima;
+
+            $pembiayaanLama = null;
+
+            $pelunasanLama = null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | REPEAT ORDER / TOP UP
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $pengajuan->status_customer === 'repeat_order'
+            ) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | HARUS MEMILIKI PEMBIAYAAN LAMA
+                |--------------------------------------------------------------------------
+                */
+
+                if (!$pembiayaan->pembiayaan_lama_id) {
+
+                    throw new \Exception(
+                        'Pembiayaan repeat order belum memiliki pembiayaan lama.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | LOCK PEMBIAYAAN LAMA
+                |--------------------------------------------------------------------------
+                */
+
+                $pembiayaanLama = Pembiayaan::query()
+                    ->whereKey(
+                        $pembiayaan->pembiayaan_lama_id
+                    )
+                    ->lockForUpdate()
+                    ->first();
+
+
+                if (!$pembiayaanLama) {
+
+                    throw new \Exception(
+                        'Pembiayaan lama tidak ditemukan.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | PEMBIAYAAN LAMA HARUS MASIH AKTIF
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $pembiayaanLama->status !== 'dicairkan'
+                ) {
+
+                    throw new \Exception(
+                        'Pembiayaan lama sudah tidak aktif atau sudah lunas.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | VALIDASI NIK
+                |--------------------------------------------------------------------------
+                |
+                | Ini adalah pengamanan tambahan.
+                | Pembiayaan lama harus benar-benar milik
+                | nasabah dengan NIK yang sama.
+                |
+                */
+
+                $pembiayaanLama->loadMissing([
+                    'pengajuan.nasabah',
+                    'angsurans',
+                    'akad.pencairan',
+                ]);
+
+                $nikBaru =
+                    $pengajuan->nasabah?->nik;
+
+                $nikLama =
+                    $pembiayaanLama
+                        ->pengajuan
+                        ->nasabah
+                        ?->nik;
+
+
+                if (
+                    !$nikBaru ||
+                    !$nikLama ||
+                    $nikBaru !== $nikLama
+                ) {
+
+                    throw new \Exception(
+                        'Pembiayaan lama tidak memiliki NIK yang sama dengan nasabah repeat order.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | HITUNG PELUNASAN
+                |--------------------------------------------------------------------------
+                */
+
+                $perhitungan =
+                    $this->service
+                        ->hitungPelunasan(
+                            $pembiayaanLama,
+                            $request->tanggal_pencairan
+                        );
+
+
+                $totalPelunasan =
+                    (int) $perhitungan[
+                        'total_sebelum_diskon'
+                    ];
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | DANA PEMBIAYAAN BARU
+                |--------------------------------------------------------------------------
+                */
+
+                $danaPembiayaanBaru =
+                    (int) $pembiayaan->dana_diterima;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | HITUNG DANA TOP UP
+                |--------------------------------------------------------------------------
+                */
+
+                $jumlahDicairkan =
+                    $danaPembiayaanBaru -
+                    $totalPelunasan;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | VALIDASI DANA
+                |--------------------------------------------------------------------------
+                */
+
+                if ($jumlahDicairkan < 0) {
+
+                    throw new \Exception(
+                        'Dana pembiayaan baru tidak mencukupi untuk melunasi pembiayaan lama.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | BUAT PELUNASAN PEMBIAYAAN LAMA
+                |--------------------------------------------------------------------------
+                |
+                | Kita menggunakan PelunasanService yang sudah ada.
+                |
+                | Karena Top Up saat ini menggunakan pelunasan
+                | normal tanpa diskon.
+                |
+                */
+
+                $pelunasanLama =
+                    $this->service->store(
+                        $pembiayaanLama,
+                        [
+                            'tanggal_pelunasan' =>
+                                $request->tanggal_pencairan,
+
+                            'diskon' =>
+                                0,
+
+                            'alasan_diskon' =>
+                                null,
+
+                            'keterangan' =>
+                                'Pelunasan pembiayaan lama melalui Top Up / Repeat Order pembiayaan '
+                                . $pembiayaan->nomor_pembiayaan,
+                        ]
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | BAYAR PELUNASAN LAMA
+                |--------------------------------------------------------------------------
+                |
+                | Pembayaran dilakukan menggunakan sebagian
+                | dana pembiayaan baru.
+                |
+                */
+
+                $this->service->bayar(
+                    $pelunasanLama,
+                    [
+                        'tanggal_bayar' =>
+                            $request->tanggal_pencairan,
+
+                        'jumlah_bayar' =>
+                            $pelunasanLama->total_pelunasan,
+                    ]
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | PASTIKAN PEMBIAYAAN LAMA LUNAS
+                |--------------------------------------------------------------------------
+                */
+
+                $pembiayaanLama->refresh();
+
+                if ($pembiayaanLama->status !== 'lunas') {
+
+                    throw new \Exception(
+                        'Pembiayaan lama gagal dinyatakan lunas.'
+                    );
                 }
             }
 
-            Pencairan::create([
-                'akad_id' => $akad->id,
-                'nomor_pencairan' => $this->generateNomor(),
-                'tanggal_pencairan' => $request->tanggal_pencairan,
-                'tgl_telat_bayar' => $request->tgl_telat_bayar,
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPLOAD FILE
+            |--------------------------------------------------------------------------
+            */
+
+            $folder =
+                "pencairan/{$akad->id}";
+
+
+            $files = [
+
+                'bukti_pencairan' =>
+                    'bukti_pencairan',
+
+                'foto_akad1' =>
+                    'foto_akad1',
+
+                'foto_akad2' =>
+                    'foto_akad2',
+
+                'foto_akad3' =>
+                    'foto_akad3',
+
+                'video' =>
+                    'video',
+
+            ];
+
+
+            $filePaths = [];
+
+
+            foreach ($files as $field => $prefix) {
+
+                if ($request->hasFile($field)) {
+
+                    $file =
+                        $request->file($field);
+
+                    $extension =
+                        $file->getClientOriginalExtension();
+
+                    $fileName =
+                        $prefix .
+                        '_' .
+                        $akad->id .
+                        '_' .
+                        now()->format('YmdHis') .
+                        '_' .
+                        uniqid() .
+                        '.' .
+                        $extension;
+
+                    $filePaths[$field] =
+                        $file->storeAs(
+                            $folder,
+                            $fileName,
+                            'public'
+                        );
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | SIMPAN PENCAIRAN
+            |--------------------------------------------------------------------------
+            */
+
+            $pencairan = Pencairan::create([
+
+                'akad_id' =>
+                    $akad->id,
+
+                'nomor_pencairan' =>
+                    $this->generateNomor(),
+
+                'tanggal_pencairan' =>
+                    $request->tanggal_pencairan,
+
+                'tgl_telat_bayar' =>
+                    $request->tgl_telat_bayar,
+
                 /*
                 |--------------------------------------------------------------------------
                 | JUMLAH DICAIRKAN
                 |--------------------------------------------------------------------------
                 |
-                | Tidak diinput manual.
-                | Mengambil dana diterima dari pembiayaan.
+                | Normal:
+                | dana_diterima pembiayaan.
+                |
+                | Repeat Order:
+                | dana_diterima pembiayaan baru
+                | dikurangi pelunasan lama.
                 |
                 */
-                'jumlah_dicairkan' => $pembiayaan->dana_diterima,
-                'metode'        =>$request->metode,
-                'bank'          =>$request->bank,
-                'no_rekening'   =>$request->no_rekening,
-                'atas_nama'     =>$request->atas_nama,
-                'bukti_pencairan' =>$filePaths['bukti_pencairan'] ?? null,
-                'foto_akad1'    =>$filePaths['foto_akad1'] ?? null,
-                'foto_akad2'    =>$filePaths['foto_akad2'] ?? null,
-                'foto_akad3'    =>$filePaths['foto_akad3'] ?? null,
-                'video'         => $filePaths['video'] ?? null,
-                'keterangan'    =>$request->keterangan,
-                'created_by'    =>auth()->id(),
+
+                'jumlah_dicairkan' =>
+                    $jumlahDicairkan,
+
+                'metode' =>
+                    $request->metode,
+
+                'bank' =>
+                    $request->bank,
+
+                'no_rekening' =>
+                    $request->no_rekening,
+
+                'atas_nama' =>
+                    $request->atas_nama,
+
+                'bukti_pencairan' =>
+                    $filePaths['bukti_pencairan'] ?? null,
+
+                'foto_akad1' =>
+                    $filePaths['foto_akad1'] ?? null,
+
+                'foto_akad2' =>
+                    $filePaths['foto_akad2'] ?? null,
+
+                'foto_akad3' =>
+                    $filePaths['foto_akad3'] ?? null,
+
+                'video' =>
+                    $filePaths['video'] ?? null,
+
+                'keterangan' =>
+                    $request->keterangan,
+
+                'created_by' =>
+                    auth()->id(),
+
             ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE PEMBIAYAAN BARU
+            |--------------------------------------------------------------------------
+            */
 
             $pembiayaan->update([
-                'status' =>'dicairkan',
-                'tanggal_pencairan' => $request->tanggal_pencairan,
+
+                'status' =>
+                    'dicairkan',
+
+                'tanggal_pencairan' =>
+                    $request->tanggal_pencairan,
+
             ]);
+
+
+            return $pencairan;
         });
 
-        $akad->load('pencairan');
-        return redirect()->route('pencairan.show',$akad->pencairan)->with('success','Pencairan berhasil disimpan.');
+
+        /*
+        |--------------------------------------------------------------------------
+        | REDIRECT
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+            ->route(
+                'pencairan.show',
+                $pencairan
+            )
+            ->with(
+                'success',
+                'Pencairan berhasil disimpan.'
+            );
+
+    } catch (\Throwable $e) {
+
+        return back()
+            ->withInput()
+            ->with(
+                'error',
+                $e->getMessage()
+            );
     }
+}
 
     /**
      * Detail pencairan
@@ -130,6 +722,84 @@ class PencairanController extends Controller
             'akad.pembiayaan.pengajuan.marketing','akad.pembiayaan.pengajuan.cabang',]);
 
         return view('pencairan.show', compact('pencairan'));
+    }
+
+    public function pembiayaanLama(Pembiayaan $pembiayaan)
+    {
+        $pembiayaan->load([
+            'pengajuan.nasabah',
+            'angsurans',
+            'akad.pencairan',
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | PASTIKAN PEMBIAYAAN MASIH AKTIF
+        |--------------------------------------------------------------------------
+        */
+
+        if ($pembiayaan->status !== 'dicairkan') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pembiayaan yang dipilih sudah tidak aktif.'
+            ], 422);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | HITUNG PELUNASAN
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            $perhitungan = $this->service->hitungPelunasan(
+                $pembiayaan,
+                now()->toDateString()
+            );
+
+        } catch (\Throwable $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | RETURN
+        |--------------------------------------------------------------------------
+        */
+
+        return response()->json([
+            'success' => true,
+
+            'data' => [
+
+                'id' =>
+                    $pembiayaan->id,
+
+                'nomor_pembiayaan' =>
+                    $pembiayaan->nomor_pembiayaan,
+
+                'plafond' =>
+                    (int) $pembiayaan->plafond,
+
+                'sisa_pokok' =>
+                    (int) $perhitungan['sisa_pokok'],
+
+                'sisa_bunga' =>
+                    (int) $perhitungan['sisa_bunga'],
+
+                'denda' =>
+                    (int) $perhitungan['denda'],
+
+                'total_pelunasan' =>
+                    (int) $perhitungan['total_sebelum_diskon'],
+
+            ]
+        ]);
     }
 
     /**

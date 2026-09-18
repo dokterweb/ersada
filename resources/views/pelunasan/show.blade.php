@@ -1034,62 +1034,170 @@
 
             </div>
 
+<div class="mb-3">
 
+    @if($pelunasan->status === 'menunggu_persetujuan')
+
+        <div class="alert alert-warning">
+
+            <div class="fw-bold mb-1">
+                <i class="fa-solid fa-clock me-1"></i>
+                Menunggu Persetujuan Pimpinan
+            </div>
+
+            Pengajuan pelunasan dengan diskon sedang menunggu
+            persetujuan pimpinan.
+
+        </div>
+
+
+    @elseif($pelunasan->status === 'ditolak')
+
+        <div class="alert alert-danger">
+
+            <div class="fw-bold mb-2">
+
+                <i class="fa-solid fa-circle-xmark me-1"></i>
+
+                Pengajuan Pelunasan Ditolak
+
+            </div>
+
+
+            @if($pelunasan->approver)
+
+                <div class="mb-1">
+                    <strong>Diproses oleh:</strong>
+                    {{ $pelunasan->approver->name }}
+                </div>
+
+            @endif
+
+
+            @if($pelunasan->approved_at)
+
+                <div class="mb-1">
+                    <strong>Tanggal:</strong>
+
+                    {{ $pelunasan->approved_at->format('d-m-Y H:i') }}
+
+                </div>
+
+            @endif
+
+
+            @if($pelunasan->catatan_approval)
+
+                <hr>
+
+                <div class="fw-bold">
+                    Alasan Penolakan
+                </div>
+
+                <div>
+                    {{ $pelunasan->catatan_approval }}
+                </div>
+
+            @endif
+
+        </div>
+
+
+    @elseif($pelunasan->status === 'siap_dibayar')
+
+        <div class="alert alert-success">
+
+            <div class="fw-bold">
+                <i class="fa-solid fa-circle-check me-1"></i>
+                Pelunasan Disetujui
+            </div>
+
+            @if($pelunasan->approver)
+
+                Disetujui oleh:
+                <strong>
+                    {{ $pelunasan->approver->name }}
+                </strong>
+
+            @endif
+
+        </div>
+
+
+    @elseif($pelunasan->status === 'dibayar')
+
+        <div class="alert alert-primary">
+
+            <div class="fw-bold">
+
+                <i class="fa-solid fa-check-double me-1"></i>
+
+                Pelunasan Sudah Dibayar
+
+            </div>
+
+        </div>
+
+    @endif
+
+</div>
             {{-- ================================================= --}}
             {{-- FOOTER ACTION --}}
             {{-- ================================================= --}}
 
             <div class="d-flex justify-content-between">
 
-                <a
-                    href="{{ route(
-                        'operasional.show',
-                        $pelunasan->pembiayaan
-                    ) }}"
-                    class="btn btn-secondary"
-                >
-
+                <a href="{{ route( 'operasional.show', $pelunasan->pembiayaan) }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left me-1"></i>
-
                     Kembali
-
                 </a>
 
-
                 <div>
-
-                    <a
-                        href="{{ route(
-                            'pelunasan.cetak',
-                            $pelunasan
-                        ) }}"
-                        target="_blank"
-                        class="btn btn-danger"
-                    >
-
+                    <a href="{{ route('pelunasan.cetak',$pelunasan) }}"target="_blank"class="btn btn-danger">
                         <i class="fas fa-file-pdf me-1"></i>
-
                         Cetak Bukti Pelunasan
-
                     </a>
-
-
                     @if($pelunasan->status === 'siap_dibayar')
 
-                        <button
-                            type="button"
-                            class="btn btn-success"
-                            data-bs-toggle="modal"
-                            data-bs-target="#modalBayar"
-                        >
+    <button type="button"
+            class="btn btn-success"
+            data-bs-toggle="modal"
+            data-bs-target="#modalBayar">
 
-                            <i class="fas fa-money-bill-wave me-1"></i>
+        <i class="fas fa-money-bill-wave me-1"></i>
 
-                            Bayar Pelunasan
+        Bayar Pelunasan
 
-                        </button>
+    </button>
 
-                    @endif
+@elseif($pelunasan->status === 'ditolak')
+
+    {{-- Bayar tanpa diskon --}}
+    <button type="button"
+            class="btn btn-warning"
+            data-bs-toggle="modal"
+            data-bs-target="#modalBayarTanpaDiskon">
+
+        <i class="fas fa-money-bill-wave me-1"></i>
+
+        Bayar Tanpa Diskon
+
+    </button>
+
+
+    {{-- Ajukan ulang diskon --}}
+{{--     <button type="button"
+            class="btn btn-primary"
+            data-bs-toggle="modal"
+            data-bs-target="#modalAjukanUlangDiskon">
+
+        <i class="fas fa-rotate-right me-1"></i>
+
+        Ajukan Ulang Diskon
+
+    </button> --}}
+
+@endif
 
                 </div>
 
@@ -1108,116 +1216,43 @@
 
 @if($pelunasan->status === 'siap_dibayar')
 
-<div class="modal fade"
-    id="modalBayar"
-    tabindex="-1"
-    aria-hidden="true">
-
+<div class="modal fade" id="modalBayar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-
         <div class="modal-content">
-
-            <form
-                action="{{ route(
-                    'pelunasan.bayar',
-                    $pelunasan
-                ) }}"
-                method="POST"
-            >
-
+            <form action="{{route( 'pelunasan.bayar', $pelunasan) }}" method="POST">
                 @csrf
-
                 <div class="modal-header">
-
                     <h5 class="modal-title">
                         Pembayaran Pelunasan
                     </h5>
-
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                    ></button>
-
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-
-
                 <div class="modal-body">
-
                     <div class="mb-3">
-
-                        <label class="form-label">
-                            Nomor Pelunasan
-                        </label>
-
-                        <input
-                            type="text"
-                            class="form-control"
-                            value="{{ $pelunasan->nomor_pelunasan }}"
-                            readonly
-                        >
-
+                        <label class="form-label">Nomor Pelunasan</label>
+                        <input type="text" class="form-control" value="{{ $pelunasan->nomor_pelunasan }}" readonly>
                     </div>
-
-
                     <div class="mb-3">
-
                         <label class="form-label">
                             Total Pelunasan
                         </label>
-
                         <div class="input-group">
-
-                            <span class="input-group-text">
-                                Rp
-                            </span>
-
-                            <input
-                                type="text"
-                                class="form-control fw-bold"
-                                value="{{ number_format(
-                                    $pelunasan->total_pelunasan,
-                                    0,
-                                    ',',
-                                    '.'
-                                ) }}"
-                                readonly
-                            >
-
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" class="form-control fw-bold" value="{{ number_format($pelunasan->total_pelunasan,0,',','.') }}" readonly>
                         </div>
-
                     </div>
-
-
                     <div class="mb-3">
-
                         <label class="form-label">
                             Tanggal Pembayaran
                         </label>
-
-                        <input
-                            type="date"
-                            name="tanggal_bayar"
-                            class="form-control"
-                            value="{{ now()->format('Y-m-d') }}"
-                            required
-                        >
-
+                        <input type="date" name="tanggal_bayar" class="form-control" value="{{ now()->format('Y-m-d') }}" required>
                     </div>
-
-
                     <div class="mb-3">
-
                         <label class="form-label">
                             Jumlah Pembayaran
                         </label>
-
                         <div class="input-group">
-
-                            <span class="input-group-text">
-                                Rp
-                            </span>
-
+                            <span class="input-group-text">Rp</span>
                             <input
                                 type="number"
                                 name="jumlah_bayar"
@@ -1243,37 +1278,141 @@
                     @if(
                         $pelunasan->diskon_disetujui !== null
                     )
-
                         <div class="alert alert-success">
-
                             <div class="fw-bold">
                                 Diskon Disetujui
                             </div>
-
                             <div>
-
-                                Rp
-                                {{ number_format(
-                                    $pelunasan->diskon_disetujui,
-                                    0,
-                                    ',',
-                                    '.'
-                                ) }}
-
+                                Rp{{ number_format($pelunasan->diskon_disetujui,0,',','.') }}
                             </div>
-
                         </div>
-
                     @endif
 
-
                     <div class="alert alert-warning mb-0">
-
                         <i class="fas fa-exclamation-triangle me-1"></i>
-
                         Setelah pembayaran berhasil,
                         pembiayaan akan berstatus
                         <strong>LUNAS</strong>.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Batal
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>
+                        Konfirmasi Pembayaran
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@endif
+
+@if($pelunasan->status === 'ditolak')
+
+<div class="modal fade"
+     id="modalBayarTanpaDiskon"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog">
+
+        <div class="modal-content">
+
+            <form action="{{ route('pelunasan.bayar-tanpa-diskon', $pelunasan) }}"
+                  method="POST">
+
+                @csrf
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+                        Bayar Pelunasan Tanpa Diskon
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+
+                <div class="modal-body">
+
+                    <div class="alert alert-warning">
+
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+
+                        Pengajuan diskon sebelumnya telah ditolak.
+                        Pembayaran akan menggunakan total pelunasan
+                        tanpa diskon.
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Nomor Pelunasan
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               value="{{ $pelunasan->nomor_pelunasan }}"
+                               readonly>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Total Pelunasan
+                        </label>
+
+                        <div class="input-group">
+
+                            <span class="input-group-text">
+                                Rp
+                            </span>
+
+                            <input type="text"
+                                   class="form-control fw-bold"
+                                   value="{{ number_format($pelunasan->total_sebelum_diskon, 0, ',', '.') }}"
+                                   readonly>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Tanggal Pembayaran
+                        </label>
+
+                        <input type="date"
+                               name="tanggal_bayar"
+                               class="form-control"
+                               value="{{ now()->format('Y-m-d') }}"
+                               required>
+
+                    </div>
+
+
+                    <div class="alert alert-danger mb-0">
+
+                        <div class="fw-bold">
+                            Diskon Tidak Berlaku
+                        </div>
+
+                        Diskon yang diajukan sebelumnya tidak disetujui
+                        dan tidak akan mengurangi jumlah pembayaran.
 
                     </div>
 
@@ -1282,22 +1421,21 @@
 
                 <div class="modal-footer">
 
-                    <button
-                        type="button"
-                        class="btn btn-secondary"
-                        data-bs-dismiss="modal"
-                    >
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+
                         Batal
+
                     </button>
 
-                    <button
-                        type="submit"
-                        class="btn btn-success"
-                    >
 
-                        <i class="fas fa-check me-1"></i>
+                    <button type="submit"
+                            class="btn btn-warning">
 
-                        Konfirmasi Pembayaran
+                        <i class="fas fa-money-bill-wave me-1"></i>
+
+                        Lanjutkan Pembayaran
 
                     </button>
 

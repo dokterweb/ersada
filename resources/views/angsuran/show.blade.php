@@ -268,26 +268,26 @@
                     </div>
 
                     <div class="col-md-4 mb-3">
-    <label class="form-label">Denda Berjalan</label>
-    <input type="text" id="m_denda_berjalan" class="form-control" readonly>
-</div>
+                        <label class="form-label">Denda Berjalan</label>
+                        <input type="text" id="m_denda_berjalan" class="form-control" readonly>
+                    </div>
 
-<div class="col-md-4 mb-3">
-    <label class="form-label">
-        Diskon Denda Disetujui
-    </label>
-    <input type="text" id="m_diskon_denda" class="form-control text-success" readonly>
-</div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">
+                            Diskon Denda Disetujui
+                        </label>
+                        <input type="text" id="m_diskon_denda" class="form-control text-success" readonly>
+                    </div>
 
-<div class="col-md-4 mb-3">
-    <label class="form-label">Denda Setelah Diskon</label>
-    <input
-        type="text"
-        id="m_denda"
-        class="form-control fw-bold"
-        readonly
-    >
-</div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Denda Setelah Diskon</label>
+                        <input
+                            type="text"
+                            id="m_denda"
+                            class="form-control fw-bold"
+                            readonly
+                        >
+                    </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">
                             Admin Keterlambatan
@@ -315,7 +315,9 @@
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Nominal Bayar</label>
-                        <input type="number" id="jumlah_bayar" name="jumlah_bayar" class="form-control fw-bold"  required>
+                        {{-- <input type="number" id="jumlah_bayar" name="jumlah_bayar" class="form-control fw-bold"  required> --}}
+                         <input type="text" id="jumlah_bayar" name="jumlah_bayar" class="form-control fw-bold text-end"
+                            inputmode="numeric" autocomplete="off" placeholder="0" required>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Keterangan</label>
@@ -606,10 +608,26 @@ $(function () {
     function formatRupiah(angka)
     {
         angka = parseInt(angka) || 0;
-
         return new Intl.NumberFormat('id-ID').format(angka);
     }
 
+
+    function parseRupiah(value)
+    {
+        if (!value) {
+            return 0;
+        }
+        return parseInt(String(value).replace(/\D/g, ''),10) || 0;
+    }
+
+    $('#jumlah_bayar').on('input', function () {
+        let value = parseRupiah($(this).val());
+        if (value <= 0) {
+            $(this).val('');
+            return;
+        }
+        $(this).val(formatRupiah(value));
+    });
 
     $('.btn-bayar').on('click', function () {
 
@@ -632,118 +650,51 @@ $(function () {
         },
 
         success: function (r) {
-
             /*
             |--------------------------------------------------------------------------
             | DATA UTAMA
             |--------------------------------------------------------------------------
             */
-
             $('#angsuran_id').val(r.id);
-
             $('#m_nama').val(r.nama);
-
-            $('#m_nomor').val(
-                r.nomor_pembiayaan
-            );
-
-            $('#m_ke').val(
-                r.angsuran_ke
-            );
-
-            $('#m_jatuh_tempo').val(
-                r.tanggal_jatuh_tempo
-            );
-
-            $('#m_status').val(
-                r.status
-            );
-
-            $('#m_pokok').val(
-                r.pokok
-            );
-
-            $('#m_bunga').val(
-                r.bunga
-            );
-
-            $('#m_total').val(
-                r.total
-            );
-
-
+            $('#m_nomor').val(r.nomor_pembiayaan);
+            $('#m_ke').val(r.angsuran_ke);
+            $('#m_jatuh_tempo').val(r.tanggal_jatuh_tempo);
+            $('#m_status').val(r.status);
+            $('#m_pokok').val(r.pokok);
+            $('#m_bunga').val(r.bunga);
+            $('#m_total').val(r.total);
             /*
             |--------------------------------------------------------------------------
             | PEMBAYARAN
             |--------------------------------------------------------------------------
             */
-
-            $('#m_total_terbayar').val(
-                'Rp ' + r.total_terbayar_format
-            );
-
-            $('#m_sisa_tagihan').val(
-                'Rp ' + r.sisa_tagihan_format
-            );
-
-
+            $('#m_total_terbayar').val('Rp ' + r.total_terbayar_format);
+            $('#m_sisa_tagihan').val('Rp ' + r.sisa_tagihan_format);
             /*
             |--------------------------------------------------------------------------
             | DENDA
             |--------------------------------------------------------------------------
             */
-
-            $('#m_denda_berjalan').val(
-                'Rp ' + r.denda_berjalan_format
-            );
-
-            $('#m_diskon_denda').val(
-                'Rp ' + r.diskon_denda_format
-            );
-
-            $('#m_denda').val(
-                'Rp ' + r.denda_format
-            );
-
-            $('#m_admin_keterlambatan').val(
-                'Rp ' + r.admin_keterlambatan_format
-            );
-
-            $('#m_hari_terlambat').val(
-                r.hari_terlambat_format
-            );
-
-            $('#m_total_tambahan').val(
-                'Rp ' + r.total_tambahan_format
-            );
-
-
+            $('#m_denda_berjalan').val('Rp ' + r.denda_berjalan_format);
+            $('#m_diskon_denda').val('Rp ' + r.diskon_denda_format);
+            $('#m_denda').val('Rp ' + r.denda_format);
+            $('#m_admin_keterlambatan').val('Rp ' + r.admin_keterlambatan_format);
+            $('#m_hari_terlambat').val(r.hari_terlambat_format);
+            $('#m_total_tambahan').val('Rp ' + r.total_tambahan_format);
             /*
             |--------------------------------------------------------------------------
             | TANGGAL & METODE
             |--------------------------------------------------------------------------
             */
-
-            $('#tanggal_bayar').val(
-                '{{ now()->format("Y-m-d") }}'
-            );
-
-            $('#metode').val(
-                r.metode
-            );
-
-
+            $('#tanggal_bayar').val('{{ now()->format("Y-m-d") }}');
+            $('#metode').val(r.metode);
             /*
             |--------------------------------------------------------------------------
             | DEFAULT NOMINAL BAYAR
             |--------------------------------------------------------------------------
             */
-
-            $('#jumlah_bayar').val(
-                r.default_bayar
-            );
-
-
+            $('#jumlah_bayar').val(formatRupiah(r.default_bayar));
             $('#keterangan').val('');
 
 
@@ -945,7 +896,7 @@ $(function () {
                         currentTotalTambahan;
 
                     $('#jumlah_bayar').val(
-                        totalKewajiban
+                        formatRupiah(totalKewajiban)
                     );
 
                 },
@@ -982,9 +933,9 @@ $(function () {
                 $('#tanggal_bayar').val();
 
             let jumlahBayar =
-                parseInt(
+                parseRupiah(
                     $('#jumlah_bayar').val()
-                ) || 0;
+                );
 
             let metode =
                 $('#metode').val();
@@ -1056,13 +1007,8 @@ $(function () {
 
             $.ajax({
 
-                url:
-                    '/angsuran/jadwal/' +
-                    angsuranId +
-                    '/bayar',
-
+                url:'/angsuran/jadwal/' +angsuranId +'/bayar',
                 type: 'POST',
-
                 headers: {
 
                     'X-CSRF-TOKEN':

@@ -164,6 +164,7 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
     Route::middleware(['auth'])->group(function () {
         Route::get('/pencairan', [PencairanController::class,'index'])->name('pencairan.index');
         Route::get('/akad/{akad}/pencairan/create', [PencairanController::class,'create'])->name('pencairan.create');
+        Route::get('/pencairan/pembiayaan-lama/{pembiayaan}',[PencairanController::class, 'pembiayaanLama'])->name('pencairan.pembiayaan-lama');
         Route::post('/akad/{akad}/pencairan', [PencairanController::class,'store'])->name('pencairan.store');
         Route::get('/pencairan/{pencairan}', [PencairanController::class,'show'])->name('pencairan.show');
     });
@@ -199,12 +200,21 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
     Route::prefix('pelunasan')->name('pelunasan.')->group(function () {
         Route::get('/{pembiayaan}/create', [PelunasanController::class,'create'])->name('create');
         Route::post('/{pembiayaan}', [PelunasanController::class,'store'])->name('store');
+        Route::get('/pengajuan-diskon',[PelunasanController::class, 'pengajuanDiskon'])->name('pengajuan.diskon');
+        Route::get('/persetujuan-diskon',[PelunasanController::class, 'persetujuanDiskon'])->name('persetujuan.diskon');
         Route::post('/{pelunasan}/approve',[PelunasanController::class, 'approve'])->name('approve');
         Route::post('/{pelunasan}/reject',[PelunasanController::class, 'reject'])->name('reject');
         Route::post('/{pelunasan}/bayar',[PelunasanController::class, 'bayar'])->name('bayar');
+        Route::post('/{pelunasan}/bayar-tanpa-diskon',[PelunasanController::class, 'bayarTanpaDiskon'])->name('bayar-tanpa-diskon');
         Route::get('/{pelunasan}/cetak',[PelunasanController::class,'cetak'])->name('cetak');
         Route::get('/{pelunasan}', [PelunasanController::class,'show'])->name('show');
     });    
+
+/*     Route::middleware(['auth', 'role:komisaris|direktur|kacab'])->group(function () {
+        Route::get('/pelunasan/persetujuan-diskon',[PelunasanController::class, 'persetujuanDiskon'])->name('pelunasan.persetujuan.diskon');
+        Route::post('/pelunasan/{pelunasan}/approve',[PelunasanController::class, 'approve'])->name('pelunasan.approve');
+        Route::post('/pelunasan/{pelunasan}/reject',[PelunasanController::class, 'reject'])->name('pelunasan.reject');
+    }); */
 
     Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function () {
         Route::get('/pembiayaan', [ReportController::class,'pembiayaan'])->name('pembiayaan');

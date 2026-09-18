@@ -369,16 +369,12 @@
                                 <span class="text-danger">*</span>
                             </label>
 
-                            <input
-                                type="number"
-                                name="diskon_denda"
-                                id="diskon_denda"
-                                class="form-control"
-                                min="1"
-                                max="{{ $preview['denda_tersisa'] }}"
-                                value="{{ old('diskon_denda') }}"
-                                required
-                            >
+                             <input type="text" name="diskon_denda" id="diskon_denda" class="form-control"
+                                    value="{{ old('diskon_denda') !== null
+                                        ? format_rupiah(old('diskon_denda'))
+                                        : '' }}"
+                                    placeholder="0" inputmode="numeric" autocomplete="off" required
+                                >
 
                             <div class="form-text">
 
@@ -560,37 +556,97 @@
 @section('scripts')
 
 <script>
+document.addEventListener('DOMContentLoaded', function () {
 
-$(function () {
+    const input = document.getElementById('diskon_denda');
+
+    if (!input) {
+        return;
+    }
 
     const denda = {{ (int) $preview['denda_tersisa'] }};
 
 
-    $('#diskon_denda').on('input', function () {
+    /*
+    |--------------------------------------------------------------------------
+    | FORMAT RUPIAH
+    |--------------------------------------------------------------------------
+    */
 
-        let diskon = parseInt($(this).val()) || 0;
+    function formatRupiah(angka)
+    {
+        return new Intl.NumberFormat('id-ID').format(angka);
+    }
 
 
-        if (diskon > denda) {
+    /*
+    |--------------------------------------------------------------------------
+    | AMBIL NILAI NUMERIK DARI INPUT RUPIAH
+    |--------------------------------------------------------------------------
+    |
+    | 128.000     -> 128000
+    | 1.500.000   -> 1500000
+    |
+    */
 
-            diskon = denda;
+    function parseRupiah(value)
+    {
+        if (!value) {
+            return 0;
+        }
 
-            $(this).val(denda);
+        return parseInt(
+            value.replace(/\D/g, ''),
+            10
+        ) || 0;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FORMAT INPUT SAAT DIKETIK
+    |--------------------------------------------------------------------------
+    */
+
+    input.addEventListener('input', function () {
+
+        let value = parseRupiah(this.value);
+
+        /*
+        |----------------------------------------------------------------------
+        | Maksimal tidak boleh melebihi denda
+        |----------------------------------------------------------------------
+        */
+
+        if (value > denda) {
+            value = denda;
+        }
+
+
+        /*
+        |----------------------------------------------------------------------
+        | Tampilkan kembali dalam format Rupiah
+        |----------------------------------------------------------------------
+        */
+
+        if (value === 0) {
+
+            this.value = '';
+
+        } else {
+
+            this.value = formatRupiah(value);
 
         }
 
 
-        if (diskon < 0) {
+        /*
+        |----------------------------------------------------------------------
+        | Hitung denda setelah diskon
+        |----------------------------------------------------------------------
+        */
 
-            diskon = 0;
-
-            $(this).val(0);
-
-        }
-
-
-        let sisa = denda - diskon;
-
+        const sisa = denda - value;
 
         $('#denda_setelah_diskon').val(
             'Rp ' + formatRupiah(sisa)
@@ -599,15 +655,25 @@ $(function () {
     });
 
 
-    function formatRupiah(angka)
-    {
-        return new Intl.NumberFormat(
-            'id-ID'
-        ).format(angka);
+    /*
+    |--------------------------------------------------------------------------
+    | NILAI AWAL
+    |--------------------------------------------------------------------------
+    */
+
+    const nilaiAwal = parseRupiah(input.value);
+
+    if (nilaiAwal > 0) {
+
+        const sisa = denda - nilaiAwal;
+
+        $('#denda_setelah_diskon').val(
+            'Rp ' + formatRupiah(sisa)
+        );
+
     }
 
 });
-
 </script>
 
 @endsection
