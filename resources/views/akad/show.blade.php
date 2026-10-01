@@ -62,7 +62,14 @@
                                 <th>Cabang</th>
                                 <td>{{ optional($akad->pembiayaan->pengajuan->cabang)->nama_cabang }}</td>
                             </tr>
-        
+                            <tr>
+                                <th>Tujuan Pinjaman</th>
+                                <td>{{ $akad->pembiayaan->pengajuan->tujuan_pinjaman }}</td>
+                            </tr>
+                            <tr>
+                                <th>Status Customer</th>
+                                <td>{{ $akad->pembiayaan->pengajuan->status_customer }}</td>
+                            </tr>
                         </table>
         
                     </div>

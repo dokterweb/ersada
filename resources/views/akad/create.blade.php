@@ -27,7 +27,7 @@
                                 <strong>DATA PEMBIAYAAN</strong>
                             </div>
                             <div class="card-body">
-                                <table class="table table-sm table-borderless">
+                                <table class="table table-borderless">
                                     <tr>
                                         <th width="170">No Pengajuan</th>
                                         <td>{{ $pembiayaan->pengajuan->nomor_pengajuan }}</td>
@@ -59,6 +59,14 @@
                                     <tr>
                                         <th>Jenis Tenor</th>
                                         <td>{{ ucfirst($pembiayaan->jenis_tenor) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Tujuan Pinjaman</th>
+                                        <td>{{ $pembiayaan->pengajuan->tujuan_pinjaman }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Status Customer</th>
+                                        <td>{{ $pembiayaan->pengajuan->status_customer }}</td>
                                     </tr>
                                     <tr>
                                         <th>Dana Diterima</th>

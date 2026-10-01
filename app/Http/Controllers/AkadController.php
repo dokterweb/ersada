@@ -105,10 +105,7 @@ class AkadController extends Controller
         });
     
         return redirect()->route('akad.show', $akad)
-                ->with(
-                    'success',
-                    'Akad berhasil dikonfirmasi telah ditandatangani.'
-                );
+                ->with('success','Akad berhasil dikonfirmasi telah ditandatangani.');
     }
 
    /*  public function cetak(Akad $akad)

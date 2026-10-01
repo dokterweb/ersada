@@ -74,12 +74,16 @@
                                 <td>{{ $pengajuan->nasabah->nama }}</td>
                             </tr>
                             <tr>
-                                <td>NIK</td>
-                                <td>{{ $pengajuan->nasabah->nik }}</td>
-                            </tr>
-                            <tr>
                                 <td>No HP</td>
                                 <td>{{ $pengajuan->nasabah->no_hp }}</td>
+                            </tr>
+                            <tr>
+                                <td>Tujuan Pinjaman</td>
+                                <td>{{ $pengajuan->tujuan_pinjaman }}</td>
+                            </tr>
+                            <tr>
+                                <td>Status Customer</td>
+                                <td>{{ $pengajuan->status_customer }}</td>
                             </tr>
                         </table>
                     </div>

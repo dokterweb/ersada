@@ -592,710 +592,710 @@ class PembayaranAngsuranService
      *
      * Semua histori tetap tersimpan di pembayaran_angsurans.
      */
-public function bayar(
-    Angsuran $angsuran,
-    array $data
-): array {
+    public function bayar(
+        Angsuran $angsuran,
+        array $data
+    ): array {
 
-    return DB::transaction(function () use (
-        $angsuran,
-        $data
-    ) {
-
-        /*
-        |--------------------------------------------------------------------------
-        | RELOAD DATA
-        |--------------------------------------------------------------------------
-        */
-
-        $angsuran = Angsuran::with([
-            'pembiayaan.akad.pencairan',
-            'pembiayaan.pengajuan.nasabah',
-        ])
-        ->lockForUpdate()
-        ->findOrFail($angsuran->id);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | VALIDASI STATUS
-        |--------------------------------------------------------------------------
-        */
-
-        if ($angsuran->status === 'dibayar') {
-
-            throw new \Exception(
-                'Angsuran ini sudah lunas.'
-            );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | NOMINAL UANG MASUK
-        |--------------------------------------------------------------------------
-        */
-
-        $uangMasuk = (int) $data['jumlah_bayar'];
-
-        if ($uangMasuk <= 0) {
-
-            throw new \Exception(
-                'Nominal pembayaran harus lebih besar dari nol.'
-            );
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | TANGGAL PEMBAYARAN
-        |--------------------------------------------------------------------------
-        */
-
-        $tanggalBayar = Carbon::parse(
-            $data['tanggal_bayar']
-        )->startOfDay();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | KUNCI PENGAJUAN DISKON
-        |--------------------------------------------------------------------------
-        |
-        | Lock pengajuan agar tidak bisa digunakan oleh dua transaksi
-        | secara bersamaan.
-        |
-        */
-
-        $pengajuanDiskon = PengajuanDiskonDenda::where(
-            'angsuran_id',
-            $angsuran->id
-        )
-        ->where('status', 'disetujui')
-        ->whereNull('pembayaran_id')
-        ->whereNull('digunakan_at')
-        ->latest('disetujui_at')
-        ->latest('id')
-        ->lockForUpdate()
-        ->first();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | PREVIEW DENDA TERBARU
-        |--------------------------------------------------------------------------
-        */
-
-        $preview = $this->previewDenda(
+        return DB::transaction(function () use (
             $angsuran,
-            $tanggalBayar->format('Y-m-d')
-        );
+            $data
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | RELOAD DATA
+            |--------------------------------------------------------------------------
+            */
+
+            $angsuran = Angsuran::with([
+                'pembiayaan.akad.pencairan',
+                'pembiayaan.pengajuan.nasabah',
+            ])
+            ->lockForUpdate()
+            ->findOrFail($angsuran->id);
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | TOTAL ANGSURAN YANG MASIH HARUS DIBAYAR
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | VALIDASI STATUS
+            |--------------------------------------------------------------------------
+            */
 
-        $sisaAngsuran = max(
-            0,
-            $angsuran->total_angsuran
-            - $angsuran->total_terbayar
-        );
+            if ($angsuran->status === 'dibayar') {
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | DISKON DARI APPROVAL
-        |--------------------------------------------------------------------------
-        |
-        | Jangan mengambil diskon dari request Kasir.
-        |
-        */
-
-        $diskonDenda = (int) $preview['diskon_denda'];
-
-        $statusDiskon = $diskonDenda > 0
-            ? 'disetujui'
-            : 'tidak_ada';
+                throw new \Exception(
+                    'Angsuran ini sudah lunas.'
+                );
+            }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | DENDA FINAL
-        |--------------------------------------------------------------------------
-        |
-        | previewDenda() sudah mengurangi:
-        |
-        | denda berjalan
-        | - denda sudah dibayar
-        | - diskon yang sudah direalisasikan
-        | - diskon approval yang belum digunakan
-        |
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | NOMINAL UANG MASUK
+            |--------------------------------------------------------------------------
+            */
 
-        $dendaTersisa = (int) $preview['denda_tersisa'];
+            $uangMasuk = (int) $data['jumlah_bayar'];
 
+            if ($uangMasuk <= 0) {
 
-        /*
-        |--------------------------------------------------------------------------
-        | ADMIN
-        |--------------------------------------------------------------------------
-        */
-
-        $adminTersisa =
-            (int) $preview['admin_tersisa'];
+                throw new \Exception(
+                    'Nominal pembayaran harus lebih besar dari nol.'
+                );
+            }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | MULAI ALOKASI UANG
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | TANGGAL PEMBAYARAN
+            |--------------------------------------------------------------------------
+            */
 
-        $sisaUang = $uangMasuk;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | 1. BAYAR ANGSURAN TERLEBIH DAHULU
-        |--------------------------------------------------------------------------
-        */
-
-        $bayarAngsuran = min(
-            $sisaUang,
-            $sisaAngsuran
-        );
-
-        $sisaUang -= $bayarAngsuran;
+            $tanggalBayar = Carbon::parse(
+                $data['tanggal_bayar']
+            )->startOfDay();
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | 2. BAYAR DENDA
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | KUNCI PENGAJUAN DISKON
+            |--------------------------------------------------------------------------
+            |
+            | Lock pengajuan agar tidak bisa digunakan oleh dua transaksi
+            | secara bersamaan.
+            |
+            */
 
-        $bayarDenda = min(
-            $sisaUang,
-            $dendaTersisa
-        );
-
-        $sisaUang -= $bayarDenda;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | 3. BAYAR ADMIN
-        |--------------------------------------------------------------------------
-        */
-
-        $bayarAdmin = min(
-            $sisaUang,
-            $adminTersisa
-        );
-
-        $sisaUang -= $bayarAdmin;
+            $pengajuanDiskon = PengajuanDiskonDenda::where(
+                'angsuran_id',
+                $angsuran->id
+            )
+            ->where('status', 'disetujui')
+            ->whereNull('pembayaran_id')
+            ->whereNull('digunakan_at')
+            ->latest('disetujui_at')
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | JIKA ADA KELEBIHAN PEMBAYARAN
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | PREVIEW DENDA TERBARU
+            |--------------------------------------------------------------------------
+            */
 
-        if ($sisaUang > 0) {
-
-            throw new \Exception(
-                'Nominal pembayaran melebihi seluruh kewajiban.'
+            $preview = $this->previewDenda(
+                $angsuran,
+                $tanggalBayar->format('Y-m-d')
             );
-        }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | TOTAL PEMBAYARAN ANGSURAN TERBARU
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | TOTAL ANGSURAN YANG MASIH HARUS DIBAYAR
+            |--------------------------------------------------------------------------
+            */
 
-        $totalTerbayarAngsuran =
-            $angsuran->total_terbayar
-            + $bayarAngsuran;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | SISA TAGIHAN
-        |--------------------------------------------------------------------------
-        */
-
-        $sisaTagihan = max(
-            0,
-            $angsuran->total_angsuran
-            - $totalTerbayarAngsuran
-        );
+            $sisaAngsuran = max(
+                0,
+                $angsuran->total_angsuran
+                - $angsuran->total_terbayar
+            );
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | STATUS ANGSURAN
-        |--------------------------------------------------------------------------
-        */
+            /*
+            |--------------------------------------------------------------------------
+            | DISKON DARI APPROVAL
+            |--------------------------------------------------------------------------
+            |
+            | Jangan mengambil diskon dari request Kasir.
+            |
+            */
 
-        if ($sisaTagihan == 0) {
+            $diskonDenda = (int) $preview['diskon_denda'];
 
-            $status = 'dibayar';
+            $statusDiskon = $diskonDenda > 0
+                ? 'disetujui'
+                : 'tidak_ada';
 
-            $tanggalLunas =
-                $tanggalBayar->format('Y-m-d');
 
-        } else {
+            /*
+            |--------------------------------------------------------------------------
+            | DENDA FINAL
+            |--------------------------------------------------------------------------
+            |
+            | previewDenda() sudah mengurangi:
+            |
+            | denda berjalan
+            | - denda sudah dibayar
+            | - diskon yang sudah direalisasikan
+            | - diskon approval yang belum digunakan
+            |
+            */
 
-            $tanggalLunas = null;
+            $dendaTersisa = (int) $preview['denda_tersisa'];
 
-            if (
-                $tanggalBayar->gte(
-                    Carbon::parse(
-                        $angsuran->tanggal_jatuh_tempo
-                    )->startOfDay()
-                )
-            ) {
 
-                $status = 'jatuh_tempo';
+            /*
+            |--------------------------------------------------------------------------
+            | ADMIN
+            |--------------------------------------------------------------------------
+            */
+
+            $adminTersisa =
+                (int) $preview['admin_tersisa'];
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | MULAI ALOKASI UANG
+            |--------------------------------------------------------------------------
+            */
+
+            $sisaUang = $uangMasuk;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | 1. BAYAR ANGSURAN TERLEBIH DAHULU
+            |--------------------------------------------------------------------------
+            */
+
+            $bayarAngsuran = min(
+                $sisaUang,
+                $sisaAngsuran
+            );
+
+            $sisaUang -= $bayarAngsuran;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | 2. BAYAR DENDA
+            |--------------------------------------------------------------------------
+            */
+
+            $bayarDenda = min(
+                $sisaUang,
+                $dendaTersisa
+            );
+
+            $sisaUang -= $bayarDenda;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | 3. BAYAR ADMIN
+            |--------------------------------------------------------------------------
+            */
+
+            $bayarAdmin = min(
+                $sisaUang,
+                $adminTersisa
+            );
+
+            $sisaUang -= $bayarAdmin;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | JIKA ADA KELEBIHAN PEMBAYARAN
+            |--------------------------------------------------------------------------
+            */
+
+            if ($sisaUang > 0) {
+
+                throw new \Exception(
+                    'Nominal pembayaran melebihi seluruh kewajiban.'
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | TOTAL PEMBAYARAN ANGSURAN TERBARU
+            |--------------------------------------------------------------------------
+            */
+
+            $totalTerbayarAngsuran =
+                $angsuran->total_terbayar
+                + $bayarAngsuran;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | SISA TAGIHAN
+            |--------------------------------------------------------------------------
+            */
+
+            $sisaTagihan = max(
+                0,
+                $angsuran->total_angsuran
+                - $totalTerbayarAngsuran
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | STATUS ANGSURAN
+            |--------------------------------------------------------------------------
+            */
+
+            if ($sisaTagihan == 0) {
+
+                $status = 'dibayar';
+
+                $tanggalLunas =
+                    $tanggalBayar->format('Y-m-d');
 
             } else {
 
-                $status = 'belum_jatuh_tempo';
+                $tanggalLunas = null;
+
+                if (
+                    $tanggalBayar->gte(
+                        Carbon::parse(
+                            $angsuran->tanggal_jatuh_tempo
+                        )->startOfDay()
+                    )
+                ) {
+
+                    $status = 'jatuh_tempo';
+
+                } else {
+
+                    $status = 'belum_jatuh_tempo';
+                }
             }
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | TOTAL TAMBAHAN
-        |--------------------------------------------------------------------------
-        */
-
-        $totalTambahan =
-            $bayarDenda
-            + $bayarAdmin;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | TOTAL UANG YANG MASUK
-        |--------------------------------------------------------------------------
-        */
-
-        $totalDibayar =
-            $bayarAngsuran
-            + $bayarDenda
-            + $bayarAdmin;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | SIMPAN PEMBAYARAN
-        |--------------------------------------------------------------------------
-        */
-
-        $pembayaran = PembayaranAngsuran::create([
-
-            'angsuran_id' =>
-                $angsuran->id,
-
-            'nomor_pembayaran' =>
-                $this->generateNomor(),
-
-            'tanggal_bayar' =>
-                $tanggalBayar->format('Y-m-d'),
 
 
             /*
-            | Uang yang masuk ke pokok + bunga
+            |--------------------------------------------------------------------------
+            | TOTAL TAMBAHAN
+            |--------------------------------------------------------------------------
             */
 
-            'jumlah_bayar' =>
-                $bayarAngsuran,
+            $totalTambahan =
+                $bayarDenda
+                + $bayarAdmin;
 
 
             /*
-            | Denda yang benar-benar dibayar
+            |--------------------------------------------------------------------------
+            | TOTAL UANG YANG MASUK
+            |--------------------------------------------------------------------------
             */
 
-            'denda' =>
-                $bayarDenda,
+            $totalDibayar =
+                $bayarAngsuran
+                + $bayarDenda
+                + $bayarAdmin;
 
 
             /*
-            | Diskon yang digunakan
+            |--------------------------------------------------------------------------
+            | SIMPAN PEMBAYARAN
+            |--------------------------------------------------------------------------
             */
 
-            'diskon_denda' =>
-                $diskonDenda,
+            $pembayaran = PembayaranAngsuran::create([
+
+                'angsuran_id' =>
+                    $angsuran->id,
+
+                'nomor_pembayaran' =>
+                    $this->generateNomor(),
+
+                'tanggal_bayar' =>
+                    $tanggalBayar->format('Y-m-d'),
 
 
-            /*
-            | Admin yang dibayar
-            */
+                /*
+                | Uang yang masuk ke pokok + bunga
+                */
 
-            'admin_keterlambatan' =>
-                $bayarAdmin,
-
-
-            /*
-            | Total uang masuk
-            */
-
-            'total_dibayar' =>
-                $totalDibayar,
-
-
-            /*
-            | Status diskon
-            */
-
-            'status_diskon' =>
-                $statusDiskon,
-
-
-            /*
-            | Snapshot approval
-            */
-
-            'diskon_disetujui_oleh' =>
-                $pengajuanDiskon?->disetujui_oleh,
-
-            'diskon_disetujui_at' =>
-                $pengajuanDiskon?->disetujui_at,
-
-            'alasan_diskon' =>
-                $pengajuanDiskon?->alasan,
-
-
-            /*
-            | Pembayaran
-            */
-
-            'metode' =>
-                $data['metode'] ?? 'tunai',
-
-            'keterangan' =>
-                $data['keterangan'] ?? null,
-
-            'created_by' =>
-                Auth::id(),
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | TANDAI PENGAJUAN DISKON SUDAH DIGUNAKAN
-        |--------------------------------------------------------------------------
-        |
-        | Diskon hanya direalisasikan jika memang ada diskon approval.
-        |
-        */
-
-        if (
-            $pengajuanDiskon &&
-            $diskonDenda > 0
-        ) {
-
-            $pengajuanDiskon->update([
-
-                'pembayaran_id' =>
-                    $pembayaran->id,
-
-                'digunakan_at' =>
-                    now(),
-            ]);
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | UPDATE ANGSURAN
-        |--------------------------------------------------------------------------
-        */
-
-        $angsuran->update([
-
-            'status' =>
-                $status,
-
-            'tanggal_bayar' =>
-                $tanggalLunas,
-
-            'total_terbayar' =>
-                $totalTerbayarAngsuran,
-
-            'sisa_tagihan' =>
-                $sisaTagihan,
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | SUMMARY PEMBIAYAAN
-        |--------------------------------------------------------------------------
-        */
-
-        $angsurans =
-            $angsuran->pembiayaan
-                ->angsurans()
-                ->orderBy('angsuran_ke')
-                ->get();
-
-
-        $totalAngsuran =
-            $angsurans->count();
-
-
-        $sudahDibayar =
-            $angsurans
-                ->where('status', 'dibayar')
-                ->count();
-
-
-        $sisaAngsuranCount =
-            $totalAngsuran
-            - $sudahDibayar;
-
-
-        $outstanding =
-            $angsurans
-                ->where('status', '!=', 'dibayar')
-                ->sortBy('angsuran_ke')
-                ->first()?->sisa_pokok ?? 0;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | AUDIT TRAIL
-        |--------------------------------------------------------------------------
-        */
-
-        $auditDiskon = $diskonDenda > 0
-            ? ' | Diskon : Rp ' .
-                number_format(
-                    $diskonDenda,
-                    0,
-                    ',',
-                    '.'
-                )
-            : '';
-
-
-        $this->auditTrail->log(
-            $angsuran->pembiayaan,
-            'Angsuran',
-            'Pembayaran Angsuran',
-            'Angsuran Ke-' .
-            $angsuran->angsuran_ke .
-            ' | Angsuran : Rp ' .
-            number_format(
-                $bayarAngsuran,
-                0,
-                ',',
-                '.'
-            ) .
-            ' | Denda : Rp ' .
-            number_format(
-                $bayarDenda,
-                0,
-                ',',
-                '.'
-            ) .
-            $auditDiskon .
-            ' | Admin : Rp ' .
-            number_format(
-                $bayarAdmin,
-                0,
-                ',',
-                '.'
-            ) .
-            ' | Total : Rp ' .
-            number_format(
-                $totalDibayar,
-                0,
-                ',',
-                '.'
-            )
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
-
-        return [
-
-            'pembayaran' =>
-                $pembayaran,
-
-            'preview' =>
-                $preview,
-
-            'alokasi' => [
-
-                'uang_masuk' =>
-                    $uangMasuk,
-
-                'bayar_angsuran' =>
+                'jumlah_bayar' =>
                     $bayarAngsuran,
 
-                'bayar_denda' =>
-                    $bayarDenda,
 
-                'bayar_admin' =>
-                    $bayarAdmin,
-
-                'diskon_denda' =>
-                    $diskonDenda,
-
-                'total_dibayar' =>
-                    $totalDibayar,
-            ],
-
-
-            'row' => [
-
-                'status' =>
-                    ucfirst(
-                        str_replace(
-                            '_',
-                            ' ',
-                            $status
-                        )
-                    ),
-
-                'badge' =>
-                    match ($status) {
-
-                        'dibayar' =>
-                            'bg-success',
-
-                        'jatuh_tempo' =>
-                            'bg-danger',
-
-                        default =>
-                            'bg-secondary',
-                    },
-
-
-                'total_terbayar' =>
-                    $totalTerbayarAngsuran,
-
-                'total_terbayar_format' =>
-                    number_format(
-                        $totalTerbayarAngsuran,
-                        0,
-                        ',',
-                        '.'
-                    ),
-
-
-                'sisa_tagihan' =>
-                    $sisaTagihan,
-
-                'sisa_tagihan_format' =>
-                    number_format(
-                        $sisaTagihan,
-                        0,
-                        ',',
-                        '.'
-                    ),
-
+                /*
+                | Denda yang benar-benar dibayar
+                */
 
                 'denda' =>
                     $bayarDenda,
 
-                'denda_format' =>
-                    number_format(
-                        $bayarDenda,
-                        0,
-                        ',',
-                        '.'
-                    ),
 
+                /*
+                | Diskon yang digunakan
+                */
 
                 'diskon_denda' =>
                     $diskonDenda,
 
-                'diskon_denda_format' =>
+
+                /*
+                | Admin yang dibayar
+                */
+
+                'admin_keterlambatan' =>
+                    $bayarAdmin,
+
+
+                /*
+                | Total uang masuk
+                */
+
+                'total_dibayar' =>
+                    $totalDibayar,
+
+
+                /*
+                | Status diskon
+                */
+
+                'status_diskon' =>
+                    $statusDiskon,
+
+
+                /*
+                | Snapshot approval
+                */
+
+                'diskon_disetujui_oleh' =>
+                    $pengajuanDiskon?->disetujui_oleh,
+
+                'diskon_disetujui_at' =>
+                    $pengajuanDiskon?->disetujui_at,
+
+                'alasan_diskon' =>
+                    $pengajuanDiskon?->alasan,
+
+
+                /*
+                | Pembayaran
+                */
+
+                'metode' =>
+                    $data['metode'] ?? 'tunai',
+
+                'keterangan' =>
+                    $data['keterangan'] ?? null,
+
+                'created_by' =>
+                    Auth::id(),
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | TANDAI PENGAJUAN DISKON SUDAH DIGUNAKAN
+            |--------------------------------------------------------------------------
+            |
+            | Diskon hanya direalisasikan jika memang ada diskon approval.
+            |
+            */
+
+            if (
+                $pengajuanDiskon &&
+                $diskonDenda > 0
+            ) {
+
+                $pengajuanDiskon->update([
+
+                    'pembayaran_id' =>
+                        $pembayaran->id,
+
+                    'digunakan_at' =>
+                        now(),
+                ]);
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE ANGSURAN
+            |--------------------------------------------------------------------------
+            */
+
+            $angsuran->update([
+
+                'status' =>
+                    $status,
+
+                'tanggal_bayar' =>
+                    $tanggalLunas,
+
+                'total_terbayar' =>
+                    $totalTerbayarAngsuran,
+
+                'sisa_tagihan' =>
+                    $sisaTagihan,
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | SUMMARY PEMBIAYAAN
+            |--------------------------------------------------------------------------
+            */
+
+            $angsurans =
+                $angsuran->pembiayaan
+                    ->angsurans()
+                    ->orderBy('angsuran_ke')
+                    ->get();
+
+
+            $totalAngsuran =
+                $angsurans->count();
+
+
+            $sudahDibayar =
+                $angsurans
+                    ->where('status', 'dibayar')
+                    ->count();
+
+
+            $sisaAngsuranCount =
+                $totalAngsuran
+                - $sudahDibayar;
+
+
+            $outstanding =
+                $angsurans
+                    ->where('status', '!=', 'dibayar')
+                    ->sortBy('angsuran_ke')
+                    ->first()?->sisa_pokok ?? 0;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | AUDIT TRAIL
+            |--------------------------------------------------------------------------
+            */
+
+            $auditDiskon = $diskonDenda > 0
+                ? ' | Diskon : Rp ' .
                     number_format(
                         $diskonDenda,
                         0,
                         ',',
                         '.'
-                    ),
+                    )
+                : '';
 
 
-                'admin_keterlambatan' =>
+            $this->auditTrail->log(
+                $angsuran->pembiayaan,
+                'Angsuran',
+                'Pembayaran Angsuran',
+                'Angsuran Ke-' .
+                $angsuran->angsuran_ke .
+                ' | Angsuran : Rp ' .
+                number_format(
+                    $bayarAngsuran,
+                    0,
+                    ',',
+                    '.'
+                ) .
+                ' | Denda : Rp ' .
+                number_format(
+                    $bayarDenda,
+                    0,
+                    ',',
+                    '.'
+                ) .
+                $auditDiskon .
+                ' | Admin : Rp ' .
+                number_format(
                     $bayarAdmin,
-
-                'admin_keterlambatan_format' =>
-                    number_format(
-                        $bayarAdmin,
-                        0,
-                        ',',
-                        '.'
-                    ),
-
-
-                'total_tambahan' =>
-                    $totalTambahan,
-
-                'total_tambahan_format' =>
-                    number_format(
-                        $totalTambahan,
-                        0,
-                        ',',
-                        '.'
-                    ),
-
-
-                'total_dibayar' =>
+                    0,
+                    ',',
+                    '.'
+                ) .
+                ' | Total : Rp ' .
+                number_format(
                     $totalDibayar,
+                    0,
+                    ',',
+                    '.'
+                )
+            );
 
-                'total_dibayar_format' =>
-                    number_format(
+
+            /*
+            |--------------------------------------------------------------------------
+            | RESPONSE
+            |--------------------------------------------------------------------------
+            */
+
+            return [
+
+                'pembayaran' =>
+                    $pembayaran,
+
+                'preview' =>
+                    $preview,
+
+                'alokasi' => [
+
+                    'uang_masuk' =>
+                        $uangMasuk,
+
+                    'bayar_angsuran' =>
+                        $bayarAngsuran,
+
+                    'bayar_denda' =>
+                        $bayarDenda,
+
+                    'bayar_admin' =>
+                        $bayarAdmin,
+
+                    'diskon_denda' =>
+                        $diskonDenda,
+
+                    'total_dibayar' =>
                         $totalDibayar,
-                        0,
-                        ',',
-                        '.'
-                    ),
-            ],
+                ],
 
 
-            'summary' => [
+                'row' => [
 
-                'total_angsuran' =>
-                    $totalAngsuran,
+                    'status' =>
+                        ucfirst(
+                            str_replace(
+                                '_',
+                                ' ',
+                                $status
+                            )
+                        ),
 
-                'sudah_dibayar' =>
-                    $sudahDibayar,
+                    'badge' =>
+                        match ($status) {
 
-                'sisa_angsuran' =>
-                    $sisaAngsuranCount,
+                            'dibayar' =>
+                                'bg-success',
 
-                'outstanding' =>
-                    $outstanding,
+                            'jatuh_tempo' =>
+                                'bg-danger',
 
-                'outstanding_format' =>
-                    number_format(
+                            default =>
+                                'bg-secondary',
+                        },
+
+
+                    'total_terbayar' =>
+                        $totalTerbayarAngsuran,
+
+                    'total_terbayar_format' =>
+                        number_format(
+                            $totalTerbayarAngsuran,
+                            0,
+                            ',',
+                            '.'
+                        ),
+
+
+                    'sisa_tagihan' =>
+                        $sisaTagihan,
+
+                    'sisa_tagihan_format' =>
+                        number_format(
+                            $sisaTagihan,
+                            0,
+                            ',',
+                            '.'
+                        ),
+
+
+                    'denda' =>
+                        $bayarDenda,
+
+                    'denda_format' =>
+                        number_format(
+                            $bayarDenda,
+                            0,
+                            ',',
+                            '.'
+                        ),
+
+
+                    'diskon_denda' =>
+                        $diskonDenda,
+
+                    'diskon_denda_format' =>
+                        number_format(
+                            $diskonDenda,
+                            0,
+                            ',',
+                            '.'
+                        ),
+
+
+                    'admin_keterlambatan' =>
+                        $bayarAdmin,
+
+                    'admin_keterlambatan_format' =>
+                        number_format(
+                            $bayarAdmin,
+                            0,
+                            ',',
+                            '.'
+                        ),
+
+
+                    'total_tambahan' =>
+                        $totalTambahan,
+
+                    'total_tambahan_format' =>
+                        number_format(
+                            $totalTambahan,
+                            0,
+                            ',',
+                            '.'
+                        ),
+
+
+                    'total_dibayar' =>
+                        $totalDibayar,
+
+                    'total_dibayar_format' =>
+                        number_format(
+                            $totalDibayar,
+                            0,
+                            ',',
+                            '.'
+                        ),
+                ],
+
+
+                'summary' => [
+
+                    'total_angsuran' =>
+                        $totalAngsuran,
+
+                    'sudah_dibayar' =>
+                        $sudahDibayar,
+
+                    'sisa_angsuran' =>
+                        $sisaAngsuranCount,
+
+                    'outstanding' =>
                         $outstanding,
-                        0,
-                        ',',
-                        '.'
-                    ),
-            ],
-        ];
-    });
+
+                    'outstanding_format' =>
+                        number_format(
+                            $outstanding,
+                            0,
+                            ',',
+                            '.'
+                        ),
+                ],
+            ];
+        });
     }
 
 

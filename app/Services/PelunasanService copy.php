@@ -66,51 +66,15 @@ class PelunasanService
              * Jadi bunga bulan yang belum jatuh tempo
              * tidak ikut dibebankan.
              */
-           /*
-|--------------------------------------------------------------------------
-| SISA BUNGA
-|--------------------------------------------------------------------------
-|
-| Untuk tenor pendek:
-|
-| 1. Bunga angsuran yang sudah jatuh tempo tetap dihitung.
-| 2. Bunga angsuran pertama yang belum dibayar
-|    juga dihitung sebagai bunga yang sedang berjalan.
-| 3. Bunga angsuran berikutnya tidak ikut dihitung.
-|
-*/
+            $sisaBunga = $angsurans
+                ->filter(function ($angsuran) use ($tanggalPelunasan) {
 
-$angsuranPertamaBelumLunas = $angsurans
-    ->sortBy('angsuran_ke')
-    ->first();
+                    return Carbon::parse(
+                        $angsuran->tanggal_jatuh_tempo
+                    )->lte($tanggalPelunasan);
 
-$sisaBunga = $angsurans
-    ->filter(function ($angsuran) use ($tanggalPelunasan) {
-
-        return Carbon::parse(
-            $angsuran->tanggal_jatuh_tempo
-        )->lte($tanggalPelunasan);
-
-    })
-    ->sum('bunga_angsuran');
-
-/*
-|--------------------------------------------------------------------------
-| TAMBAHKAN BUNGA ANGSURAN YANG SEDANG BERJALAN
-|--------------------------------------------------------------------------
-*/
-
-if (
-    $angsuranPertamaBelumLunas
-    &&
-    Carbon::parse(
-        $angsuranPertamaBelumLunas->tanggal_jatuh_tempo
-    )->gt($tanggalPelunasan)
-) {
-
-    $sisaBunga +=
-        (int) $angsuranPertamaBelumLunas->bunga_angsuran;
-}
+                })
+                ->sum('bunga_angsuran');
 
             $denda = $angsurans->sum('denda');
 

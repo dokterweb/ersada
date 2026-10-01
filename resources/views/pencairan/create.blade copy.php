@@ -2,7 +2,26 @@
 
 @section('content')
 <div class="page-wrapper">
-   
+    <!-- Page header -->
+    <div class="page-header d-print-none">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <h2 class="page-title">
+              Data Karyawan
+            </h2>
+          </div>
+          <!-- Page title actions -->
+          <div class="col-auto ms-auto d-print-none">
+            <div class="btn-list">
+              <a href="{{route('karyawans.create')}}" class="btn btn-primary">
+                Tambah Karyawan
+            </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Page body -->
     <div class="page-body">
       <div class="container-xl">
@@ -339,20 +358,43 @@
                                         '.'
                                     ) }}
                                 </td>
+
                             </tr>
-                           <tr class="table-success">
-                                <th>Dana Top Up Diterima Nasabah</th>
-                                <th class="fs-2" id="topup-dana-diterima">
+
+
+                            <tr class="table-success">
+
+                                <th>
+                                    Dana Top Up Diterima Nasabah
+                                </th>
+
+                                <th class="fs-2">
+
                                     @if($danaTopUp >= 0)
-                                        Rp {{ number_format($danaTopUp,0,',','.') }}
+
+                                        Rp
+                                        {{ number_format(
+                                            $danaTopUp,
+                                            0,
+                                            ',',
+                                            '.'
+                                        ) }}
+
                                     @else
+
                                         Tidak Mencukupi
+
                                     @endif
+
                                 </th>
 
                             </tr>
+
                         </table>
+
                     </div>
+
+
                     @if($danaTopUp < 0)
 
                         <div class="text-danger mt-3">
@@ -397,17 +439,12 @@
         <div class="card-body">
 
             <div class="form-check">
-               <input
+                <input
                     class="form-check-input"
                     type="checkbox"
                     name="bayar_angsuran_pertama"
                     id="bayar_angsuran_pertama"
                     value="1"
-                    data-angsuran="{{ max(
-                        0,
-                        $angsuranPertamaBaru->total_angsuran
-                        - $angsuranPertamaBaru->total_terbayar
-                    ) }}"
                     {{ old('bayar_angsuran_pertama') ? 'checked' : '' }}
                 >
 
@@ -537,7 +574,7 @@
                     <a href="{{ route('akad.show',$akad) }}" class="btn btn-secondary">
                         Kembali
                     </a>
-                   <button type="submit" id="btn-submit-pencairan" class="btn btn-primary">
+                    <button class="btn btn-primary">
                         Simpan Pencairan
                     </button>
                 </div>
@@ -548,371 +585,13 @@
 </div>
 @endsection
 
+@section('scripts')
 
 @section('scripts')
 
 <script>
 
-$(document).ready(function () {
-
-    /*
-    |--------------------------------------------------------------------------
-    | FORMAT RUPIAH
-    |--------------------------------------------------------------------------
-    */
-
-    function formatRupiah(angka)
-    {
-        angka = parseInt(angka) || 0;
-
-        return 'Rp ' + angka.toLocaleString('id-ID');
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | DATA DARI SERVER
-    |--------------------------------------------------------------------------
-    */
-
-    const danaPembiayaanBaru =
-        {{ (int) $danaPembiayaanBaru }};
-
-    const totalPelunasanLama =
-        {{ (int) $totalPelunasanLama }};
-
-    const danaTopUpAwal =
-        {{ (int) $danaTopUp }};
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | ELEMENT
-    |--------------------------------------------------------------------------
-    */
-
-    const $checkbox =
-        $('#bayar_angsuran_pertama');
-
-    const $danaTopUp =
-        $('#topup-dana-diterima');
-
-    const $submit =
-        $('#btn-submit-pencairan');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | BUAT AREA WARNING
-    |--------------------------------------------------------------------------
-    */
-
-    const warningHtml = `
-        <div
-            id="warning-angsuran-pertama"
-            class="alert alert-danger mt-3 mb-0 d-none"
-        >
-            <div class="fw-bold">
-                <i class="ti ti-alert-triangle me-1"></i>
-                Pencairan tidak dapat dilakukan
-            </div>
-
-            <div
-                id="warning-angsuran-text"
-                class="mt-1"
-            ></div>
-        </div>
-    `;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | TAMBAHKAN WARNING DI CARD ANGSURAN
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-        $checkbox.length &&
-        !$('#warning-angsuran-pertama').length
-    ) {
-
-        $checkbox
-            .closest('.card-body')
-            .append(warningHtml);
-
-    }
-
-
-    const $warning =
-        $('#warning-angsuran-pertama');
-
-    const $warningText =
-        $('#warning-angsuran-text');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | NOMINAL ANGSURAN PERTAMA
-    |--------------------------------------------------------------------------
-    */
-
-    function getAngsuranPertama()
-    {
-
-        if (!$checkbox.length) {
-            return 0;
-        }
-
-        return parseInt(
-            $checkbox.attr('data-angsuran')
-        ) || 0;
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SEMBUNYIKAN WARNING
-    |--------------------------------------------------------------------------
-    */
-
-    function hideWarning()
-    {
-
-        $warning.addClass('d-none');
-
-        $warningText.html('');
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | TAMPILKAN WARNING
-    |--------------------------------------------------------------------------
-    */
-
-    function showWarning(
-        danaTersedia,
-        angsuranPertama
-    )
-    {
-
-        const kekurangan =
-            angsuranPertama -
-            danaTersedia;
-
-
-        $warningText.html(`
-
-            Angsuran pertama sebesar
-            <strong>
-                ${formatRupiah(angsuranPertama)}
-            </strong>
-
-            lebih besar dari dana top up yang tersedia
-            sebesar
-
-            <strong>
-                ${formatRupiah(danaTersedia)}
-            </strong>.
-
-            <br>
-
-            Kekurangan dana:
-
-            <strong>
-                ${formatRupiah(kekurangan)}
-            </strong>.
-
-            <br>
-
-            Anda tidak dapat melakukan pencairan
-            dengan pilihan pembayaran angsuran pertama
-            ini.
-
-        `);
-
-
-        $warning.removeClass('d-none');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DISABLE SUBMIT
-        |--------------------------------------------------------------------------
-        */
-
-        $submit.prop('disabled', true);
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | HITUNG ULANG DANA TOP UP
-    |--------------------------------------------------------------------------
-    */
-
-    function hitungDanaTopUp()
-    {
-
-        /*
-        |--------------------------------------------------------------------------
-        | JIKA TIDAK ADA ELEMENT TOP UP
-        |--------------------------------------------------------------------------
-        */
-
-        if (!$danaTopUp.length) {
-            return;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESET
-        |--------------------------------------------------------------------------
-        */
-
-        hideWarning();
-
-        $submit.prop('disabled', false);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | CHECKBOX TIDAK DICENTANG
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            !$checkbox.length ||
-            !$checkbox.is(':checked')
-        ) {
-
-            /*
-            | Kembali ke Dana Top Up awal.
-            */
-
-            if (danaTopUpAwal >= 0) {
-
-                $danaTopUp.text(
-                    formatRupiah(danaTopUpAwal)
-                );
-
-            } else {
-
-                $danaTopUp.text(
-                    'Tidak Mencukupi'
-                );
-
-                $submit.prop(
-                    'disabled',
-                    true
-                );
-
-            }
-
-            return;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | CHECKBOX DICENTANG
-        |--------------------------------------------------------------------------
-        */
-
-        const angsuranPertama =
-            getAngsuranPertama();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | HITUNG DANA SETELAH BAYAR ANGSURAN
-        |--------------------------------------------------------------------------
-        */
-
-        const danaSetelahAngsuran =
-            danaTopUpAwal -
-            angsuranPertama;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DANA TIDAK CUKUP
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            danaSetelahAngsuran < 0
-        ) {
-
-            /*
-            | Jangan tampilkan angka negatif.
-            */
-
-            $danaTopUp.text(
-                formatRupiah(0)
-            );
-
-
-            /*
-            | Tampilkan warning.
-            */
-
-            showWarning(
-                danaTopUpAwal,
-                angsuranPertama
-            );
-
-
-            return;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DANA CUKUP
-        |--------------------------------------------------------------------------
-        */
-
-        $danaTopUp.text(
-            formatRupiah(
-                danaSetelahAngsuran
-            )
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | SUBMIT BOLEH
-        |--------------------------------------------------------------------------
-        */
-
-        $submit.prop(
-            'disabled',
-            false
-        );
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | EVENT CHECKBOX
-    |--------------------------------------------------------------------------
-    */
-
-    $checkbox.on(
-        'change',
-        function () {
-
-            hitungDanaTopUp();
-
-        }
-    );
-
+$(function () {
 
     /*
     |--------------------------------------------------------------------------
@@ -920,12 +599,9 @@ $(document).ready(function () {
     |--------------------------------------------------------------------------
     */
 
-    function toggleTransfer()
-    {
+    function toggleTransfer() {
 
-        if (
-            $('#metode').val() === 'transfer'
-        ) {
+        if ($('#metode').val() === 'transfer') {
 
             $('#transfer-area').slideDown();
 
@@ -934,101 +610,248 @@ $(document).ready(function () {
             $('#transfer-area').slideUp();
 
         }
+    }
+
+    toggleTransfer();
+
+    $('#metode').change(toggleTransfer);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FORMAT RUPIAH
+    |--------------------------------------------------------------------------
+    */
+
+    function formatRupiah(angka) {
+
+        angka = parseInt(angka) || 0;
+
+        return 'Rp ' + angka.toLocaleString('id-ID');
 
     }
 
 
-    toggleTransfer();
+    /*
+    |--------------------------------------------------------------------------
+    | SELECT PEMBIAYAAN LAMA
+    |--------------------------------------------------------------------------
+    */
 
+    $('#pembiayaan_lama_id').on('change', function () {
 
-    $('#metode').on(
-        'change',
-        function () {
+        const pembiayaanId = $(this).val();
 
-            toggleTransfer();
+        /*
+        | Reset
+        */
+
+        $('#info-pembiayaan-lama').hide();
+
+        $('#info-topup').hide();
+
+        if (!pembiayaanId) {
+
+            return;
 
         }
-    );
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | INITIAL CALCULATION
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | Loading
+        |--------------------------------------------------------------------------
+        */
 
-    hitungDanaTopUp();
+        $('#info-pembiayaan-lama').show();
 
+        $('#lama-nomor').html(
+            '<span class="text-muted">Menghitung...</span>'
+        );
 
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDASI SAAT SUBMIT
-    |--------------------------------------------------------------------------
-    |
-    | Ini pengaman tambahan di browser.
-    | Backend tetap melakukan validasi yang sama.
-    |
-    */
+        $('#lama-plafond').html(
+            '<span class="text-muted">Menghitung...</span>'
+        );
 
-    $('form').on(
-        'submit',
-        function (e) {
+        $('#lama-sisa-pokok').html(
+            '<span class="text-muted">Menghitung...</span>'
+        );
 
-            /*
-            |--------------------------------------------------------------------------
-            | CHECKBOX TIDAK DICENTANG
-            |--------------------------------------------------------------------------
-            */
+        $('#lama-sisa-bunga').html(
+            '<span class="text-muted">Menghitung...</span>'
+        );
 
-            if (
-                !$checkbox.length ||
-                !$checkbox.is(':checked')
-            ) {
+        $('#lama-denda').html(
+            '<span class="text-muted">Menghitung...</span>'
+        );
 
-                return true;
-
-            }
+        $('#lama-pelunasan').html(
+            '<span class="text-muted">Menghitung...</span>'
+        );
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | AMBIL ANGSURAN
-            |--------------------------------------------------------------------------
-            */
+        /*
+        |--------------------------------------------------------------------------
+        | AJAX
+        |--------------------------------------------------------------------------
+        */
 
-            const angsuranPertama =
-                getAngsuranPertama();
+        $.ajax({
+
+            url:
+                "{{ url('/pencairan/pembiayaan-lama') }}/"
+                + pembiayaanId,
+
+            type: 'GET',
+
+            dataType: 'json',
+
+            success: function (response) {
+
+                if (!response.success) {
+
+                    alert(
+                        response.message ||
+                        'Gagal menghitung pelunasan.'
+                    );
+
+                    $('#info-pembiayaan-lama').hide();
+
+                    return;
+                }
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | CEK
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                angsuranPertama >
-                danaTopUpAwal
-            ) {
-
-                e.preventDefault();
+                const data = response.data;
 
 
-                showWarning(
-                    danaTopUpAwal,
-                    angsuranPertama
+                /*
+                |--------------------------------------------------------------------------
+                | INFORMASI PEMBIAYAAN LAMA
+                |--------------------------------------------------------------------------
+                */
+
+                $('#lama-nomor').text(
+                    data.nomor_pembiayaan
+                );
+
+                $('#lama-plafond').text(
+                    formatRupiah(data.plafond)
+                );
+
+                $('#lama-sisa-pokok').text(
+                    formatRupiah(data.sisa_pokok)
+                );
+
+                $('#lama-sisa-bunga').text(
+                    formatRupiah(data.sisa_bunga)
+                );
+
+                $('#lama-denda').text(
+                    formatRupiah(data.denda)
+                );
+
+                $('#lama-pelunasan').text(
+                    formatRupiah(data.total_pelunasan)
                 );
 
 
-                return false;
+                /*
+                |--------------------------------------------------------------------------
+                | HITUNG DANA TOP UP
+                |--------------------------------------------------------------------------
+                */
+
+                const danaBaru =
+                    parseInt(
+                        "{{ (int) $akad->pembiayaan->dana_diterima }}"
+                    ) || 0;
+
+                const pelunasanLama =
+                    parseInt(
+                        data.total_pelunasan
+                    ) || 0;
+
+
+                const danaTopUp =
+                    danaBaru -
+                    pelunasanLama;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | TAMPILKAN DANA
+                |--------------------------------------------------------------------------
+                */
+
+                $('#topup-dana-baru').text(
+                    formatRupiah(danaBaru)
+                );
+
+                $('#topup-pelunasan-lama').text(
+                    formatRupiah(pelunasanLama)
+                );
+
+                $('#topup-dana-diterima').text(
+                    formatRupiah(
+                        Math.max(0, danaTopUp)
+                    )
+                );
+
+                $('#info-topup').slideDown();
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | JIKA PELUNASAN > DANA BARU
+                |--------------------------------------------------------------------------
+                */
+
+                if (danaTopUp < 0) {
+
+                    $('#info-topup')
+                        .removeClass('alert-success')
+                        .addClass('alert-danger');
+
+                    $('#topup-dana-diterima').text(
+                        'Tidak mencukupi'
+                    );
+
+                } else {
+
+                    $('#info-topup')
+                        .removeClass('alert-danger')
+                        .addClass('alert-success');
+
+                }
+
+            },
+
+            error: function (xhr) {
+
+                let message =
+                    'Gagal mengambil data pembiayaan lama.';
+
+                if (
+                    xhr.responseJSON &&
+                    xhr.responseJSON.message
+                ) {
+
+                    message =
+                        xhr.responseJSON.message;
+
+                }
+
+                $('#info-pembiayaan-lama').hide();
+
+                $('#info-topup').hide();
+
+                alert(message);
 
             }
 
+        });
 
-            return true;
-
-        }
-    );
+    });
 
 });
 

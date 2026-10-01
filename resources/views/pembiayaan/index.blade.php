@@ -129,9 +129,20 @@
                                                     </li>
                                                 @endif
                                                 {{-- AKAD / SIGNED / DICAIRKAN / LUNAS --}}
-                                                @if(in_array($status,['akad','signed','dicairkan','lunas']))
+                                               {{--  @if(in_array($status,['akad','signed','dicairkan','lunas']))
                                                     <li>
                                                         <a class="dropdown-item" href="{{ route('akad.show',$item->pembiayaan->akad) }}">
+                                                            <i class="ti ti-file-description me-2"></i>
+                                                            Detail Akad
+                                                        </a>
+                                                    </li>
+                                                @endif --}}
+                                                @if(
+                                                    in_array($status, ['akad','signed','dicairkan','lunas'])
+                                                    && $item->pembiayaan->akad
+                                                )
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ route('akad.show', $item->pembiayaan->akad) }}">
                                                             <i class="ti ti-file-description me-2"></i>
                                                             Detail Akad
                                                         </a>

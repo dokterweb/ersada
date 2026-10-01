@@ -7,7 +7,7 @@
         <div class="container-xl">
             <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title">Data Karyawan</h2>
+                <h2 class="page-title">Data Operasional</h2>
             </div>
         </div>
       </div>
@@ -333,8 +333,8 @@
                                         <td>{{ $loop->iteration + ($pembiayaans->firstItem()-1) }}</td>
                                         <td><strong>{{ $item->nomor_pembiayaan }}</strong></td>
                                         <td>{{ $item->pengajuan->nasabah->nama }}</td>
-                                        <td>{{ $item->pengajuan->marketing->name }}</td>
-                                        <td>{{ $item->pengajuan->cabang->nama }}</td>
+                                        <td>{{ $item->pengajuan->marketing->user->name }}</td>
+                                        <td>{{ $item->pengajuan->cabang->nama_cabang }}</td>
                                         <td class="text-right">Rp {{ number_format($item->plafond,0,',','.') }}</td>
                                         <td class="text-right">Rp {{ number_format($outstanding,0,',','.') }}</td>
                                         <td width="180">

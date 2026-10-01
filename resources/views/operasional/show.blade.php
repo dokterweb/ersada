@@ -8,7 +8,7 @@
             <div class="row g-2 align-items-center">
                 <div class="col">
                     <h2 class="page-title">
-                    Data Karyawan
+                        Detail Nasabah
                     </h2>
                 </div>
                 <!-- Page title actions -->
@@ -181,36 +181,36 @@
                                         </div>
                                         <table class="table table-sm">
                                             <tr>
-                                                <th width="35%">Nama</th>
+                                                <td width="35%">Nama</td>
                                                 <td>{{ $pembiayaan->pengajuan->nasabah->nama }}</td>
                                             </tr>
                                             <tr>
-                                                <th>NIK</th>
+                                                <td>NIK</td>
                                                 <td>{{ $pembiayaan->pengajuan->nasabah->nik }}</td>
                                             </tr>
                                             <tr>
-                                                <th>Alamat</th>
+                                                <td>Alamat</td>
                                                 <td>{{ $pembiayaan->pengajuan->nasabah->alamat }}</td>
                                             </tr>
                                             <tr>
-                                                <th>Marketing</th>
+                                                <td>Marketing</td>
                                                 <td>{{ $pembiayaan->pengajuan->marketing->user->name }}</td>
                                             </tr>
                                             <tr>
-                                                <th>Cabang</th>
+                                                <td>Cabang</td>
                                                 <td>{{ $pembiayaan->pengajuan->cabang->nama_cabang }}</td>
                                             </tr>
                                             <tr>
-                                                <th>Tempat Lahir / Tgl Lahir</th>
+                                                <td>Tempat Lahir / Tgl Lahir</td>
                                                 <td>{{ $pembiayaan->pengajuan->nasabah->tempat_lahir.' / '.
                                                 \Carbon\Carbon::parse($pembiayaan->pengajuan->nasabah->tgl_lahir)->format('d-m-Y')  }}</td>
                                             </tr>
                                             <tr>
-                                                <th>status_perkawinan</th>
+                                                <td>status_perkawinan</td>
                                                 <td>{{ $pembiayaan->pengajuan->nasabah->status_perkawinan }}</td>
                                             </tr>
                                             <tr>
-                                                <th>jumlah_tanggungan</th>
+                                                <td>jumlah_tanggungan</td>
                                                 <td>{{ $pembiayaan->pengajuan->nasabah->jumlah_tanggungan }}</td>
                                             </tr>
                                             <tr>
@@ -287,27 +287,27 @@
                                         <div class="card-header">Data Pembiayaan</div>
                                         <table class="table table-sm">
                                             <tr>
-                                                <th width="40%">Plafond</th>
+                                                <td width="40%">Plafond</td>
                                                 <td>Rp {{ number_format($pembiayaan->plafond,0,',','.') }}</td>
                                             </tr>
                                             <tr>
-                                                <th>Tenor</th>
+                                                <td>Tenor</td>
                                                 <td>{{ $pembiayaan->tenor }} Bulan</td>
                                             </tr>
                                             <tr>
-                                                <th>Bunga</th>
+                                                <td>Bunga</td>
                                                 <td>{{ $pembiayaan->persen_bunga }}%</td>
                                             </tr>
                                             <tr>
-                                                <th>Administrasi</th>
+                                                <td>Administrasi</td>
                                                 <td>Rp {{ number_format($pembiayaan->biaya_administrasi,0,',','.') }}</td>
                                             </tr>
                                             <tr>
-                                                <th>Tanggal Akad</th>
+                                                <td>Tanggal Akad</td>
                                                 <td>{{ optional($pembiayaan->akad)->tanggal_akad?->format('d-m-Y') }}</td>
                                             </tr>
                                             <tr>
-                                                <th>Tanggal Pencairan</th>
+                                                <td>Tanggal Pencairan</td>
                                                 <td>{{ optional(optional($pembiayaan->akad)->pencairan)->tanggal_pencairan?->format('d-m-Y') }}</td>
                                             </tr>
                                         </table>
