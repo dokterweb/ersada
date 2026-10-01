@@ -185,15 +185,6 @@ class AngsuranController extends Controller
                 $this->service->previewDenda($item);
 
         }
-       /*  dd($pembiayaan->angsurans->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'angsuran_ke' => $item->angsuran_ke,
-                'status' => $item->status,
-                'tanggal_jatuh_tempo' => $item->tanggal_jatuh_tempo,
-                'preview_denda' => $item->preview_denda,
-            ];
-        })); */
 
         $angsurans = $pembiayaan->angsurans;
 
@@ -206,9 +197,7 @@ class AngsuranController extends Controller
         $sisaAngsuran =
             $totalAngsuran - $sudahDibayar;
 
-        $outstanding = $angsurans
-            ->where('status', '!=', 'dibayar')
-            ->sum('sisa_pokok');
+       $outstanding = $angsurans ->sum('sisa_tagihan');
 
         return view(
             'angsuran.show',
