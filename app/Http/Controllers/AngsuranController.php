@@ -166,6 +166,7 @@ class AngsuranController extends Controller
             'pengajuan.nasabah',
             'pengajuan.marketing',
             'pengajuan.cabang',
+            'pengajuan.jaminanPengajuans.dokumenJaminans',
             'akad.pencairan',
             'angsurans' => function ($q) {
                 $q->with('pelunasan')

@@ -33,7 +33,7 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <table class="table table-bordered">
                                         <tr>
                                             <th width="250">Nomor Pembiayaan</th>
@@ -69,7 +69,7 @@
                                         </tr>
                                     </table>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <table class="table table-bordered">
                                         <tr>
                                             <th width="250">Total Angsuran</th>
@@ -87,8 +87,88 @@
                                             <th>Outstanding</th>
                                             <td>Rp {{ number_format($outstanding,0,',','.') }}</td>
                                         </tr>
-                                        
                                     </table>
+                                    @forelse($pembiayaan->pengajuan->jaminanPengajuans as $jaminan)
+                                        <table class="table table-bordered">
+                                            <tr>
+                                                <th width="180">Jenis Jaminan</th>
+                                                <td>{{ $jaminan->jenis_jaminan }}</td>
+                                            </tr>
+                                            @if($jaminan->jenis_kendaraan)
+                                                <tr>
+                                                    <th>Jenis Kendaraan</th>
+                                                    <td>{{ ucfirst($jaminan->jenis_kendaraan) }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($jaminan->merk_kendaraan)
+                                                <tr>
+                                                    <th>Merk</th>
+                                                    <td>{{ $jaminan->merk_kendaraan }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($jaminan->tahun_kendaraan)
+                                                <tr>
+                                                    <th>Tahun</th>
+                                                    <td>{{ $jaminan->tahun_kendaraan }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($jaminan->plat_polisi)
+                                                <tr>
+                                                    <th>Plat Polisi</th>
+                                                    <td>{{ $jaminan->plat_polisi }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($jaminan->bpkb_atas_nama)
+                                                <tr>
+                                                    <th>BPKB Atas Nama</th>
+                                                    <td>{{ $jaminan->bpkb_atas_nama }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($jaminan->no_bpkb)
+                                                <tr>
+                                                    <th>No. BPKB</th>
+                                                    <td>{{ $jaminan->no_bpkb }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($jaminan->no_rangka)
+                                                <tr>
+                                                    <th>No. Rangka</th>
+                                                    <td>{{ $jaminan->no_rangka }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($jaminan->no_mesin)
+                                                <tr>
+                                                    <th>No. Mesin</th>
+                                                    <td>{{ $jaminan->no_mesin }}</td>
+                                                </tr>
+                                            @endif
+                                            @if($jaminan->detail_jaminan)
+                                                <tr>
+                                                    <th>Detail</th>
+                                                    <td>{{ $jaminan->detail_jaminan }}</td>
+                                                </tr>
+                                                @endif
+                                        </table>
+                                    @empty
+                                        <p>tidak ada jaminan</p>
+                                    @endforelse
+                                </div>
+                                <div class="col-md-4">
+                                    @if($pembiayaan->pengajuan->nasabah->foto_nasabah)
+                                        <img
+                                            src="{{ asset('storage/' . $pembiayaan->pengajuan->nasabah->foto_nasabah) }}"
+                                            alt="Foto Nasabah"
+                                            class="avatar avatar-lg rounded-circle object-cover"
+                                            style="width: 150px; height: 150px; object-fit: cover;"
+                                        >
+                                    @else
+                                        <div
+                                            class="avatar avatar-lg rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                                            style="width: 150px; height: 150px;"
+                                        >
+                                            <i class="fas fa-user fa-lg"></i>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="card mt-3">
@@ -105,6 +185,7 @@
                                                 <th>Jatuh Tempo</th>
                                                 <th>Pokok</th>
                                                 <th>Bunga</th>
+                                                <th>Denda</th>
                                                 <th>Total</th>
                                                 <th>Total Terbayar</th>
                                                 <th>Sisa Tagihan</th>
@@ -114,89 +195,101 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                        @foreach($pembiayaan->angsurans as $item)
-                                        <tr id="row-{{ $item->id }}">
-                                            <td>{{ $item->angsuran_ke }}</td>
-                                            {{-- <td>{{ $item->id }}</td> --}}
-                                            <td>{{ $item->tanggal_jatuh_tempo->format('d-m-Y') }}</td>
-                                            <td>Rp {{ number_format($item->pokok_angsuran,0,',','.') }}</td>
-                                            <td>Rp {{ number_format($item->bunga_angsuran,0,',','.') }}</td>
-                                            <td><strong>Rp {{ number_format($item->total_angsuran,0,',','.') }}</strong></td>
-                                            <td>
-                                                <span id="terbayar-{{ $item->id }}">
-                                                Rp {{ number_format($item->total_terbayar,0,',','.') }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span id="sisa-{{ $item->id }}">
-                                                Rp {{ number_format($item->sisa_tagihan,0,',','.') }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span id="status-{{ $item->id }}" class="badge
-                                                @if($item->status=='dibayar')
-                                                bg-success
-                                                @elseif($item->status=='jatuh_tempo')
-                                                bg-danger
-                                                @else
-                                                bg-secondary
-                                                @endif
-                                                ">
-                                                {{ ucfirst(str_replace('_',' ',$item->status)) }}
-                                                </span>
-                                            </td>
-                                            <td>
-    @if($item->pelunasan)
-
-        <span class="badge bg-info">
-            Pelunasan
-        </span>
-
-        <div class="small text-muted mt-1">
-            {{ $item->pelunasan->nomor_pelunasan }}
-        </div>
-
-    @elseif($item->status === 'dibayar')
-
-        <span class="badge bg-secondary">
-            Angsuran Biasa
-        </span>
-
-    @else
-
-        <span class="text-muted">
-            -
-        </span>
-
-    @endif
-</td>
-                                            <td>
-                                                @if($item->status!='dibayar')
-                                                   {{--  <a href="{{ route('angsuran.create',$item) }}" class="btn btn-success btn-sm">
-                                                        Bayar
-                                                    </a> --}}
-                                                    <button id="btn-{{ $item->id }}"  class="btn btn-success btn-sm btn-bayar"
-                                                        data-id="{{ $item->id }}">Bayar
-                                                    </button>
-                                                    @if(
-                                                        $item->status != 'dibayar' &&
-                                                        ($item->preview_denda['denda_tersisa'] ?? 0) > 0
-                                                    )
-                                                        <a href="{{ route('diskon-denda.create', $item) }}" class="btn btn-warning btn-sm">
-                                                            <i class="ti ti-discount"></i>
-                                                            Diskon Denda
-                                                        </a>
+                                            @foreach($pembiayaan->angsurans as $item)
+                                            <tr id="row-{{ $item->id }}">
+                                                <td>{{ $item->angsuran_ke }}</td>
+                                                {{-- <td>{{ $item->id }}</td> --}}
+                                                <td>{{ $item->tanggal_jatuh_tempo->format('d-m-Y') }}</td>
+                                                <td>Rp {{ number_format($item->pokok_angsuran,0,',','.') }}</td>
+                                                <td>Rp {{ number_format($item->bunga_angsuran,0,',','.') }}</td>
+                                                <td>
+                                                    @php
+                                                        $denda = (int) ($item->preview_denda['denda_tersisa'] ?? 0);
+                                                    @endphp
+                                                    @if($denda > 0)
+                                                        <span class="text-danger fw-bold">
+                                                            Rp {{ number_format($denda,0,',','.') }}
+                                                        </span>
+                                                    @else
+                                                        <span class="text-muted">Rp 0</span>
                                                     @endif
-                                                @endif
-                                                   {{--  <a href="{{ route('angsuran.history',$item) }}" class="btn btn-info btn-sm">
-                                                        History
-                                                    </a> --}}
-                                                    <button class="btn btn-info btn-sm btn-history" data-id="{{ $item->id }}">
+                                                </td>
+                                                <td><strong>Rp {{ number_format($item->total_angsuran,0,',','.') }}</strong></td>
+                                                <td>
+                                                    <span id="terbayar-{{ $item->id }}">
+                                                    Rp {{ number_format($item->total_terbayar,0,',','.') }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span id="sisa-{{ $item->id }}">
+                                                    Rp {{ number_format($item->sisa_tagihan,0,',','.') }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span id="status-{{ $item->id }}" class="badge
+                                                    @if($item->status=='dibayar')
+                                                    bg-success
+                                                    @elseif($item->status=='jatuh_tempo')
+                                                    bg-danger
+                                                    @else
+                                                    bg-secondary
+                                                    @endif
+                                                    ">
+                                                    {{ ucfirst(str_replace('_',' ',$item->status)) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @if($item->pelunasan)
+
+                                                        <span class="badge bg-info">
+                                                            Pelunasan
+                                                        </span>
+
+                                                        <div class="small text-muted mt-1">
+                                                            {{ $item->pelunasan->nomor_pelunasan }}
+                                                        </div>
+
+                                                    @elseif($item->status === 'dibayar')
+
+                                                        <span class="badge bg-secondary">
+                                                            Angsuran Biasa
+                                                        </span>
+
+                                                    @else
+
+                                                        <span class="text-muted">
+                                                            -
+                                                        </span>
+
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if($item->status!='dibayar')
+                                                    {{--  <a href="{{ route('angsuran.create',$item) }}" class="btn btn-success btn-sm">
+                                                            Bayar
+                                                        </a> --}}
+                                                        <button id="btn-{{ $item->id }}"  class="btn btn-success btn-sm btn-bayar"
+                                                            data-id="{{ $item->id }}">Bayar
+                                                        </button>
+                                                        @if(
+                                                            $item->status != 'dibayar' &&
+                                                            ($item->preview_denda['denda_tersisa'] ?? 0) > 0
+                                                        )
+                                                            <a href="{{ route('diskon-denda.create', $item) }}" class="btn btn-warning btn-sm">
+                                                                <i class="ti ti-discount"></i>
+                                                                Diskon Denda
+                                                            </a>
+                                                        @endif
+                                                    @endif
+                                                    {{--  <a href="{{ route('angsuran.history',$item) }}" class="btn btn-info btn-sm">
                                                             History
-                                                    </button>
-                                            </td>
-                                        </tr>
-                                        @endforeach
+                                                        </a> --}}
+                                                        <button class="btn btn-info btn-sm btn-history" data-id="{{ $item->id }}">
+                                                                History
+                                                        </button>
+                                                </td>
+                                            </tr>
+                                            @endforeach
                                         </tbody>
                                     
                                     </table>
