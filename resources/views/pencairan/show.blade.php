@@ -86,6 +86,19 @@
                                     <th>Biaya Survey</th>
                                     <td>Rp {{ number_format($pencairan->akad->pembiayaan->biaya_survey,0,',','.') }}</td>
                                 </tr>
+                                {{-- ============================================================
+                                    POTONGAN ANGSURAN PERTAMA
+                                ============================================================= --}}
+                                @if($potonganAngsuranPertama)
+                                    <tr class="table-warning">
+                                        <th>Potongan Angsuran Pertama</th>
+                                        <td>- Rp {{ number_format($potonganAngsuranPertama->jumlah_bayar,0,',','.') }}</td>
+                                    </tr>
+                                @endif
+
+                                {{-- ============================================================
+                                    DANA DITERIMA
+                                ============================================================= --}}
                                 <tr class="table-success">
                                     <th>Dana Diterima</th>
                                     <th>Rp {{ number_format($pencairan->jumlah_dicairkan,0,',','.') }}</th>

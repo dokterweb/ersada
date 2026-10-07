@@ -38,166 +38,179 @@ class PencairanController extends Controller
         return view('pencairan.index', compact('pencairans'));
     }
 
-   public function create(Akad $akad)
-{
-    $akad->load([
-        'pembiayaan',
-        'pembiayaan.pengajuan.nasabah',
-        'pembiayaan.pengajuan.marketing.user',
-        'pembiayaan.pengajuan.cabang',
-        'pembiayaan.angsurans',
-        'pembiayaan.pembiayaanLama',
-        'pembiayaan.pembiayaanLama.pengajuan.nasabah',
-        'pembiayaan.pembiayaanLama.angsurans',
-        'pembiayaan.pembiayaanLama.akad.pencairan',
-        'pencairan',
-    ]);
+    public function create(Akad $akad)
+    {
+        $akad->load([
+            'pembiayaan',
+            'pembiayaan.pengajuan.nasabah',
+            'pembiayaan.pengajuan.marketing.user',
+            'pembiayaan.pengajuan.cabang',
+            'pembiayaan.angsurans',
+            'pembiayaan.pembiayaanLama',
+            'pembiayaan.pembiayaanLama.pengajuan.nasabah',
+            'pembiayaan.pembiayaanLama.angsurans',
+            'pembiayaan.pembiayaanLama.akad.pencairan',
+            'pencairan',
+        ]);
 
-    abort_if(
-        $akad->status != 'signed' ||
-        $akad->pembiayaan->status != 'signed',
-        403,
-        'Akad belum ditandatangani.'
-    );
+        abort_if(
+            $akad->status != 'signed' ||
+            $akad->pembiayaan->status != 'signed',
+            403,
+            'Akad belum ditandatangani.'
+        );
 
-    if ($akad->pencairan) {
-        return redirect()
-            ->route('pencairan.show', $akad->pencairan)
-            ->with(
-                'warning',
-                'Pencairan sudah pernah dilakukan.'
-            );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | PEMBIAYAAN
-    |--------------------------------------------------------------------------
-    */
-
-    $pembiayaan = $akad->pembiayaan;
-
-    $statusCustomer =
-        $pembiayaan->pengajuan->status_customer;
-
-    /*
-    |--------------------------------------------------------------------------
-    | PEMBIAYAAN LAMA
-    |--------------------------------------------------------------------------
-    */
-
-    $pembiayaanLama =
-        $pembiayaan->pembiayaanLama;
-
-    /*
-    |--------------------------------------------------------------------------
-    | NILAI DEFAULT
-    |--------------------------------------------------------------------------
-    |
-    | Nilai ini harus tersedia untuk:
-    | - baru
-    | - walk_in
-    | - repeat_order
-    |
-    */
-
-    $danaPembiayaanBaru =
-        (int) $pembiayaan->dana_diterima;
-
-    $totalPelunasanLama = 0;
-
-    $danaTopUp =
-        $danaPembiayaanBaru;
-
-    /*
-    |--------------------------------------------------------------------------
-    | PERHITUNGAN PELUNASAN PEMBIAYAAN LAMA
-    |--------------------------------------------------------------------------
-    */
-
-    $perhitunganPelunasan = null;
-
-    if (
-        $statusCustomer === 'repeat_order'
-        && $pembiayaanLama
-    ) {
-
-        try {
-
-            $perhitunganPelunasan =
-                $this->service->hitungPelunasan(
-                    $pembiayaanLama,
-                    now()->toDateString()
+        if ($akad->pencairan) {
+            return redirect()
+                ->route('pencairan.show', $akad->pencairan)
+                ->with(
+                    'warning',
+                    'Pencairan sudah pernah dilakukan.'
                 );
-
-            /*
-            |------------------------------------------------------------------
-            | TOTAL PELUNASAN LAMA
-            |------------------------------------------------------------------
-            |
-            | Untuk Repeat Order, dana yang digunakan untuk melunasi
-            | pembiayaan lama adalah total sebelum diskon.
-            |
-            */
-
-            $totalPelunasanLama =
-                (int) (
-                    $perhitunganPelunasan['total_sebelum_diskon']
-                    ?? $perhitunganPelunasan['total']
-                    ?? 0
-                );
-
-            /*
-            |------------------------------------------------------------------
-            | DANA TOP UP
-            |------------------------------------------------------------------
-            */
-
-            $danaTopUp =
-                $danaPembiayaanBaru
-                - $totalPelunasanLama;
-
-        } catch (\Throwable $e) {
-
-            return back()->with(
-                'error',
-                'Gagal menghitung pelunasan pembiayaan lama: '
-                . $e->getMessage()
-            );
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PEMBIAYAAN
+        |--------------------------------------------------------------------------
+        */
+
+        $pembiayaan = $akad->pembiayaan;
+
+        $statusCustomer =
+            $pembiayaan->pengajuan->status_customer;
+
+        /*
+        |--------------------------------------------------------------------------
+        | PEMBIAYAAN LAMA
+        |--------------------------------------------------------------------------
+        */
+
+        $pembiayaanLama =
+            $pembiayaan->pembiayaanLama;
+
+        /*
+        |--------------------------------------------------------------------------
+        | DANA PEMBIAYAAN BARU
+        |--------------------------------------------------------------------------
+        |
+        | Nilai ini adalah dana yang memang diterima nasabah
+        | setelah seluruh biaya pembiayaan diperhitungkan.
+        |
+        */
+
+        $pembiayaan->refresh();
+
+        $danaPembiayaanBaru =
+            (int) $pembiayaan->dana_diterima;
+
+        /*
+        |--------------------------------------------------------------------------
+        | BIAYA SURVEY
+        |--------------------------------------------------------------------------
+        |
+        | Ambil langsung dari pembiayaan yang sedang dicairkan.
+        |
+        */
+
+        $biayaSurvey =
+            (int) $pembiayaan->biaya_survei;
+
+        $totalPelunasanLama = 0;
+
+        $danaTopUp =
+            $danaPembiayaanBaru;
+
+        /*
+        |--------------------------------------------------------------------------
+        | PERHITUNGAN PELUNASAN PEMBIAYAAN LAMA
+        |--------------------------------------------------------------------------
+        */
+
+        $perhitunganPelunasan = null;
+
+        if (
+            $statusCustomer === 'repeat_order'
+            && $pembiayaanLama
+        ) {
+
+            try {
+
+                $perhitunganPelunasan =
+                    $this->service->hitungPelunasan(
+                        $pembiayaanLama,
+                        now()->toDateString()
+                    );
+
+                /*
+                |------------------------------------------------------------------
+                | TOTAL PELUNASAN LAMA
+                |------------------------------------------------------------------
+                |
+                | Untuk Repeat Order, dana yang digunakan untuk melunasi
+                | pembiayaan lama adalah total sebelum diskon.
+                |
+                */
+
+                $totalPelunasanLama =
+                    (int) (
+                        $perhitunganPelunasan['total_sebelum_diskon']
+                        ?? $perhitunganPelunasan['total']
+                        ?? 0
+                    );
+
+                /*
+                |------------------------------------------------------------------
+                | DANA TOP UP
+                |------------------------------------------------------------------
+                */
+
+                $danaTopUp =
+                    $danaPembiayaanBaru
+                    - $totalPelunasanLama;
+
+            } catch (\Throwable $e) {
+
+                return back()->with(
+                    'error',
+                    'Gagal menghitung pelunasan pembiayaan lama: '
+                    . $e->getMessage()
+                );
+            }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ANGSURAN PERTAMA PEMBIAYAAN BARU
+        |--------------------------------------------------------------------------
+        */
+
+        $angsuranPertamaBaru = $pembiayaan
+            ->angsurans
+            ->where('status', '!=', 'dibayar')
+            ->sortBy('angsuran_ke')
+            ->first();
+
+        /*
+        |--------------------------------------------------------------------------
+        | VIEW
+        |--------------------------------------------------------------------------
+        */
+
+        return view(
+            'pencairan.create',
+            compact(
+                'akad',
+                'pembiayaanLama',
+                'perhitunganPelunasan',
+                'angsuranPertamaBaru',
+                'danaPembiayaanBaru',
+                'totalPelunasanLama',
+                'danaTopUp',
+                'biayaSurvey'
+            )
+        );
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ANGSURAN PERTAMA PEMBIAYAAN BARU
-    |--------------------------------------------------------------------------
-    */
-
-    $angsuranPertamaBaru = $pembiayaan
-        ->angsurans
-        ->where('status', '!=', 'dibayar')
-        ->sortBy('angsuran_ke')
-        ->first();
-
-    /*
-    |--------------------------------------------------------------------------
-    | VIEW
-    |--------------------------------------------------------------------------
-    */
-
-    return view(
-        'pencairan.create',
-        compact(
-            'akad',
-            'pembiayaanLama',
-            'perhitunganPelunasan',
-            'angsuranPertamaBaru',
-            'danaPembiayaanBaru',
-            'totalPelunasanLama',
-            'danaTopUp'
-        )
-    );
-}
    
     public function store(Request $request, Akad $akad)
     {
@@ -1043,10 +1056,58 @@ class PencairanController extends Controller
      */
     public function show(Pencairan $pencairan)
     {
-        $pencairan->load(['creator','akad','akad.pembiayaan','akad.pembiayaan.pengajuan','akad.pembiayaan.pengajuan.nasabah',
-            'akad.pembiayaan.pengajuan.marketing','akad.pembiayaan.pengajuan.cabang',]);
+        $pencairan->load([
+            'creator',
+            'akad',
+            'akad.pembiayaan',
+            'akad.pembiayaan.pengajuan',
+            'akad.pembiayaan.pengajuan.nasabah',
+            'akad.pembiayaan.pengajuan.marketing',
+            'akad.pembiayaan.pengajuan.cabang',
 
-        return view('pencairan.show', compact('pencairan'));
+            // Angsuran + histori pembayaran
+            'akad.pembiayaan.angsurans' => function ($query) {
+                $query->where('angsuran_ke', 1)
+                    ->with('pembayaranAngsurans');
+            },
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | POTONGAN ANGSURAN PERTAMA SAAT PENCAIRAN
+        |--------------------------------------------------------------------------
+        */
+
+        $potonganAngsuranPertama = null;
+
+        $angsuranPertama = $pencairan
+            ->akad
+            ->pembiayaan
+            ->angsurans
+            ->first();
+
+        if ($angsuranPertama) {
+
+            $potonganAngsuranPertama =
+                $angsuranPertama
+                    ->pembayaranAngsurans
+                    ->first(function ($pembayaran) {
+
+                        return str_contains(
+                            strtolower($pembayaran->keterangan ?? ''),
+                            'pembayaran angsuran pertama saat pencairan pembiayaan'
+                        );
+
+                    });
+        }
+
+        return view(
+            'pencairan.show',
+            compact(
+                'pencairan',
+                'potonganAngsuranPertama'
+            )
+        );
     }
 
     public function pembiayaanLama(Pembiayaan $pembiayaan)

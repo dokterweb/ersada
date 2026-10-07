@@ -1425,7 +1425,7 @@ class PengajuanController extends Controller
 
             'jaminan' => ['required','array','min:1',],
             'jaminan.*.id' => ['nullable','integer',],
-            'jaminan.*.jenis_jaminan' => ['required','in:BPKB Motor,BPKB Mobil,Surat Tanah,SK Kerja',],
+            'jaminan.*.jenis_jaminan' => ['required','in:BPKB Motor,BPKB Mobil,Surat Tanah,SK Kerja,Tanpa Jaminan',],
 
 
             /*
@@ -1592,31 +1592,32 @@ class PengajuanController extends Controller
                 $isKendaraan =in_array($jenisJaminan,['BPKB Motor','BPKB Mobil',]);
                 $isTanah =$jenisJaminan ==='Surat Tanah';
                 $isSKKerja = $jenisJaminan === 'SK Kerja';
+                $isTanpaJaminan = $jenisJaminan === 'Tanpa Jaminan';
 
-        /*
-        |--------------------------------------------------------------------------
-        | VALIDASI KHUSUS SK KERJA
-        |--------------------------------------------------------------------------
-        */
+                /*
+                |--------------------------------------------------------------------------
+                | VALIDASI KHUSUS SK KERJA
+                |--------------------------------------------------------------------------
+                */
 
-        if ($isSKKerja) {
+                if ($isSKKerja) {
 
-            if (empty($data['no_sk_kerja'])) {
+                    if (empty($data['no_sk_kerja'])) {
 
-                throw new \Exception(
-                    'Nomor SK Kerja wajib diisi.'
-                );
+                        throw new \Exception(
+                            'Nomor SK Kerja wajib diisi.'
+                        );
 
-            }
+                    }
 
-            if (empty($data['files'])) {
+                    if (empty($data['files'])) {
 
-                throw new \Exception(
-                    'Dokumen SK Kerja wajib diupload.'
-                );
+                        throw new \Exception(
+                            'Dokumen SK Kerja wajib diupload.'
+                        );
 
-            }
-        }
+                    }
+                }
                 /*
                 |--------------------------------------------------------------------------
                 | DATA JAMINAN
@@ -1664,15 +1665,19 @@ class PengajuanController extends Controller
                     |--------------------------------------------------------------------------
                     */
 
-                    'nama_jaminan' => $isSKKerja ? 'SK Kerja' : ($data['nama_jaminan'] ?? null),
+                    'nama_jaminan' => $isTanpaJaminan ? 'Tanpa Jaminan' : ($isSKKerja
+                        ? 'SK Kerja' : (trim($data['nama_jaminan'] ?? '') !== ''
+                            ? trim($data['nama_jaminan']) : 'Tidak disebutkan')),
 
-                    'nilai_taksiran' =>
-                        parse_rupiah(
-                            $data['nilai_taksiran'] ?? null
-                        ),
+                   'nilai_taksiran' => $isTanpaJaminan ? 0
+                    : (parse_rupiah($data['nilai_taksiran'] ?? null) ?? 0),
 
-                    'detail_jaminan' =>
-                        $data['detail_jaminan'] ?? null,
+                   'detail_jaminan' => $isTanpaJaminan ? (
+                        trim($data['detail_jaminan'] ?? '') !== ''
+                            ? trim($data['detail_jaminan'])
+                            : 'Pengajuan tanpa jaminan.'
+                    )
+                    : ($data['detail_jaminan'] ?? null),
                 ];
 
                 if ($jaminan) {
@@ -1701,7 +1706,7 @@ class PengajuanController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                if ($jaminan) {
+      /*           if ($jaminan) {
 
                     $jaminan->update(
                         $jaminanData
@@ -1713,7 +1718,7 @@ class PengajuanController extends Controller
                         JaminanPengajuan::create(
                             $jaminanData
                         );
-                }
+                } */
 
 
                 /*

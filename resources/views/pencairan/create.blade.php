@@ -52,7 +52,7 @@
                                     </tr>
                                     <tr>
                                         <th>Biaya Survey</th>
-                                        <td>Rp {{ number_format($akad->pembiayaan->biaya_survey,0,',','.') }}</td>
+                                        <td id="biaya-survey">Rp {{ number_format($biayaSurvey, 0, ',', '.') }}</td>
                                     </tr>
                                     <tr>
                                         <th>Biaya Notaris</th>
@@ -60,7 +60,7 @@
                                     </tr>
                                     <tr class="table-success">
                                         <th>Dana Diterima Nasabah</th>
-                                        <th>Rp {{ number_format($akad->pembiayaan->dana_diterima,0,',','.') }}</th>
+                                         <th id="dana-diterima-nasabah">Rp {{ number_format($danaPembiayaanBaru, 0, ',', '.') }}</th>
                                     </tr>
                                 </table>
                             </div>
@@ -594,12 +594,14 @@ $(document).ready(function () {
     const $checkbox =
         $('#bayar_angsuran_pertama');
 
+    const $danaDiterima =
+        $('#dana-diterima-nasabah');
+
     const $danaTopUp =
         $('#topup-dana-diterima');
 
     const $submit =
         $('#btn-submit-pencairan');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -710,9 +712,8 @@ $(document).ready(function () {
                 ${formatRupiah(angsuranPertama)}
             </strong>
 
-            lebih besar dari dana top up yang tersedia
+            lebih besar dari dana yang tersedia untuk pencairan
             sebesar
-
             <strong>
                 ${formatRupiah(danaTersedia)}
             </strong>.
@@ -756,32 +757,37 @@ $(document).ready(function () {
 
     function hitungDanaTopUp()
     {
-
         /*
         |--------------------------------------------------------------------------
-        | JIKA TIDAK ADA ELEMENT TOP UP
+        | RESET WARNING
         |--------------------------------------------------------------------------
         */
-
-        if (!$danaTopUp.length) {
-            return;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESET
-        |--------------------------------------------------------------------------
-        */
-
         hideWarning();
-
         $submit.prop('disabled', false);
 
+        /*
+        |--------------------------------------------------------------------------
+        | DANA AWAL
+        |--------------------------------------------------------------------------
+        |
+        | Untuk:
+        | - baru
+        | - walk_in
+        |
+        | danaTopUpAwal = dana_diterima
+        |
+        | Untuk:
+        | - repeat_order
+        |
+        | danaTopUpAwal = dana_diterima - pelunasan lama
+        |
+        */
+
+        const danaAwal = parseInt(danaTopUpAwal) || 0;
 
         /*
         |--------------------------------------------------------------------------
-        | CHECKBOX TIDAK DICENTANG
+        | UPDATE JIKA CHECKBOX TIDAK DICENTANG
         |--------------------------------------------------------------------------
         */
 
@@ -791,25 +797,46 @@ $(document).ready(function () {
         ) {
 
             /*
-            | Kembali ke Dana Top Up awal.
+            |--------------------------------------------------------------
+            | Dana Diterima Nasabah
+            |--------------------------------------------------------------
             */
 
-            if (danaTopUpAwal >= 0) {
+            if ($danaDiterima.length) {
 
-                $danaTopUp.text(
-                    formatRupiah(danaTopUpAwal)
+                $danaDiterima.text(
+                    formatRupiah(danaPembiayaanBaru)
                 );
 
-            } else {
+            }
 
-                $danaTopUp.text(
-                    'Tidak Mencukupi'
-                );
 
-                $submit.prop(
-                    'disabled',
-                    true
-                );
+            /*
+            |--------------------------------------------------------------
+            | Dana Top Up Repeat Order
+            |--------------------------------------------------------------
+            */
+
+            if ($danaTopUp.length) {
+
+                if (danaAwal >= 0) {
+
+                    $danaTopUp.text(
+                        formatRupiah(danaAwal)
+                    );
+
+                } else {
+
+                    $danaTopUp.text(
+                        'Tidak Mencukupi'
+                    );
+
+                    $submit.prop(
+                        'disabled',
+                        true
+                    );
+
+                }
 
             }
 
@@ -819,7 +846,7 @@ $(document).ready(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | CHECKBOX DICENTANG
+        | ANGSURAN PERTAMA
         |--------------------------------------------------------------------------
         */
 
@@ -829,12 +856,12 @@ $(document).ready(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | HITUNG DANA SETELAH BAYAR ANGSURAN
+        | HITUNG DANA SETELAH ANGSURAN PERTAMA
         |--------------------------------------------------------------------------
         */
 
         const danaSetelahAngsuran =
-            danaTopUpAwal -
+            danaAwal -
             angsuranPertama;
 
 
@@ -844,28 +871,42 @@ $(document).ready(function () {
         |--------------------------------------------------------------------------
         */
 
-        if (
-            danaSetelahAngsuran < 0
-        ) {
+        if (danaSetelahAngsuran < 0) {
 
             /*
-            | Jangan tampilkan angka negatif.
+            |--------------------------------------------------------------
+            | Jangan tampilkan angka negatif
+            |--------------------------------------------------------------
             */
 
-            $danaTopUp.text(
-                formatRupiah(0)
-            );
+            if ($danaDiterima.length) {
+
+                $danaDiterima.text(
+                    formatRupiah(0)
+                );
+
+            }
+
+
+            if ($danaTopUp.length) {
+
+                $danaTopUp.text(
+                    formatRupiah(0)
+                );
+
+            }
 
 
             /*
-            | Tampilkan warning.
+            |--------------------------------------------------------------
+            | Tampilkan warning
+            |--------------------------------------------------------------
             */
 
             showWarning(
-                danaTopUpAwal,
+                danaAwal,
                 angsuranPertama
             );
-
 
             return;
         }
@@ -877,11 +918,34 @@ $(document).ready(function () {
         |--------------------------------------------------------------------------
         */
 
-        $danaTopUp.text(
-            formatRupiah(
-                danaSetelahAngsuran
-            )
-        );
+        /*
+        |--------------------------------------------------------------
+        | UNTUK BARU / WALK IN
+        |--------------------------------------------------------------
+        */
+
+        if ($danaDiterima.length) {
+
+            $danaDiterima.text(
+                formatRupiah(danaSetelahAngsuran)
+            );
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | UNTUK REPEAT ORDER
+        |--------------------------------------------------------------------------
+        */
+
+        if ($danaTopUp.length) {
+
+            $danaTopUp.text(
+                formatRupiah(danaSetelahAngsuran)
+            );
+
+        }
 
 
         /*
@@ -894,8 +958,7 @@ $(document).ready(function () {
             'disabled',
             false
         );
-
-    }
+    }    
 
 
     /*
