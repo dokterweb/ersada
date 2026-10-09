@@ -264,12 +264,16 @@
                                 </div>
         
                                 <div class="col-md-3 mb-2">
-                                    <select class="form-control" name="marketing">
-                                        <option value="">Semua Marketing</option>
+                                    <select class="form-select" name="marketing">
+                                        <option value="">Semua Marketing / SPV Marketing</option>
+
                                         @foreach($marketings as $marketing)
-                                            <option value="{{ $marketing->id }}"
-                                                @selected(request('marketing')==$marketing->id)>
+                                            <option
+                                                value="{{ $marketing->id }}"
+                                                @selected(request('marketing') == $marketing->id)
+                                            >
                                                 {{ $marketing->name }}
+                                                ({{ $marketing->getRoleNames()->implode(', ') }})
                                             </option>
                                         @endforeach
                                     </select>

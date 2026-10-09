@@ -204,11 +204,12 @@
                                                 <td>Rp {{ number_format($item->bunga_angsuran,0,',','.') }}</td>
                                                 <td>
                                                     @php
-                                                        $denda = (int) ($item->preview_denda['denda_tersisa'] ?? 0);
+                                                        $denda = (int) ($item->denda_tampilan ?? 0);
                                                     @endphp
+
                                                     @if($denda > 0)
                                                         <span class="text-danger fw-bold">
-                                                            Rp {{ number_format($denda,0,',','.') }}
+                                                            Rp {{ number_format($denda, 0, ',', '.') }}
                                                         </span>
                                                     @else
                                                         <span class="text-muted">Rp 0</span>

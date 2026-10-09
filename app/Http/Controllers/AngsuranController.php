@@ -156,11 +156,9 @@ class AngsuranController extends Controller
     /**
      * Detail Jadwal Angsuran
      */
-    public function show(Pembiayaan $pembiayaan)
+  public function show(Pembiayaan $pembiayaan)
     {
-        $this->angsuranService->syncStatus(
-            $pembiayaan->id
-        );
+        $this->angsuranService->syncStatus($pembiayaan->id);
 
         $pembiayaan->load([
             'pengajuan.nasabah',
@@ -169,22 +167,28 @@ class AngsuranController extends Controller
             'pengajuan.jaminanPengajuans.dokumenJaminans',
             'akad.pencairan',
             'angsurans' => function ($q) {
-                $q->with('pelunasan')
-                ->orderBy('angsuran_ke');
+                $q->with([
+                    'pelunasan',
+                    'pembayaranAngsurans',
+                ])->orderBy('angsuran_ke');
             },
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | PREVIEW DENDA
-        |--------------------------------------------------------------------------
-        */
-
         foreach ($pembiayaan->angsurans as $item) {
+            if ($item->status === 'dibayar') {
+                // Denda historis yang benar-benar dibayarkan.
+                $item->denda_tampilan = (int) $item
+                    ->pembayaranAngsurans
+                    ->sum('denda');
+            } else {
+                // Denda berjalan untuk angsuran yang belum lunas.
+                $item->preview_denda = $this->service
+                    ->previewDenda($item);
 
-            $item->preview_denda =
-                $this->service->previewDenda($item);
-
+                $item->denda_tampilan = (int) (
+                    $item->preview_denda['denda_tersisa'] ?? 0
+                );
+            }
         }
 
         $angsurans = $pembiayaan->angsurans;
@@ -195,10 +199,9 @@ class AngsuranController extends Controller
             ->where('status', 'dibayar')
             ->count();
 
-        $sisaAngsuran =
-            $totalAngsuran - $sudahDibayar;
+        $sisaAngsuran = $totalAngsuran - $sudahDibayar;
 
-       $outstanding = $angsurans ->sum('sisa_tagihan');
+        $outstanding = $angsurans->sum('sisa_tagihan');
 
         return view(
             'angsuran.show',

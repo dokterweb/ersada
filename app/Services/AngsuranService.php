@@ -120,31 +120,25 @@ class AngsuranService
 
         for ($i = 1; $i <= $pembiayaan->tenor; $i++) {
 
-            if ($i == $pembiayaan->tenor) {
+            // Semua angsuran menggunakan pokok yang sama
+            $pokok = $pokokNormal;
 
-                // angsuran terakhir disesuaikan
-                $pokok = $sisaPokok;
-
-            } else {
-
-                $pokok = $pokokNormal;
-
-            }
-
-            $sisaPokok -= $pokok;
             $totalAngsuran = $pokok + $bunga;
+
+            // Sisa pokok hanya digunakan sebagai informasi
+            $sisaPokok -= $pokok;
+
             $jadwal[] = [
                 'angsuran_ke'           => $i,
                 'tanggal_jatuh_tempo'   => $tanggal->copy(),
                 'pokok_angsuran'        => $pokok,
                 'bunga_angsuran'        => $bunga,
                 'total_angsuran'        => $totalAngsuran,
-                'sisa_pokok'            => max($sisaPokok,0),
+                'sisa_pokok'            => max($sisaPokok, 0),
                 'total_terbayar'        => 0,
                 'sisa_tagihan'          => $totalAngsuran,
             ];
 
-            // $tanggal = $this->tambah30Hari($tanggal);
             $tanggal = $this->tambah1Bulan($tanggal);
         }
 

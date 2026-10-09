@@ -13,17 +13,33 @@ class PelunasanController extends Controller
 {
     public function __construct(protected PelunasanService $service) {}
 
+    
     public function create(Pembiayaan $pembiayaan)
     {
+        // Cegah pengajuan pelunasan diskon ganda
+        // selama pengajuan sebelumnya menunggu persetujuan.
+        $pelunasanMenunggu = Pelunasan::where(
+            'pembiayaan_id',
+            $pembiayaan->id
+        )
+            ->where('jenis_pelunasan', 'dengan_diskon')
+            ->where('status', 'menunggu_persetujuan')
+            ->exists();
+
+        if ($pelunasanMenunggu) {
+            return redirect()
+                ->route('operasional.show', $pembiayaan)
+                ->with(
+                    'error',
+                    'Pengajuan pelunasan dengan diskon masih menunggu persetujuan pimpinan. Silakan tunggu keputusan pimpinan.'
+                );
+        }
+
         $pembiayaan->load([
             'pengajuan.nasabah',
             'angsurans'
         ]);
 
-        /*
-         * Hitung seluruh komponen pelunasan
-         * melalui service.
-         */
         $perhitungan = $this->service->hitungPelunasan(
             $pembiayaan,
             now()->toDateString()
@@ -39,81 +55,37 @@ class PelunasanController extends Controller
     }
 
 
+
     /*
     |--------------------------------------------------------------------------
     | SIMPAN PENGAJUAN PELUNASAN
     |--------------------------------------------------------------------------
     */
 
-public function store(Request $request, Pembiayaan $pembiayaan)
-{
-    /*
-    |--------------------------------------------------------------------------
-    | Parse Rupiah
-    |--------------------------------------------------------------------------
-    */
-    $request->merge([
-        'diskon' => parse_rupiah($request->input('diskon')),
-    ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validation
-    |--------------------------------------------------------------------------
-    */
-    $validated = $request->validate([
-        'tanggal_pelunasan' => [
-            'required',
-            'date'
-        ],
+    public function store(Request $request, Pembiayaan $pembiayaan)
+    {
+        // Cegah pengajuan pelunasan diskon ganda.
+        $pelunasanMenunggu = Pelunasan::where(
+            'pembiayaan_id',
+            $pembiayaan->id
+        )
+            ->where('jenis_pelunasan', 'dengan_diskon')
+            ->where('status', 'menunggu_persetujuan')
+            ->exists();
 
-        'diskon' => [
-            'nullable',
-            'numeric',
-            'min:0'
-        ],
+        if ($pelunasanMenunggu) {
+            return redirect()
+                ->route('operasional.show', $pembiayaan)
+                ->with(
+                    'error',
+                    'Pengajuan pelunasan dengan diskon masih menunggu persetujuan pimpinan.'
+                );
+        }
 
-        'alasan_diskon' => [
-            'nullable',
-            'string'
-        ],
-
-        'keterangan' => [
-            'nullable',
-            'string'
-        ],
-    ]);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Store Pelunasan
-    |--------------------------------------------------------------------------
-    */
-    $pelunasan = $this->service->store(
-        $pembiayaan,
-        $validated
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Pesan
-    |--------------------------------------------------------------------------
-    */
-    if ($pelunasan->jenis_pelunasan === 'dengan_diskon') {
-
-        $message =
-            'Pengajuan pelunasan dengan diskon berhasil disimpan dan menunggu persetujuan pimpinan.';
-
-    } else {
-
-        $message =
-            'Pengajuan pelunasan berhasil disimpan dan siap dibayar.';
+        // Lanjutkan kode store() lama Anda di bawah sini.
     }
 
-    return redirect()
-        ->route('operasional.show', $pembiayaan)
-        ->with('success', $message);
-}
 
     public function show(Pelunasan $pelunasan)
     {
@@ -127,10 +99,8 @@ public function store(Request $request, Pembiayaan $pembiayaan)
             },
         ]);
 
-        return view(
-            'pelunasan.show',
-            compact('pelunasan')
-        );
+        $pengajuan = $pelunasan->pembiayaan->pengajuan;
+        return view('pelunasan.show',compact('pelunasan','pengajuan'));
     }
    
     public function cetak(Pelunasan $pelunasan, PdfService $pdfService)

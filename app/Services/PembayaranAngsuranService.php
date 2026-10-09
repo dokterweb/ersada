@@ -100,26 +100,23 @@ class PembayaranAngsuranService
 
     $tglTelatBayar = $tglTelatBayar ?: 10;
 
+    // ============================================================
+    // TANGGAL MULAI DENDA
+    // ============================================================
+    //
+    // Aturan:
+    // - Bayar pada tanggal jatuh tempo = tidak terlambat
+    // - Bayar 1 hari setelah jatuh tempo = terlambat 1 hari
+    // - Bayar 2 hari setelah jatuh tempo = terlambat 2 hari
+    //
+    // Contoh:
+    // Jatuh tempo : 15 Oktober 2026
+    // Bayar       : 15 Oktober 2026 → 0 hari
+    // Bayar       : 16 Oktober 2026 → 1 hari
+    // Bayar       : 17 Oktober 2026 → 2 hari
+    //
 
-   /*
-    |--------------------------------------------------------------------------
-    | TANGGAL BATAS BEBAS DENDA
-    |--------------------------------------------------------------------------
-    |
-    | Contoh:
-    |
-    | Jatuh tempo  : 01-08
-    | Toleransi    : 10 hari
-    |
-    | 10-08 = masih bebas denda
-    | 11-08 = mulai denda, dihitung 1 hari
-    |
-    */
-
-    $tanggalMulaiDenda = $tanggalJatuhTempo
-        ->copy()
-        ->addDays($tglTelatBayar);
-
+    $tanggalMulaiDenda = $tanggalJatuhTempo->copy();
 
     /*
     |--------------------------------------------------------------------------

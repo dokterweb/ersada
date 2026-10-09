@@ -8,6 +8,7 @@ use App\Models\Pembiayaan;
 use App\Models\Pencairan;
 use App\Services\PelunasanService;
 use App\Services\PembayaranAngsuranService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -239,13 +240,6 @@ class PencairanController extends Controller
             'tanggal_pencairan' => [
                 'required',
                 'date',
-            ],
-
-            'tgl_telat_bayar' => [
-                'required',
-                'integer',
-                'min:1',
-                'max:30',
             ],
 
             'metode' => [
@@ -927,8 +921,9 @@ class PencairanController extends Controller
                         'tanggal_pencairan' =>
                             $request->tanggal_pencairan,
 
-                        'tgl_telat_bayar' =>
-                            $request->tgl_telat_bayar,
+                       'tgl_telat_bayar' => Carbon::parse(
+                            $pembiayaan->tanggal_jatuh_tempo_pertama
+                        )->day,
 
 
                         /*

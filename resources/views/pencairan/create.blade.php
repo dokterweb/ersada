@@ -448,32 +448,12 @@
                     {{-- FORM --}}
                     <h4 class="mb-3">Data Pencairan</h4>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">Tanggal Pencairan</label>
                             <input type="date" name="tanggal_pencairan" value="{{ old('tanggal_pencairan',date('Y-m-d')) }}"
                                 class="form-control" required>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="tgl_telat_bayar" class="form-label">
-                                Tanggal Jatuh Tempo
-                            </label>
-
-                            <select name="tgl_telat_bayar" id="tgl_telat_bayar" class="form-select"required>
-                                @for ($i = 1; $i <= 30; $i++)
-                                    <option value="{{ $i }}"
-                                        {{ old('tgl_telat_bayar', 10) == $i ? 'selected' : '' }}>
-                                        Tanggal {{ $i }}
-                                    </option>
-                                @endfor
-                            </select>
-                            <div class="form-text">
-                                Tanggal setiap bulan yang menjadi batas pembayaran sebelum dihitung terlambat.
-                            </div>
-                            @error('tgl_telat_bayar')
-                                <div class="text-danger">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">Metode</label>
                             <select name="metode" id="metode" class="form-select">
                                 <option value="tunai">Tunai</option>

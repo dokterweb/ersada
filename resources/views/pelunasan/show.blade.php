@@ -123,7 +123,7 @@
 
                     <div class="row">
 
-                        <div class="col-md-6">
+                        <div class="col-md-5">
 
                             <table class="table table-bordered">
 
@@ -217,7 +217,7 @@
                         </div>
 
 
-                        <div class="col-md-6">
+                        <div class="col-md-5">
 
                             <table class="table table-bordered">
 
@@ -303,6 +303,16 @@
 
                         </div>
 
+                        <div class="col-md-2">
+                             @if($pengajuan->nasabah?->foto_nasabah)
+                                <div class="mt-2">
+                                    <a href="{{ asset('storage/'.$pengajuan->nasabah->foto_nasabah) }}" target="_blank">
+                                    <img src="{{ asset('storage/' . $pengajuan->nasabah->foto_nasabah) }}" alt="Foto Nasabah"
+                                        class="img-thumbnail" style="max-width: 200px;">
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
                     </div>
 
                 </div>
@@ -324,113 +334,31 @@
 
                 </div>
 
-                <div class="table-responsive">
-
+                <div class="table-responsive p-4">
                     <table class="table table-bordered mb-0">
-
                         <tr>
-
-                            <th width="40%">
-                                Sisa Pokok
-                            </th>
-
-                            <td class="text-end">
-
-                                Rp
-                                {{ number_format(
-                                    $pelunasan->sisa_pokok,
-                                    0,
-                                    ',',
-                                    '.'
-                                ) }}
-
-                            </td>
-
+                            <th width="40%">Sisa Pokok</th>
+                            <td class="text-end">Rp{{ number_format($pelunasan->sisa_pokok,0,',','.') }}</td>
                         </tr>
-
-
                         <tr>
-
-                            <th>
-                                Sisa Bunga
-                            </th>
-
-                            <td class="text-end">
-
-                                Rp
-                                {{ number_format(
-                                    $pelunasan->sisa_bunga,
-                                    0,
-                                    ',',
-                                    '.'
-                                ) }}
-
-                            </td>
-
+                            <th>Sisa Bunga</th>
+                            <td class="text-end">Rp{{ number_format($pelunasan->sisa_bunga,0,',','.') }}</td>
                         </tr>
-
-
                         <tr>
-
-                            <th>
-                                Denda
-                            </th>
-
-                            <td class="text-end">
-
-                                Rp
-                                {{ number_format(
-                                    $pelunasan->denda,
-                                    0,
-                                    ',',
-                                    '.'
-                                ) }}
-
-                            </td>
-
+                            <th>Denda</th>
+                            <td class="text-end">Rp{{ number_format($pelunasan->denda,0,',','.') }}</td>
                         </tr>
-
-
                         <tr class="table-light">
-
-                            <th>
-                                Total Sebelum Diskon
-                            </th>
-
-                            <td class="text-end fw-bold">
-
-                                Rp
-                                {{ number_format(
-                                    $pelunasan->total_sebelum_diskon,
-                                    0,
-                                    ',',
-                                    '.'
-                                ) }}
-
-                            </td>
-
+                            <th>Total Sebelum Diskon</th>
+                            <td class="text-end fw-bold">Rp{{ number_format($pelunasan->total_sebelum_diskon,0,',','.') }}</td>
                         </tr>
 
 
                         @if($pelunasan->jenis_pelunasan === 'dengan_diskon')
 
                             <tr>
-
-                                <th>
-                                    Diskon Diajukan
-                                </th>
-
-                                <td class="text-end text-warning">
-
-                                    Rp
-                                    {{ number_format(
-                                        $pelunasan->diskon,
-                                        0,
-                                        ',',
-                                        '.'
-                                    ) }}
-
-                                </td>
+                                <th>Diskon Diajukan</th>
+                                <td class="text-end text-warning">Rp{{ number_format($pelunasan->diskon,0,',','.') }}</td>
 
                             </tr>
 

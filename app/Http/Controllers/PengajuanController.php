@@ -1603,19 +1603,29 @@ class PengajuanController extends Controller
                 if ($isSKKerja) {
 
                     if (empty($data['no_sk_kerja'])) {
-
                         throw new \Exception(
                             'Nomor SK Kerja wajib diisi.'
                         );
-
                     }
 
-                    if (empty($data['files'])) {
+                    // Cek apakah ada file baru yang diupload
+                    $adaFileBaru = !empty($data['files']);
 
+                    // Cek apakah jaminan lama masih memiliki dokumen
+                    $adaDokumenLama = false;
+
+                    if ($jaminan) {
+                        $adaDokumenLama = $jaminan
+                            ->dokumenJaminans
+                            ->isNotEmpty();
+                    }
+
+                    // Wajib ada salah satu:
+                    // file baru ATAU dokumen lama
+                    if (!$adaFileBaru && !$adaDokumenLama) {
                         throw new \Exception(
-                            'Dokumen SK Kerja wajib diupload.'
+                            'Dokumen SK Kerja wajib tersedia. Silakan upload dokumen SK Kerja.'
                         );
-
                     }
                 }
                 /*

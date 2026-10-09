@@ -17,6 +17,17 @@
         color:#000;
     }
 
+    .header-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .header-table td {
+        vertical-align: middle;
+        padding: 2px;
+    }
+
+
     table{
         width:100%;
         border-collapse:collapse;
@@ -43,17 +54,25 @@
         font-weight:bold;
     }
 
-    .logo{
-        width:120px;
+    .logo {
+        width: 100px;
+        height: auto;
     }
 
-    .header-title{
-        font-size:20px;
-        font-weight:bold;
-    }
+    .header-title {
+        font-size: 14px;
+        font-weight: bold;
+        line-height: 1.4;
+        }
+    .header-title2 {
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 1.4;
+        }
 
-    .small{
-        font-size:11px;
+    .small {
+        font-size: 8px;
+        line-height: 1.3;
     }
 
     .spacer{
@@ -69,17 +88,56 @@
 
 <body>
     {{-- ================= HEADER ================= --}}
-    <table>
-        <tr>
-            <td width="22%" class="center">
-                <img src="{{ public_path('storage/avatars/logo.jpg') }}" class="logo">
-            </td>
-            <td width="78%" class="center">
-                <div class="header-title">PT. ERSADA MAKMUR JAYA</div>
-                <div class="small">{{ $pembayaran->angsuran->pembiayaan->pengajuan->cabang->alamat }}</div>
-            </td>
-        </tr>
-    </table>
+<table class="header-table">
+       @php
+                $cabang = $pembayaran->angsuran
+                    ->pembiayaan
+                    ->pengajuan
+                    ->cabang;
+
+                $isKisaran = $cabang
+                    && (int) $cabang->id === 2;
+            @endphp
+    <tr>
+        <td width="28%" class="center">
+            @if ($cabang && (int) $cabang->id === 2)
+                <img
+                    src="{{ public_path('storage/img/koperasi_ersada.png') }}"
+                    class="logo"
+                >
+            @else
+                <img
+                    src="{{ public_path('storage/avatars/logo.jpg') }}"
+                    class="logo"
+                >
+            @endif
+        </td>
+
+        <td width="72%" class="center">
+         
+
+            @if ($isKisaran)
+                <div class="header-title">
+                    KOPERASI SERBA USAHA<br>
+                    "MAKMUR JAYA" UNIT SIMPAN PINJAM
+                </div>
+
+                <div class="header-title2">
+                    BADAN HUKUM: NO.97/KOP/BH/V/2010, TGL 26 MEI 2010<br>
+                    {{ $cabang->alamat ?? '' }}
+                </div>
+            @else
+                <div class="header-title">
+                    PT. ERSADA MAKMUR JAYA
+                </div>
+
+                <div class="header-title2">
+                    {{ $cabang->alamat ?? '' }}
+                </div>
+            @endif
+        </td>
+    </tr>
+</table>
     <div class="spacer"></div>
     {{-- ================= REGISTER ================= --}}
     <table class="border">
