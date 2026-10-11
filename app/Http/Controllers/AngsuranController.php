@@ -156,7 +156,7 @@ class AngsuranController extends Controller
     /**
      * Detail Jadwal Angsuran
      */
-  public function show(Pembiayaan $pembiayaan)
+    public function show(Pembiayaan $pembiayaan)
     {
         $this->angsuranService->syncStatus($pembiayaan->id);
 
@@ -170,8 +170,10 @@ class AngsuranController extends Controller
                 $q->with([
                     'pelunasan',
                     'pembayaranAngsurans',
+                    'pengajuanDiskonDendas',
                 ])->orderBy('angsuran_ke');
             },
+
         ]);
 
         foreach ($pembiayaan->angsurans as $item) {
