@@ -190,22 +190,39 @@ class DiskonDendaController extends Controller
         }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | CEK PENGAJUAN PENDING
-        |--------------------------------------------------------------------------
-        */
+       
+/*
+|--------------------------------------------------------------------------
+| CEK PENGAJUAN DISKON YANG MASIH AKTIF
+|--------------------------------------------------------------------------
+|
+| Tolak pengajuan baru jika:
+| 1. Masih ada pengajuan pending.
+| 2. Ada pengajuan disetujui yang belum digunakan.
+|
+| Pengajuan ditolak tidak menghalangi pengajuan ulang.
+*/
 
-        $pending = $angsuran->pengajuanDiskonDendaPending;
+$pengajuanAktif = PengajuanDiskonDenda::where(
+    'angsuran_id',
+    $angsuran->id
+)
+    ->where(function ($query) {
+        $query->where('status', 'pending')
+            ->orWhere(function ($q) {
+                $q->where('status', 'disetujui')
+                    ->whereNull('digunakan_at');
+            });
+    })
+    ->exists();
 
-        if ($pending) {
+if ($pengajuanAktif) {
+    return back()->with(
+        'error',
+        'Masih terdapat pengajuan diskon denda yang menunggu persetujuan atau sudah disetujui tetapi belum digunakan.'
+    );
+}
 
-            return back()
-                ->with(
-                    'error',
-                    'Masih terdapat pengajuan diskon denda yang menunggu persetujuan pimpinan.'
-                );
-        }
 
 
         /*

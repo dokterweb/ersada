@@ -398,13 +398,13 @@
 
                         <tr class="table-success">
 
-                            <th class="fs-5">
+                            <th>
 
                                 Total Pelunasan
 
                             </th>
 
-                            <td class="text-end fw-bold fs-5">
+                            <td class="text-end fw-bold">
 
                                 Rp
                                 {{ number_format(

@@ -303,6 +303,7 @@ class AngsuranController extends Controller
         return view('angsuran.detail', compact('pembayaran'));
     }
 
+    
 public function getAngsuran(Angsuran $angsuran)
 {
     $angsuran->load([
@@ -310,277 +311,92 @@ public function getAngsuran(Angsuran $angsuran)
         'pembiayaan.akad.pencairan',
     ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | PREVIEW DENDA
-    |--------------------------------------------------------------------------
-    */
-
     $preview = $this->service->previewDenda(
         $angsuran,
         now()->format('Y-m-d')
     );
 
+    $formatRupiah = static function ($nilai) {
+        return number_format((float) $nilai, 0, ',', '.');
+    };
 
-    /*
-    |--------------------------------------------------------------------------
-    | RESPONSE
-    |--------------------------------------------------------------------------
-    */
+    $dendaBerjalan = (int) ($preview['denda_berjalan'] ?? 0);
+    $dendaSudahDibayar = (int) ($preview['denda_sudah_dibayar'] ?? 0);
+    $diskonDenda = (int) ($preview['diskon_denda'] ?? 0);
+    $dendaTersisa = (int) ($preview['denda_tersisa'] ?? 0);
+    $adminBerjalan = (int) ($preview['admin_berjalan'] ?? 0);
+    $adminSudahDibayar = (int) ($preview['admin_sudah_dibayar'] ?? 0);
+    $adminTersisa = (int) ($preview['admin_tersisa'] ?? 0);
+    $totalTambahan = (int) ($preview['total_tambahan'] ?? 0);
 
     return response()->json([
-
         'success' => true,
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | DATA UTAMA
-        |--------------------------------------------------------------------------
-        */
-
         'id' => $angsuran->id,
+        'nama' => $angsuran->pembiayaan->pengajuan->nasabah->nama,
+        'nomor_pembiayaan' => $angsuran->pembiayaan->nomor_pembiayaan,
+        'angsuran_ke' => $angsuran->angsuran_ke,
 
-        'nama' =>
-            $angsuran->pembiayaan
-                ->pengajuan
-                ->nasabah
-                ->nama,
+        'tanggal_jatuh_tempo' => $angsuran->tanggal_jatuh_tempo
+            ->format('d-m-Y'),
 
-        'nomor_pembiayaan' =>
-            $angsuran->pembiayaan
-                ->nomor_pembiayaan,
+        'status' => ucfirst(
+            str_replace('_', ' ', $angsuran->status)
+        ),
 
-        'angsuran_ke' =>
-            $angsuran->angsuran_ke,
+        'pokok' => $formatRupiah($angsuran->pokok_angsuran),
+        'bunga' => $formatRupiah($angsuran->bunga_angsuran),
+        'total' => $formatRupiah($angsuran->total_angsuran),
+        'total_angsuran' => $angsuran->total_angsuran,
 
-        'tanggal_jatuh_tempo' =>
-            $angsuran->tanggal_jatuh_tempo
-                ->format('d-m-Y'),
+        'total_terbayar' => $angsuran->total_terbayar,
+        'total_terbayar_format' => $formatRupiah($angsuran->total_terbayar),
 
-        'status' =>
-            ucfirst(
-                str_replace(
-                    '_',
-                    ' ',
-                    $angsuran->status
-                )
-            ),
+        'sisa_tagihan' => $angsuran->sisa_tagihan,
+        'sisa_tagihan_format' => $formatRupiah($angsuran->sisa_tagihan),
 
+        'denda_berjalan' => $dendaBerjalan,
+        'denda_berjalan_format' => $formatRupiah($dendaBerjalan),
 
-        /*
-        |--------------------------------------------------------------------------
-        | NILAI ANGSURAN
-        |--------------------------------------------------------------------------
-        */
+        'diskon_denda' => $diskonDenda,
+        'diskon_denda_format' => $formatRupiah($diskonDenda),
 
-        'pokok' =>
-            number_format(
-                $angsuran->pokok_angsuran,
-                0,
-                ',',
-                '.'
-            ),
+        'pengajuan_diskon_id' => $preview['pengajuan_diskon_id'] ?? null,
+        'status_diskon' => $preview['status_diskon'] ?? null,
 
-        'bunga' =>
-            number_format(
-                $angsuran->bunga_angsuran,
-                0,
-                ',',
-                '.'
-            ),
+        'denda' => $dendaTersisa,
+        'denda_format' => $formatRupiah($dendaTersisa),
 
-        'total' =>
-            number_format(
-                $angsuran->total_angsuran,
-                0,
-                ',',
-                '.'
-            ),
+        'denda_sudah_dibayar' => $dendaSudahDibayar,
+        'denda_sudah_dibayar_format' => $formatRupiah($dendaSudahDibayar),
 
-        'total_angsuran' =>
-            $angsuran->total_angsuran,
+        'admin_keterlambatan' => $adminTersisa,
+        'admin_keterlambatan_format' => $formatRupiah($adminTersisa),
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | PEMBAYARAN ANGSURAN
-        |--------------------------------------------------------------------------
-        */
-
-        'total_terbayar' =>
-            $angsuran->total_terbayar,
-
-        'total_terbayar_format' =>
-            number_format(
-                $angsuran->total_terbayar,
-                0,
-                ',',
-                '.'
-            ),
-
-        'sisa_tagihan' =>
-            $angsuran->sisa_tagihan,
-
-        'sisa_tagihan_format' =>
-            number_format(
-                $angsuran->sisa_tagihan,
-                0,
-                ',',
-                '.'
-            ),
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DENDA BERJALAN
-        |--------------------------------------------------------------------------
-        */
-
-        'denda_berjalan' =>
-            $preview['denda_berjalan'],
-
-        'denda_berjalan_format' =>
-            $preview['denda_berjalan_format'],
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DISKON DENDA
-        |--------------------------------------------------------------------------
-        |
-        | Hanya diskon yang sudah disetujui dan belum digunakan
-        | yang dikirim sebagai diskon aktif.
-        |
-        */
-
-        'diskon_denda' =>
-            $preview['diskon_denda'],
-
-        'diskon_denda_format' =>
-            $preview['diskon_denda_format'],
-
-        'pengajuan_diskon_id' =>
-            $preview['pengajuan_diskon_id'],
-
-        'status_diskon' =>
-            $preview['status_diskon'],
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DENDA SETELAH DISKON
-        |--------------------------------------------------------------------------
-        */
-
-        'denda' =>
-            $preview['denda_tersisa'],
-
-        'denda_format' =>
-            $preview['denda_tersisa_format'],
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DENDA SUDAH DIBAYAR
-        |--------------------------------------------------------------------------
-        */
-
-        'denda_sudah_dibayar' =>
-            $preview['denda_sudah_dibayar'],
-
-        'denda_sudah_dibayar_format' =>
-            $preview['denda_sudah_dibayar_format'],
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | ADMIN KETERLAMBATAN
-        |--------------------------------------------------------------------------
-        */
-
-        'admin_keterlambatan' =>
-            $preview['admin_tersisa'],
-
-        'admin_keterlambatan_format' =>
-            $preview['admin_tersisa_format'],
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | HARI TERLAMBAT
-        |--------------------------------------------------------------------------
-        */
-
-        'hari_terlambat' =>
-            $preview['hari_terlambat'],
-
+        'hari_terlambat' => (int) ($preview['hari_terlambat'] ?? 0),
         'hari_terlambat_format' =>
-            $preview['hari_terlambat'] . ' hari',
+            (int) ($preview['hari_terlambat'] ?? 0) . ' hari',
 
+        'total_tambahan' => $totalTambahan,
+        'total_tambahan_format' => $formatRupiah($totalTambahan),
 
-        /*
-        |--------------------------------------------------------------------------
-        | TOTAL TAMBAHAN
-        |--------------------------------------------------------------------------
-        */
+        'admin_berjalan' => $adminBerjalan,
+        'admin_berjalan_format' => $formatRupiah($adminBerjalan),
 
-        'total_tambahan' =>
-            $preview['total_tambahan'],
+        'admin_sudah_dibayar' => $adminSudahDibayar,
+        'admin_sudah_dibayar_format' => $formatRupiah($adminSudahDibayar),
 
-        'total_tambahan_format' =>
-            $preview['total_tambahan_format'],
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | ADMIN DETAIL
-        |--------------------------------------------------------------------------
-        */
-
-        'admin_berjalan' =>
-            $preview['admin_berjalan'],
-
-        'admin_berjalan_format' =>
-            $preview['admin_berjalan_format'],
-
-        'admin_sudah_dibayar' =>
-            $preview['admin_sudah_dibayar'],
-
-        'admin_sudah_dibayar_format' =>
-            $preview['admin_sudah_dibayar_format'],
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DEFAULT METODE
-        |--------------------------------------------------------------------------
-        */
-
-        'metode' =>
-            'tunai',
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DEFAULT NOMINAL BAYAR
-        |--------------------------------------------------------------------------
-        */
+        'metode' => 'tunai',
 
         'default_bayar' =>
-            $angsuran->sisa_tagihan
-            + $preview['total_tambahan'],
+            (int) $angsuran->sisa_tagihan + $totalTambahan,
 
-        'default_bayar_format' =>
-            number_format(
-                $angsuran->sisa_tagihan
-                + $preview['total_tambahan'],
-                0,
-                ',',
-                '.'
-            ),
+        'default_bayar_format' => $formatRupiah(
+            (int) $angsuran->sisa_tagihan + $totalTambahan
+        ),
     ]);
 }
+
 
 
    public function previewDenda(Request $request,Angsuran $angsuran,  ?string $tanggalBayar = null) {

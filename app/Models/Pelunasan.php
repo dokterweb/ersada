@@ -15,6 +15,14 @@ class Pelunasan extends Model
     'tanggal_pelunasan' => 'date',
     'approved_at' => 'datetime',
     'paid_at' => 'datetime',
+
+    'sisa_pokok' => 'integer',
+    'sisa_bunga' => 'integer',
+    'denda' => 'integer',
+    'total_sebelum_diskon' => 'integer',
+    'diskon' => 'integer',
+    'diskon_disetujui' => 'integer',
+    'total_pelunasan' => 'integer',
 ];
 
     public function pembiayaan()

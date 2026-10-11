@@ -62,7 +62,7 @@ class PelunasanController extends Controller
     |--------------------------------------------------------------------------
     */
 
-
+/* 
     public function store(Request $request, Pembiayaan $pembiayaan)
     {
         // Cegah pengajuan pelunasan diskon ganda.
@@ -84,6 +84,95 @@ class PelunasanController extends Controller
         }
 
         // Lanjutkan kode store() lama Anda di bawah sini.
+    } */
+
+
+     public function store(Request $request, Pembiayaan $pembiayaan)
+    {
+          // Cegah pengajuan pelunasan diskon ganda.
+        $pelunasanMenunggu = Pelunasan::where(
+            'pembiayaan_id',
+            $pembiayaan->id
+        )
+            ->where('jenis_pelunasan', 'dengan_diskon')
+            ->where('status', 'menunggu_persetujuan')
+            ->exists();
+
+        if ($pelunasanMenunggu) {
+            return redirect()
+                ->route('operasional.show', $pembiayaan)
+                ->with(
+                    'error',
+                    'Pengajuan pelunasan dengan diskon masih menunggu persetujuan pimpinan.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Parse Rupiah
+        |--------------------------------------------------------------------------
+        */
+        $request->merge([
+            'diskon' => parse_rupiah($request->input('diskon')),
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validation
+        |--------------------------------------------------------------------------
+        */
+        $validated = $request->validate([
+            'tanggal_pelunasan' => [
+                'required',
+                'date'
+            ],
+
+            'diskon' => [
+                'nullable',
+                'numeric',
+                'min:0'
+            ],
+
+            'alasan_diskon' => [
+                'nullable',
+                'string'
+            ],
+
+            'keterangan' => [
+                'nullable',
+                'string'
+            ],
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Store Pelunasan
+        |--------------------------------------------------------------------------
+        */
+        $pelunasan = $this->service->store(
+            $pembiayaan,
+            $validated
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pesan
+        |--------------------------------------------------------------------------
+        */
+        if ($pelunasan->jenis_pelunasan === 'dengan_diskon') {
+
+            $message =
+                'Pengajuan pelunasan dengan diskon berhasil disimpan dan menunggu persetujuan pimpinan.';
+
+        } else {
+
+            $message =
+                'Pengajuan pelunasan berhasil disimpan dan siap dibayar.';
+        }
+
+        return redirect()
+            ->route('operasional.show', $pembiayaan)
+            ->with('success', $message);
     }
 
 
