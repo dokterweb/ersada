@@ -12,7 +12,8 @@ class PelunasanService
 {
     public function __construct(
         protected PaymentService $paymentService,
-        protected AuditTrailService $auditTrail
+        protected AuditTrailService $auditTrail,
+        protected PembayaranAngsuranService $pembayaranAngsuranService
     ) {}
 
     /*
@@ -21,15 +22,21 @@ class PelunasanService
     |--------------------------------------------------------------------------
     */
 
+    
+    
     public function hitungPelunasan(
         Pembiayaan $pembiayaan,
         string $tanggalPelunasan
     ): array {
 
-        $tanggalPelunasan = Carbon::parse($tanggalPelunasan);
+        $tanggalPelunasan = Carbon::parse($tanggalPelunasan)->startOfDay();
 
         $angsurans = $pembiayaan->angsurans()
             ->where('status', '!=', 'dibayar')
+            ->with([
+                'pembiayaan.akad.pencairan',
+                'pembayaranAngsurans',
+            ])
             ->orderBy('angsuran_ke')
             ->get();
 
@@ -41,6 +48,27 @@ class PelunasanService
 
         /*
         |--------------------------------------------------------------------------
+        | HITUNG DENDA DAN ADMIN KETERLAMBATAN
+        |--------------------------------------------------------------------------
+        |
+        | Gunakan perhitungan yang sama dengan modul pembayaran angsuran.
+        | Denda dan admin dijumlahkan untuk semua angsuran yang belum lunas.
+        */
+
+        $denda = 0;
+
+        foreach ($angsurans as $angsuran) {
+            $previewDenda = $this->pembayaranAngsuranService->previewDenda(
+                $angsuran,
+                $tanggalPelunasan->toDateString()
+            );
+
+            $denda += (int) ($previewDenda['denda_tersisa'] ?? 0);
+            $denda += (int) ($previewDenda['admin_tersisa'] ?? 0);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | TENOR PENDEK
         |--------------------------------------------------------------------------
         */
@@ -48,71 +76,46 @@ class PelunasanService
         if ($pembiayaan->jenis_tenor === 'pendek') {
 
             /*
-             * Cari angsuran yang masih memiliki pokok.
-             * Pada tenor pendek, pokok berada pada angsuran terakhir.
-             */
+            * Pokok berada pada angsuran terakhir.
+            */
+
             $angsuranPokok = $angsurans
                 ->where('sisa_pokok', '>', 0)
                 ->sortByDesc('angsuran_ke')
                 ->first();
 
             $sisaPokok = $angsuranPokok
-                ? $angsuranPokok->sisa_pokok
+                ? (int) $angsuranPokok->sisa_pokok
                 : 0;
 
             /*
-             * Bunga hanya dihitung sampai tanggal pelunasan.
-             *
-             * Jadi bunga bulan yang belum jatuh tempo
-             * tidak ikut dibebankan.
-             */
-           /*
-|--------------------------------------------------------------------------
-| SISA BUNGA
-|--------------------------------------------------------------------------
-|
-| Untuk tenor pendek:
-|
-| 1. Bunga angsuran yang sudah jatuh tempo tetap dihitung.
-| 2. Bunga angsuran pertama yang belum dibayar
-|    juga dihitung sebagai bunga yang sedang berjalan.
-| 3. Bunga angsuran berikutnya tidak ikut dihitung.
-|
-*/
+            * Hitung bunga yang jatuh tempo sampai tanggal pelunasan.
+            */
 
-$angsuranPertamaBelumLunas = $angsurans
-    ->sortBy('angsuran_ke')
-    ->first();
+            $angsuranPertamaBelumLunas = $angsurans
+                ->sortBy('angsuran_ke')
+                ->first();
 
-$sisaBunga = $angsurans
-    ->filter(function ($angsuran) use ($tanggalPelunasan) {
+            $sisaBunga = $angsurans
+                ->filter(function ($angsuran) use ($tanggalPelunasan) {
+                    return Carbon::parse(
+                        $angsuran->tanggal_jatuh_tempo
+                    )->startOfDay()->lte($tanggalPelunasan);
+                })
+                ->sum('bunga_angsuran');
 
-        return Carbon::parse(
-            $angsuran->tanggal_jatuh_tempo
-        )->lte($tanggalPelunasan);
+            /*
+            * Tambahkan bunga angsuran pertama yang belum jatuh tempo.
+            */
 
-    })
-    ->sum('bunga_angsuran');
-
-/*
-|--------------------------------------------------------------------------
-| TAMBAHKAN BUNGA ANGSURAN YANG SEDANG BERJALAN
-|--------------------------------------------------------------------------
-*/
-
-if (
-    $angsuranPertamaBelumLunas
-    &&
-    Carbon::parse(
-        $angsuranPertamaBelumLunas->tanggal_jatuh_tempo
-    )->gt($tanggalPelunasan)
-) {
-
-    $sisaBunga +=
-        (int) $angsuranPertamaBelumLunas->bunga_angsuran;
-}
-
-            $denda = $angsurans->sum('denda');
+            if (
+                $angsuranPertamaBelumLunas
+                && Carbon::parse(
+                    $angsuranPertamaBelumLunas->tanggal_jatuh_tempo
+                )->startOfDay()->gt($tanggalPelunasan)
+            ) {
+                $sisaBunga += (int) $angsuranPertamaBelumLunas->bunga_angsuran;
+            }
 
             $totalSebelumDiskon =
                 $sisaPokok +
@@ -123,7 +126,7 @@ if (
                 'jenis_tenor' => 'pendek',
                 'sisa_angsuran' => $angsurans->count(),
                 'sisa_pokok' => $sisaPokok,
-                'sisa_bunga' => $sisaBunga,
+                'sisa_bunga' => (int) $sisaBunga,
                 'denda' => $denda,
                 'total_sebelum_diskon' => $totalSebelumDiskon,
             ];
@@ -135,14 +138,11 @@ if (
         |--------------------------------------------------------------------------
         */
 
-        $sisaPokok = $angsurans->sum('pokok_angsuran');
+        $sisaPokok = (int) $angsurans->sum('pokok_angsuran');
 
-        $sisaBunga = $angsurans->sum('bunga_angsuran');
+        $sisaBunga = (int) $angsurans->sum('bunga_angsuran');
 
-        $denda = $angsurans->sum('denda');
-
-        $totalSisaAngsuran =
-            $angsurans->sum('total_angsuran');
+        $totalSisaAngsuran = (int) $angsurans->sum('total_angsuran');
 
         $totalSebelumDiskon =
             $totalSisaAngsuran +
@@ -157,6 +157,8 @@ if (
             'total_sebelum_diskon' => $totalSebelumDiskon,
         ];
     }
+
+
 
 
     /*

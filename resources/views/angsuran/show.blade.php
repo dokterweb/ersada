@@ -266,67 +266,67 @@
                                                 </td>
                                                 <td>
                                                     
-@if($item->status !== 'dibayar')
+                                                    @if($item->status !== 'dibayar')
 
-    <button
-        id="btn-{{ $item->id }}"
-        class="btn btn-success btn-sm btn-bayar"
-        data-id="{{ $item->id }}"
-    >
-        Bayar
-    </button>
-
-    @php
-        $dendaTersisa = (int) (
-            $item->preview_denda['denda_tersisa'] ?? 0
-        );
-
-        $pengajuanDiskonTerakhir = $item->pengajuanDiskonDendas
-            ->sortByDesc('id')
-            ->first();
-
-        $statusPengajuanDiskon = $pengajuanDiskonTerakhir?->status;
-
-        $bolehAjukanDiskon = $dendaTersisa > 0
-            && (
-                !$pengajuanDiskonTerakhir
-                || $statusPengajuanDiskon === 'ditolak'
-            );
-    @endphp
-
-    @if($bolehAjukanDiskon)
-        <a
-            href="{{ route('diskon-denda.create', $item) }}"
-            class="btn btn-warning btn-sm"
-        >
-            <i class="ti ti-discount"></i>
-            Diskon Denda
-        </a>
-    @elseif($statusPengajuanDiskon === 'pending')
-        <button
-            type="button"
-            class="btn btn-secondary btn-sm"
-            disabled
-            title="Pengajuan diskon denda sedang menunggu persetujuan"
-        >
-            Menunggu Persetujuan
-        </button>
-    @elseif($statusPengajuanDiskon === 'disetujui')
-        <button
-            type="button"
-            class="btn btn-secondary btn-sm"
-            disabled
-            title="Pengajuan diskon denda sudah disetujui"
-        >
-            Diskon Disetujui
-        </button>
-    @endif
-
-@endif
-
-                                                        <button class="btn btn-info btn-sm btn-history" data-id="{{ $item->id }}">
-                                                                History
+                                                        <button
+                                                            id="btn-{{ $item->id }}"
+                                                            class="btn btn-success btn-sm btn-bayar"
+                                                            data-id="{{ $item->id }}"
+                                                        >
+                                                            Bayar
                                                         </button>
+
+                                                        @php
+                                                            $dendaTersisa = (int) (
+                                                                $item->preview_denda['denda_tersisa'] ?? 0
+                                                            );
+
+                                                            $pengajuanDiskonTerakhir = $item->pengajuanDiskonDendas
+                                                                ->sortByDesc('id')
+                                                                ->first();
+
+                                                            $statusPengajuanDiskon = $pengajuanDiskonTerakhir?->status;
+
+                                                            $bolehAjukanDiskon = $dendaTersisa > 0
+                                                                && (
+                                                                    !$pengajuanDiskonTerakhir
+                                                                    || $statusPengajuanDiskon === 'ditolak'
+                                                                );
+                                                        @endphp
+
+                                                        @if($bolehAjukanDiskon)
+                                                            <a
+                                                                href="{{ route('diskon-denda.create', $item) }}"
+                                                                class="btn btn-warning btn-sm"
+                                                            >
+                                                                <i class="ti ti-discount"></i>
+                                                                Diskon Denda
+                                                            </a>
+                                                        @elseif($statusPengajuanDiskon === 'pending')
+                                                            <button
+                                                                type="button"
+                                                                class="btn btn-secondary btn-sm"
+                                                                disabled
+                                                                title="Pengajuan diskon denda sedang menunggu persetujuan"
+                                                            >
+                                                                Menunggu Persetujuan
+                                                            </button>
+                                                        @elseif($statusPengajuanDiskon === 'disetujui')
+                                                            <button
+                                                                type="button"
+                                                                class="btn btn-secondary btn-sm"
+                                                                disabled
+                                                                title="Pengajuan diskon denda sudah disetujui"
+                                                            >
+                                                                Diskon Disetujui
+                                                            </button>
+                                                        @endif
+
+                                                    @endif
+
+                                                    <button class="btn btn-info btn-sm btn-history" data-id="{{ $item->id }}">
+                                                            History
+                                                    </button>
                                                 </td>
                                             </tr>
                                             @endforeach

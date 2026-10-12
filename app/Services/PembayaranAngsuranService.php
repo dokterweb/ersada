@@ -44,277 +44,287 @@ class PembayaranAngsuranService
      */
     
     
-public function previewDenda(
-    Angsuran $angsuran,
-    ?string $tanggalBayar = null
-): array {
-    $angsuran->loadMissing(['pembiayaan.akad.pencairan']);
+    public function previewDenda(
+        Angsuran $angsuran,
+        ?string $tanggalBayar = null
+    ): array {
+        $angsuran->loadMissing(['pembiayaan.akad.pencairan']);
 
-    $tanggalBayar = $tanggalBayar
-        ? Carbon::parse($tanggalBayar)->startOfDay()
-        : Carbon::today();
+        $tanggalBayar = $tanggalBayar
+            ? Carbon::parse($tanggalBayar)->startOfDay()
+            : Carbon::today();
 
-    $tanggalJatuhTempo = Carbon::parse(
-        $angsuran->tanggal_jatuh_tempo
-    )->startOfDay();
+        $tanggalJatuhTempo = Carbon::parse(
+            $angsuran->tanggal_jatuh_tempo
+        )->startOfDay();
 
-    $pembiayaan = $angsuran->pembiayaan;
+        $pembiayaan = $angsuran->pembiayaan;
+
+        /*
+        |--------------------------------------------------------------------------
+        | 1. Konfigurasi denda berdasarkan tenor
+        |--------------------------------------------------------------------------
+        */
+
+        $jenisTenor = $pembiayaan->jenis_tenor;
+
+        // Tenor pendek: 0,20% per hari.
+        // Tenor panjang: 0,10% per hari.
+        $persenDendaHarian = $jenisTenor === 'pendek'
+            ? 0.20
+            : 0.10;
+
+        $dendaPerHari = (int) round(
+            (float) $pembiayaan->plafond
+            * ($persenDendaHarian / 100)
+        );
+
+        // Admin hanya berlaku untuk tenor panjang.
+        $tarifAdmin = $jenisTenor === 'panjang'
+            ? 15000
+            : 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | 2. Periksa apakah angsuran sudah jatuh tempo
+        |--------------------------------------------------------------------------
+        */
+
+        $tglTelatBayar = optional(
+            $pembiayaan->akad?->pencairan
+        )->tgl_telat_bayar;
+
+        $tglTelatBayar = $tglTelatBayar ?: 10;
+
+        $tanggalMulaiDenda = $tanggalJatuhTempo->copy();
+
+        if ($tanggalBayar->lte($tanggalJatuhTempo)) {
+            return [
+                'hari_terlambat' => 0,
+                'persen_denda_harian' => $persenDendaHarian,
+                'denda_per_hari' => $dendaPerHari,
+                'denda_berjalan' => 0,
+                'denda_sudah_dibayar' => 0,
+                'diskon_denda' => 0,
+                'diskon_pengajuan' => 0,
+                'denda_tersisa' => 0,
+                'admin_berjalan' => 0,
+                'admin_sudah_dibayar' => 0,
+                'admin_tersisa' => 0,
+                'total_tambahan' => 0,
+                'tgl_telat_bayar' => $tglTelatBayar,
+                'tanggal_mulai_denda' => $tanggalMulaiDenda
+                    ->format('Y-m-d'),
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 3. Hitung hari keterlambatan
+        |--------------------------------------------------------------------------
+        |
+        | Jika masih dalam bulan dan tahun jatuh tempo:
+        | hitung jumlah hari keterlambatan sebenarnya.
+        |
+        | Jika sudah memasuki bulan kalender berikutnya:
+        | gunakan maksimal 30 hari.
+        */
+
+        $bulanJatuhTempo = $tanggalJatuhTempo->format('Y-m');
+        $bulanPerhitungan = $tanggalBayar->format('Y-m');
 
     /*
-    |--------------------------------------------------------------------------
-    | 1. Konfigurasi denda berdasarkan tenor
-    |--------------------------------------------------------------------------
-    */
+        |--------------------------------------------------------------------------
+        | CEK SUDAH MEMASUKI BULAN KALENDER BERIKUTNYA
+        |--------------------------------------------------------------------------
+        */
 
-    $jenisTenor = $pembiayaan->jenis_tenor;
+        $tanggalBatasBulan = $tanggalJatuhTempo->copy()
+            ->startOfMonth()
+            ->addMonth();
 
-    // Tenor pendek: 0,20% per hari.
-    // Tenor panjang: 0,10% per hari.
-    $persenDendaHarian = $jenisTenor === 'pendek'
-        ? 0.20
-        : 0.10;
+        $sudahLewatBulan = $tanggalBayar->gte($tanggalBatasBulan);
 
-    $dendaPerHari = (int) round(
-        (float) $pembiayaan->plafond
-        * ($persenDendaHarian / 100)
-    );
+        if ($sudahLewatBulan) {
+            $hariTerlambat = 30;
+        } else {
+            $hariTerlambat = (int) $tanggalJatuhTempo
+                ->diffInDays($tanggalBayar);
+        }
 
-    // Admin hanya berlaku untuk tenor panjang.
-    $tarifAdmin = $jenisTenor === 'panjang'
-        ? 15000
-        : 0;
+        /*
+        |--------------------------------------------------------------------------
+        | 4. Hitung denda berjalan
+        |--------------------------------------------------------------------------
+        */
 
-    /*
-    |--------------------------------------------------------------------------
-    | 2. Periksa apakah angsuran sudah jatuh tempo
-    |--------------------------------------------------------------------------
-    */
+        $dendaBerjalan = $dendaPerHari * $hariTerlambat;
 
-    $tglTelatBayar = optional(
-        $pembiayaan->akad?->pencairan
-    )->tgl_telat_bayar;
+        /*
+        |--------------------------------------------------------------------------
+        | 5. Ambil histori pembayaran angsuran
+        |--------------------------------------------------------------------------
+        */
 
-    $tglTelatBayar = $tglTelatBayar ?: 10;
+        $histori = PembayaranAngsuran::where(
+            'angsuran_id',
+            $angsuran->id
+        )->get();
 
-    $tanggalMulaiDenda = $tanggalJatuhTempo->copy();
+        $dendaSudahDibayar = (int) $histori->sum('denda');
 
-    if ($tanggalBayar->lte($tanggalJatuhTempo)) {
+        $diskonDirealisasikan = (int) $histori->sum('diskon_denda');
+
+        $adminSudahDibayar = (int) $histori->sum(
+            'admin_keterlambatan'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | 6. Ambil pengajuan diskon yang disetujui dan belum digunakan
+        |--------------------------------------------------------------------------
+        */
+
+        $pengajuanDiskon = PengajuanDiskonDenda::where(
+            'angsuran_id',
+            $angsuran->id
+        )
+            ->where('status', 'disetujui')
+            ->whereNull('pembayaran_id')
+            ->whereNull('digunakan_at')
+            ->orderByDesc('disetujui_at')
+            ->orderByDesc('id')
+            ->first();
+
+        $diskonPengajuan = $pengajuanDiskon
+            ? (int) $pengajuanDiskon->diskon_denda
+            : 0;
+
+        $totalDiskon = $diskonDirealisasikan + $diskonPengajuan;
+
+        /*
+        |--------------------------------------------------------------------------
+        | 7. Hitung sisa denda
+        |--------------------------------------------------------------------------
+        */
+
+        $dendaTersisa = max(
+            0,
+            $dendaBerjalan
+            - $dendaSudahDibayar
+            - $totalDiskon
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | 8. Hitung admin keterlambatan
+        |--------------------------------------------------------------------------
+        |
+        | Tenor panjang:
+        | - Rp15.000 per angsuran setelah memasuki bulan berikutnya.
+        | - Tidak berlipat ganda walaupun keterlambatan berlangsung
+        |   lebih dari satu bulan.
+        |
+        | Tenor pendek:
+        | - Tidak dikenakan admin keterlambatan.
+        */
+
+        $adminBerjalan = (
+            $jenisTenor === 'panjang' && $sudahLewatBulan
+        )
+            ? $tarifAdmin
+            : 0;
+
+        $adminTersisa = max(
+            0,
+            $adminBerjalan - $adminSudahDibayar
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | 9. Total tambahan yang perlu dibayar
+        |--------------------------------------------------------------------------
+        */
+
+        $totalTambahan = $dendaTersisa + $adminTersisa;
+
+
         return [
-            'hari_terlambat' => 0,
+            'hari_terlambat' => $hariTerlambat,
             'persen_denda_harian' => $persenDendaHarian,
             'denda_per_hari' => $dendaPerHari,
-            'denda_berjalan' => 0,
-            'denda_sudah_dibayar' => 0,
-            'diskon_denda' => 0,
-            'diskon_pengajuan' => 0,
-            'denda_tersisa' => 0,
-            'admin_berjalan' => 0,
-            'admin_sudah_dibayar' => 0,
-            'admin_tersisa' => 0,
-            'total_tambahan' => 0,
+
+            'denda_berjalan' => $dendaBerjalan,
+            'denda_berjalan_format' => number_format(
+                $dendaBerjalan,
+                0,
+                ',',
+                '.'
+            ),
+
+            'denda_sudah_dibayar' => $dendaSudahDibayar,
+            'denda_sudah_dibayar_format' => number_format(
+                $dendaSudahDibayar,
+                0,
+                ',',
+                '.'
+            ),
+
+            'diskon_denda' => $totalDiskon,
+            'diskon_denda_format' => number_format(
+                $totalDiskon,
+                0,
+                ',',
+                '.'
+            ),
+
+            'diskon_pengajuan' => $diskonPengajuan,
+
+            'denda_tersisa' => $dendaTersisa,
+            'denda_tersisa_format' => number_format(
+                $dendaTersisa,
+                0,
+                ',',
+                '.'
+            ),
+
+            'admin_berjalan' => $adminBerjalan,
+            'admin_berjalan_format' => number_format(
+                $adminBerjalan,
+                0,
+                ',',
+                '.'
+            ),
+
+            'admin_sudah_dibayar' => $adminSudahDibayar,
+            'admin_sudah_dibayar_format' => number_format(
+                $adminSudahDibayar,
+                0,
+                ',',
+                '.'
+            ),
+
+            'admin_tersisa' => $adminTersisa,
+            'admin_tersisa_format' => number_format(
+                $adminTersisa,
+                0,
+                ',',
+                '.'
+            ),
+
+            'total_tambahan' => $totalTambahan,
+            'total_tambahan_format' => number_format(
+                $totalTambahan,
+                0,
+                ',',
+                '.'
+            ),
+
             'tgl_telat_bayar' => $tglTelatBayar,
-            'tanggal_mulai_denda' => $tanggalMulaiDenda
-                ->format('Y-m-d'),
+            'tanggal_mulai_denda' => $tanggalMulaiDenda->format('Y-m-d'),
         ];
+
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 3. Hitung hari keterlambatan
-    |--------------------------------------------------------------------------
-    |
-    | Jika masih dalam bulan dan tahun jatuh tempo:
-    | hitung jumlah hari keterlambatan sebenarnya.
-    |
-    | Jika sudah memasuki bulan kalender berikutnya:
-    | gunakan maksimal 30 hari.
-    */
-
-    $bulanJatuhTempo = $tanggalJatuhTempo->format('Y-m');
-    $bulanPerhitungan = $tanggalBayar->format('Y-m');
-
-    $sudahLewatBulan = $bulanPerhitungan !== $bulanJatuhTempo;
-
-    if ($sudahLewatBulan) {
-        $hariTerlambat = 30;
-    } else {
-        $hariTerlambat = (int) $tanggalJatuhTempo
-            ->diffInDays($tanggalBayar);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | 4. Hitung denda berjalan
-    |--------------------------------------------------------------------------
-    */
-
-    $dendaBerjalan = $dendaPerHari * $hariTerlambat;
-
-    /*
-    |--------------------------------------------------------------------------
-    | 5. Ambil histori pembayaran angsuran
-    |--------------------------------------------------------------------------
-    */
-
-    $histori = PembayaranAngsuran::where(
-        'angsuran_id',
-        $angsuran->id
-    )->get();
-
-    $dendaSudahDibayar = (int) $histori->sum('denda');
-
-    $diskonDirealisasikan = (int) $histori->sum('diskon_denda');
-
-    $adminSudahDibayar = (int) $histori->sum(
-        'admin_keterlambatan'
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | 6. Ambil pengajuan diskon yang disetujui dan belum digunakan
-    |--------------------------------------------------------------------------
-    */
-
-    $pengajuanDiskon = PengajuanDiskonDenda::where(
-        'angsuran_id',
-        $angsuran->id
-    )
-        ->where('status', 'disetujui')
-        ->whereNull('pembayaran_id')
-        ->whereNull('digunakan_at')
-        ->orderByDesc('disetujui_at')
-        ->orderByDesc('id')
-        ->first();
-
-    $diskonPengajuan = $pengajuanDiskon
-        ? (int) $pengajuanDiskon->diskon_denda
-        : 0;
-
-    $totalDiskon = $diskonDirealisasikan + $diskonPengajuan;
-
-    /*
-    |--------------------------------------------------------------------------
-    | 7. Hitung sisa denda
-    |--------------------------------------------------------------------------
-    */
-
-    $dendaTersisa = max(
-        0,
-        $dendaBerjalan
-        - $dendaSudahDibayar
-        - $totalDiskon
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | 8. Hitung admin keterlambatan
-    |--------------------------------------------------------------------------
-    |
-    | Tenor panjang:
-    | - Rp15.000 per angsuran setelah memasuki bulan berikutnya.
-    | - Tidak berlipat ganda walaupun keterlambatan berlangsung
-    |   lebih dari satu bulan.
-    |
-    | Tenor pendek:
-    | - Tidak dikenakan admin keterlambatan.
-    */
-
-    $adminBerjalan = (
-        $jenisTenor === 'panjang' && $sudahLewatBulan
-    )
-        ? $tarifAdmin
-        : 0;
-
-    $adminTersisa = max(
-        0,
-        $adminBerjalan - $adminSudahDibayar
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | 9. Total tambahan yang perlu dibayar
-    |--------------------------------------------------------------------------
-    */
-
-    $totalTambahan = $dendaTersisa + $adminTersisa;
-
-
-    return [
-        'hari_terlambat' => $hariTerlambat,
-        'persen_denda_harian' => $persenDendaHarian,
-        'denda_per_hari' => $dendaPerHari,
-
-        'denda_berjalan' => $dendaBerjalan,
-        'denda_berjalan_format' => number_format(
-            $dendaBerjalan,
-            0,
-            ',',
-            '.'
-        ),
-
-        'denda_sudah_dibayar' => $dendaSudahDibayar,
-        'denda_sudah_dibayar_format' => number_format(
-            $dendaSudahDibayar,
-            0,
-            ',',
-            '.'
-        ),
-
-        'diskon_denda' => $totalDiskon,
-        'diskon_denda_format' => number_format(
-            $totalDiskon,
-            0,
-            ',',
-            '.'
-        ),
-
-        'diskon_pengajuan' => $diskonPengajuan,
-
-        'denda_tersisa' => $dendaTersisa,
-        'denda_tersisa_format' => number_format(
-            $dendaTersisa,
-            0,
-            ',',
-            '.'
-        ),
-
-        'admin_berjalan' => $adminBerjalan,
-        'admin_berjalan_format' => number_format(
-            $adminBerjalan,
-            0,
-            ',',
-            '.'
-        ),
-
-        'admin_sudah_dibayar' => $adminSudahDibayar,
-        'admin_sudah_dibayar_format' => number_format(
-            $adminSudahDibayar,
-            0,
-            ',',
-            '.'
-        ),
-
-        'admin_tersisa' => $adminTersisa,
-        'admin_tersisa_format' => number_format(
-            $adminTersisa,
-            0,
-            ',',
-            '.'
-        ),
-
-        'total_tambahan' => $totalTambahan,
-        'total_tambahan_format' => number_format(
-            $totalTambahan,
-            0,
-            ',',
-            '.'
-        ),
-
-        'tgl_telat_bayar' => $tglTelatBayar,
-        'tanggal_mulai_denda' => $tanggalMulaiDenda->format('Y-m-d'),
-    ];
-
-}
 
 
 
@@ -1045,21 +1055,32 @@ public function previewDenda(
      * GENERATE NOMOR PEMBAYARAN
      * ============================================================
      */
+   
     protected function generateNomor(): string
     {
         $tahun = date('Y');
+        $prefix = 'BYR/' . $tahun . '/';
 
-        $last = PembayaranAngsuran::whereYear(
-            'created_at',
-            $tahun
+        $last = PembayaranAngsuran::where(
+            'nomor_pembayaran',
+            'like',
+            $prefix . '%'
         )
-        ->lockForUpdate()
-        ->count() + 1;
+            ->lockForUpdate()
+            ->orderByDesc('nomor_pembayaran')
+            ->value('nomor_pembayaran');
+
+        $nomorTerakhir = $last
+            ? (int) substr($last, strlen($prefix))
+            : 0;
+
+        $nomorBerikutnya = $nomorTerakhir + 1;
 
         return sprintf(
             'BYR/%s/%05d',
             $tahun,
-            $last
+            $nomorBerikutnya
         );
     }
+
 }

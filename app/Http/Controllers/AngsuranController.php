@@ -189,6 +189,8 @@ class AngsuranController extends Controller
 
                 $item->denda_tampilan = (int) (
                     $item->preview_denda['denda_tersisa'] ?? 0
+                ) + (int) (
+                    $item->preview_denda['admin_tersisa'] ?? 0
                 );
             }
         }
