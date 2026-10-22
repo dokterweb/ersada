@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Log;
 
 class PengajuanController extends Controller
 {
@@ -710,77 +711,41 @@ class PengajuanController extends Controller
                 }
             }
 
+            // PENJAMIN WAJIB
+            $penjamin = Referensi::updateOrCreate(
+                [
+                    'pengajuan_id' => $pengajuan->id,
+                    'jenis' => 'penjamin',
+                ],
+                [
+                    'nama' => $request->input('penjamin.nama'),
+                    'tempat_lahir' => $request->input('penjamin.tempat_lahir'),
+                    'tgl_lahir' => $request->input('penjamin.tgl_lahir'),
+                    'hubungan' => $request->input('penjamin.hubungan'),
+                    'no_hp' => $request->input('penjamin.no_hp'),
+                    'alamat' => $request->input('penjamin.alamat'),
+                ]
+            );
 
-            /*
-            |--------------------------------------------------------------------------
-            | PENJAMIN
-            |--------------------------------------------------------------------------
-            */
-
-            if ($request->boolean('has_penjamin')) {
-
-                $penjamin = Referensi::updateOrCreate(
+            // PEKERJAAN PENJAMIN TETAP OPSIONAL
+            if ($request->boolean('has_pekerjaan_penjamin')) {
+                Pekerjaan_referensi::updateOrCreate(
+                    ['referensi_id' => $penjamin->id],
                     [
-                        'pengajuan_id' => $pengajuan->id,
-                        'jenis' => 'penjamin'
-                    ],
-                    [
-                        'nama' =>$request->penjamin['nama'] ?? null,
-                        'tempat_lahir' =>$request->penjamin['tempat_lahir'] ?? null,
-                        'tgl_lahir' =>$request->penjamin['tgl_lahir'] ?? null,
-                        'hubungan' =>$request->penjamin['hubungan'] ?? null,
-                        'no_hp' =>$request->penjamin['no_hp'] ?? null,
-                        'alamat' =>$request->penjamin['alamat'] ?? null,
+                        'penghasilan' => $request->input('penjamin.pekerjaan.penghasilan'),
+                        'nama_usaha' => $request->input('penjamin.pekerjaan.nama_usaha'),
+                        'jenis_usaha' => $request->input('penjamin.pekerjaan.jenis_usaha'),
+                        'lama_usaha' => $request->input('penjamin.pekerjaan.lama_usaha'),
+                        'jumlah_pegawai' => $request->input('penjamin.pekerjaan.jumlah_pegawai'),
+                        'alamat_usaha' => $request->input('penjamin.pekerjaan.alamat_usaha'),
                     ]
                 );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | PEKERJAAN PENJAMIN
-                |--------------------------------------------------------------------------
-                */
-
-                if ($request->boolean('has_pekerjaan_penjamin')) {
-
-                    Pekerjaan_referensi::updateOrCreate(
-                        [
-                            'referensi_id' => $penjamin->id
-                        ],
-                        [
-                            'penghasilan' =>$request->penjamin['pekerjaan']['penghasilan'] ?? null,
-                            'nama_usaha' =>$request->penjamin['pekerjaan']['nama_usaha'] ?? null,
-                            'jenis_usaha' =>$request->penjamin['pekerjaan']['jenis_usaha'] ?? null,
-                            'lama_usaha' =>$request->penjamin['pekerjaan']['lama_usaha'] ?? null,
-                            'jumlah_pegawai' =>$request->penjamin['pekerjaan']['jumlah_pegawai'] ?? null,
-                            'alamat_usaha' =>$request->penjamin['pekerjaan']['alamat_usaha'] ?? null,
-                        ]
-                    );
-
-                } else {
-
-                    Pekerjaan_referensi::where('referensi_id',$penjamin->id)->delete();
-                }
-
-
             } else {
-
-                /*
-                |--------------------------------------------------------------------------
-                | HAPUS PENJAMIN
-                |--------------------------------------------------------------------------
-                */
-
-                $oldPenjamin = Referensi::where('pengajuan_id',$pengajuan->id)
-                ->where('jenis', 'penjamin')
-                ->first();
-
-                if ($oldPenjamin) {
-                    Pekerjaan_referensi::where('referensi_id',$oldPenjamin->id)->delete();
-                    $oldPenjamin->delete();
-                }
+                Pekerjaan_referensi::where(
+                    'referensi_id',
+                    $penjamin->id
+                )->delete();
             }
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1002,7 +967,12 @@ class PengajuanController extends Controller
             */
 
             DB::rollBack();
-
+            Log::error('Gagal menyimpan Pengajuan Step 3', [
+                    'pengajuan_id' => $pengajuan->id,
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]);
 
             /*
             |--------------------------------------------------------------------------

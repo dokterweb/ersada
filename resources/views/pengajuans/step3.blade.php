@@ -131,38 +131,34 @@
                         </div>
                         <hr>
                         <div class="mb-3">
-                            <label class="form-check">
-                                <input type="hidden" name="has_penjamin" value="0">
-                                <input type="checkbox" id="has_penjamin" name="has_penjamin" value="1"class="form-check-input" value="1"class="form-check-input" {{ old('has_penjamin', isset($penjamin) ? 1 : 0) ? 'checked' : '' }}>
-                                <span class="form-check-label">Memiliki Penjamin</span>
-                            </label>
-                            <div id="penjamin_form" style="display:none;">
+                           
+                            <div id="penjamin_form">
                                 <h4>PENJAMIN</h4>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Nama Sesuai KTP</label>
-                                        <input type="text" class="form-control" name="penjamin[nama]" value="{{ old('penjamin.nama', $penjamin->nama ?? '') }}">
+                                        <input type="text" class="form-control" name="penjamin[nama]" value="{{ old('penjamin.nama', $penjamin->nama ?? '') }}" required>
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Tempat Lahir</label>
-                                        <input class="form-control" name="penjamin[tempat_lahir]" value="{{ old('penjamin.tempat_lahir', $penjamin->tempat_lahir ?? '') }}">
+                                        <input class="form-control" name="penjamin[tempat_lahir]" value="{{ old('penjamin.tempat_lahir', $penjamin->tempat_lahir ?? '') }}" required>
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Tgl Lahir</label>
-                                        <input class="form-control" type="date" name="penjamin[tgl_lahir]" value="{{ old('penjamin.tgl_lahir', $penjamin->tgl_lahir ?? '') }}">
+                                        <input class="form-control" type="date" name="penjamin[tgl_lahir]" value="{{ old('penjamin.tgl_lahir', $penjamin->tgl_lahir ?? '') }}" required>
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">No. HP</label>
-                                        <input class="form-control" name="penjamin[no_hp]" value="{{ old('penjamin.no_hp', $penjamin->no_hp ?? '') }}">
+                                        <input class="form-control" name="penjamin[no_hp]" value="{{ old('penjamin.no_hp', $penjamin->no_hp ?? '') }}" required>
                              
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Hubungan</label>
-                                        <input type="text" class="form-control" name="penjamin[hubungan]" value="{{ old('penjamin.hubungan', $penjamin->hubungan ?? '') }}">
+                                        <input type="text" class="form-control" name="penjamin[hubungan]" value="{{ old('penjamin.hubungan', $penjamin->hubungan ?? '') }}" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Alamat</label>
-                                        <input type="text" class="form-control" name="penjamin[alamat]" value="{{ old('penjamin.alamat', $penjamin->alamat ?? '') }}">
+                                        <input type="text" class="form-control" name="penjamin[alamat]" value="{{ old('penjamin.alamat', $penjamin->alamat ?? '') }}" required>
                                     </div>
                                 </div>
 
@@ -367,10 +363,6 @@ $(document).ready(function(){
 
         if($('#pasangan_pekerjaan_check').is(':checked')){
             $('#pasangan_job').show();
-        }
-
-        if($('#has_penjamin').is(':checked')){
-            $('#penjamin_form').show();
         }
 
         if($('#penjamin_job_check').is(':checked')){

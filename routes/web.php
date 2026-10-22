@@ -141,10 +141,10 @@ Route::middleware(['auth','role:komisaris|direktur|kacab'])->prefix('approval-su
         Route::get('/{pembiayaan}/edit',[PembiayaanController::class,'edit'])->name('edit');
         Route::put('/{pembiayaan}',[PembiayaanController::class,'update'])->name('update');
         Route::get('/{pembiayaan}/review',[PembiayaanController::class,'review'])->name('review');
-        // Route::post('/{pembiayaan}/review',[PembiayaanController::class,'submitReview'])->name('submitReview');
         Route::get('/{pembiayaan}/generate-jadwal',[PembiayaanController::class,'generateJadwal'])->name('generateJadwal');
         Route::post('/{pembiayaan}/generate-jadwal',[PembiayaanController::class,'storeJadwal'])->name('storeJadwal');
         Route::get('/{pembiayaan}/jadwal',[PembiayaanController::class,'jadwal'])->name('jadwal');
+        // Route::post('/{pembiayaan}/review',[PembiayaanController::class,'submitReview'])->name('submitReview');
     });
 
     

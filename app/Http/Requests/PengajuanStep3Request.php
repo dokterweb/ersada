@@ -14,175 +14,237 @@ class PengajuanStep3Request extends FormRequest
     public function rules(): array
     {
         return [
-
             /*
-            ============================================
-            CHECKBOX FLAGS
-            ============================================
+            |--------------------------------------------------------------------------
+            | CHECKBOX FLAGS
+            |--------------------------------------------------------------------------
             */
 
-            'has_pasangan' => 'nullable|boolean',
-            'has_pekerjaan_pasangan' => 'nullable|boolean',
-
-            'has_penjamin' => 'nullable|boolean',
-            'has_pekerjaan_penjamin' => 'nullable|boolean',
-
+            'has_pasangan' => ['nullable', 'boolean'],
+            'has_pekerjaan_pasangan' => ['nullable', 'boolean'],
+            'has_pekerjaan_penjamin' => ['nullable', 'boolean'],
 
             /*
-            ============================================
-            PASANGAN
-            wajib jika has_pasangan = 1
-            ============================================
+            |--------------------------------------------------------------------------
+            | PASANGAN
+            |--------------------------------------------------------------------------
             */
 
-            'pasangan.nama' => 'required_if:has_pasangan,1|nullable|string|max:255',
+            'pasangan.nama' => [
+                'required_if:has_pasangan,1',
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'pasangan.tempat_lahir' => 'required_if:has_pasangan,1|nullable|string|max:255',
+            'pasangan.tempat_lahir' => [
+                'required_if:has_pasangan,1',
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'pasangan.tgl_lahir' => 'required_if:has_pasangan,1|nullable|date',
-            'pasangan.foto_pasangan' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'pasangan.tgl_lahir' => [
+                'required_if:has_pasangan,1',
+                'nullable',
+                'date',
+            ],
+
+            'pasangan.foto_pasangan' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png',
+                'max:5120',
+            ],
 
             /*
-            ============================================
-            PEKERJAAN PASANGAN
-            wajib jika checkbox pekerjaan pasangan dicentang
-            ============================================
+            |--------------------------------------------------------------------------
+            | PEKERJAAN PASANGAN
+            |--------------------------------------------------------------------------
             */
 
-            'pasangan.pekerjaan.penghasilan' =>
-                'required_if:has_pekerjaan_pasangan,1|nullable|numeric',
+            'pasangan.pekerjaan.penghasilan' => [
+                'required_if:has_pekerjaan_pasangan,1',
+                'nullable',
+                'numeric',
+            ],
 
-            'pasangan.pekerjaan.nama_usaha' =>
-                'nullable|string|max:255',
+            'pasangan.pekerjaan.nama_usaha' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'pasangan.pekerjaan.jenis_usaha' =>
-                'nullable|string|max:255',
+            'pasangan.pekerjaan.jenis_usaha' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'pasangan.pekerjaan.lama_usaha' =>
-                'nullable|integer',
+            'pasangan.pekerjaan.lama_usaha' => [
+                'nullable',
+                'integer',
+            ],
 
-            'pasangan.pekerjaan.jumlah_pegawai' =>
-                'nullable|integer',
+            'pasangan.pekerjaan.jumlah_pegawai' => [
+                'nullable',
+                'integer',
+            ],
 
-            'pasangan.pekerjaan.alamat_usaha' =>
-                'nullable|string',
-
-
+            'pasangan.pekerjaan.alamat_usaha' => [
+                'nullable',
+                'string',
+            ],
 
             /*
-            ============================================
-            PENJAMIN
-            wajib jika has_penjamin = 1
-            ============================================
+            |--------------------------------------------------------------------------
+            | PENJAMIN
+            | WAJIB UNTUK SETIAP PENGAJUAN
+            |--------------------------------------------------------------------------
             */
 
-            'penjamin.nama' =>
-                'required_if:has_penjamin,1|nullable|string|max:255',
+            'penjamin' => ['required', 'array'],
+            'penjamin.nama' => ['required', 'string', 'max:255'],
+            'penjamin.tempat_lahir' => ['required', 'string', 'max:255'],
+            'penjamin.tgl_lahir' => ['required', 'date'],
+            'penjamin.hubungan' => ['required', 'string', 'max:100'],
+            'penjamin.no_hp' => ['required', 'string', 'max:20'],
+            'penjamin.alamat' => ['required', 'string'],
+            /*
+            |--------------------------------------------------------------------------
+            | PEKERJAAN PENJAMIN
+            |--------------------------------------------------------------------------
+            */
 
-            'penjamin.tempat_lahir' =>
-                'required_if:has_penjamin,1|nullable|string|max:255',
+            'penjamin.pekerjaan.penghasilan' => [
+                'required_if:has_pekerjaan_penjamin,1',
+                'nullable',
+                'numeric',
+            ],
 
-            'penjamin.tgl_lahir' =>
-                'required_if:has_penjamin,1|nullable|date',
+            'penjamin.pekerjaan.nama_usaha' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'penjamin.hubungan' =>
-                'required_if:has_penjamin,1|nullable|string|max:255',
+            'penjamin.pekerjaan.jenis_usaha' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'penjamin.no_hp' =>
-                'required_if:has_penjamin,1|nullable|string|max:20',
+            'penjamin.pekerjaan.lama_usaha' => [
+                'nullable',
+                'integer',
+            ],
 
-            'penjamin.alamat' =>
-                'required_if:has_penjamin,1|nullable|string',
+            'penjamin.pekerjaan.jumlah_pegawai' => [
+                'nullable',
+                'integer',
+            ],
 
-
+            'penjamin.pekerjaan.alamat_usaha' => [
+                'nullable',
+                'string',
+            ],
 
             /*
-            ============================================
-            PEKERJAAN PENJAMIN
-            ============================================
+            |--------------------------------------------------------------------------
+            | SAUDARA
+            |--------------------------------------------------------------------------
             */
 
-            'penjamin.pekerjaan.penghasilan' =>
-                'required_if:has_pekerjaan_penjamin,1|nullable|numeric',
+            'saudara' => [
+                'nullable',
+                'array',
+            ],
 
-            'penjamin.pekerjaan.nama_usaha' =>
-                'nullable|string|max:255',
+            'saudara.*.id' => [
+                'nullable',
+                'integer',
+            ],
 
-            'penjamin.pekerjaan.jenis_usaha' =>
-                'nullable|string|max:255',
+            'saudara.*.nama' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'penjamin.pekerjaan.lama_usaha' =>
-                'nullable|integer',
+            'saudara.*.tempat_lahir' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-            'penjamin.pekerjaan.jumlah_pegawai' =>
-                'nullable|integer',
+            'saudara.*.tgl_lahir' => [
+                'nullable',
+                'date',
+            ],
 
-            'penjamin.pekerjaan.alamat_usaha' =>
-                'nullable|string',
+            'saudara.*.hubungan' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
+            'saudara.*.no_hp' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
 
-
-            /*
-            ============================================
-            SAUDARA
-            optional, dynamic
-            ============================================
-            */
-
-            'saudara.*.nama' =>
-                'nullable|string|max:255',
-
-            'saudara.*.tempat_lahir' =>
-                'nullable|string|max:255',
-
-            'saudara.*.tgl_lahir' =>
-                'nullable|date',
-
-            'saudara.*.hubungan' =>
-                'nullable|string|max:255',
-
-            'saudara.*.no_hp' =>
-                'nullable|string|max:20',
-
-            'saudara.*.alamat' =>
-                'nullable|string',
+            'saudara.*.alamat' => [
+                'nullable',
+                'string',
+            ],
         ];
     }
-
-
-    /*
-    custom messages
-    */
 
     public function messages(): array
     {
         return [
-
             'pasangan.nama.required_if' =>
-                'Nama pasangan wajib diisi',
+                'Nama pasangan wajib diisi.',
 
             'pasangan.tempat_lahir.required_if' =>
-                'Tempat lahir pasangan wajib diisi',
+                'Tempat lahir pasangan wajib diisi.',
 
             'pasangan.tgl_lahir.required_if' =>
-                'Tanggal lahir pasangan wajib diisi',
+                'Tanggal lahir pasangan wajib diisi.',
 
+            'penjamin.required' =>
+                'Data penjamin wajib diisi.',
 
-            'penjamin.nama.required_if' =>
-                'Nama penjamin wajib diisi',
+            'penjamin.array' =>
+                'Format data penjamin tidak valid.',
 
-            'penjamin.no_hp.required_if' =>
-                'No HP penjamin wajib diisi',
+            'penjamin.nama.required' =>
+                'Nama penjamin wajib diisi.',
 
-            'penjamin.hubungan.required_if' =>
-                'Hubungan penjamin wajib diisi',
+            'penjamin.tempat_lahir.required' =>
+                'Tempat lahir penjamin wajib diisi.',
 
+            'penjamin.tgl_lahir.required' =>
+                'Tanggal lahir penjamin wajib diisi.',
+
+            'penjamin.tgl_lahir.date' =>
+                'Tanggal lahir penjamin tidak valid.',
+
+            'penjamin.hubungan.required' =>
+                'Hubungan penjamin wajib diisi.',
+
+            'penjamin.no_hp.required' =>
+                'Nomor HP penjamin wajib diisi.',
+
+            'penjamin.alamat.required' =>
+                'Alamat penjamin wajib diisi.',
 
             'pasangan.pekerjaan.penghasilan.required_if' =>
-                'Penghasilan pasangan wajib diisi',
+                'Penghasilan pasangan wajib diisi.',
 
             'penjamin.pekerjaan.penghasilan.required_if' =>
-                'Penghasilan penjamin wajib diisi',
+                'Penghasilan penjamin wajib diisi.',
         ];
     }
 
@@ -193,12 +255,16 @@ class PengajuanStep3Request extends FormRequest
 
         if (isset($pasangan['pekerjaan']['penghasilan'])) {
             $pasangan['pekerjaan']['penghasilan'] =
-                parse_rupiah($pasangan['pekerjaan']['penghasilan']);
+                parse_rupiah(
+                    $pasangan['pekerjaan']['penghasilan']
+                );
         }
 
         if (isset($penjamin['pekerjaan']['penghasilan'])) {
             $penjamin['pekerjaan']['penghasilan'] =
-                parse_rupiah($penjamin['pekerjaan']['penghasilan']);
+                parse_rupiah(
+                    $penjamin['pekerjaan']['penghasilan']
+                );
         }
 
         $this->merge([
