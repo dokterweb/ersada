@@ -365,6 +365,7 @@ $(document).ready(function(){
             $('#pasangan_job').show();
         }
 
+
         if($('#penjamin_job_check').is(':checked')){
             $('#penjamin_job').show();
         }

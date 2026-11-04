@@ -15,352 +15,366 @@ use Illuminate\Support\Facades\Auth;
 class OperasionalController extends Controller
 {
     
-    public function index(Request $request)
-    {
-        /*
-        |--------------------------------------------------------------------------
-        | 1. IDENTIFIKASI USER DAN PEMBATASAN CABANG
-        |--------------------------------------------------------------------------
-        */
 
-        $user = Auth::user();
+public function index(Request $request)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | 1. IDENTIFIKASI USER DAN PEMBATASAN CABANG
+    |--------------------------------------------------------------------------
+    */
 
-        $cabangId = null;
+    $user = Auth::user();
 
-        $rolesCabang = [
-            'marketing',
-            'spvmarketing',
-            'admincabang',
-        ];
+    $cabangId = null;
 
-        if ($user->hasAnyRole($rolesCabang)) {
-            $karyawan = $user->karyawan;
+    $rolesCabang = [
+        'marketing',
+        'spvmarketing',
+        'admincabang',
+    ];
 
-            if (!$karyawan || !$karyawan->cabang_id) {
-                abort(403, 'Akun Anda belum terhubung dengan cabang.');
-            }
+    if ($user->hasAnyRole($rolesCabang)) {
+        $karyawan = $user->karyawan;
 
-            $cabangId = (int) $karyawan->cabang_id;
+        if (!$karyawan || !$karyawan->cabang_id) {
+            abort(403, 'Akun Anda belum terhubung dengan cabang.');
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | 2. DAFTAR PEMBIAYAAN
-        |--------------------------------------------------------------------------
-        */
+        $cabangId = (int) $karyawan->cabang_id;
+    }
 
-        $query = Pembiayaan::with([
-            'pengajuan.nasabah',
-            'pengajuan.marketing',
-            'pengajuan.cabang',
-            'angsurans',
-            'akad.pencairan',
-            'pelunasan',
-        ])
-            ->whereIn('status', ['dicairkan', 'lunas']);
+    /*
+    |--------------------------------------------------------------------------
+    | 2. DAFTAR PEMBIAYAAN
+    |--------------------------------------------------------------------------
+    */
 
-        // Pembatasan cabang berdasarkan akun login.
-        if ($cabangId !== null) {
-            $query->whereHas('pengajuan', function ($q) use ($cabangId) {
-                $q->where('cabang_id', $cabangId);
-            });
-        }
+    $query = Pembiayaan::with([
+        'pengajuan.nasabah',
+        'pengajuan.marketing',
+        'pengajuan.cabang',
+        'angsurans',
+        'akad.pencairan',
+        'pelunasan',
+    ])
+        ->whereIn('status', ['dicairkan', 'lunas']);
 
-        // Pencarian nomor pembiayaan, nama nasabah, dan NIK.
-        if ($request->filled('search')) {
-            $search = $request->search;
+    // Pembatasan cabang berdasarkan akun login.
+    if ($cabangId !== null) {
+        $query->whereHas('pengajuan', function ($q) use ($cabangId) {
+            $q->where('cabang_id', $cabangId);
+        });
+    }
 
-            $query->where(function ($q) use ($search) {
-                $q->where('nomor_pembiayaan', 'like', "%{$search}%")
-                    ->orWhereHas('pengajuan.nasabah', function ($nasabah) use ($search) {
-                        $nasabah->where('nama', 'like', "%{$search}%")
-                            ->orWhere('nik', 'like', "%{$search}%");
-                    });
-            });
-        }
+    // Pencarian nomor pembiayaan, nama nasabah, dan NIK.
+    if ($request->filled('search')) {
+        $search = $request->search;
 
-        // Filter cabang hanya dapat dipilih oleh role yang tidak dibatasi cabang.
-        if ($cabangId !== null) {
-            $query->whereHas('pengajuan', function ($q) use ($cabangId) {
-                $q->where('cabang_id', $cabangId);
-            });
-        } elseif ($request->filled('cabang')) {
-            $query->whereHas('pengajuan', function ($q) use ($request) {
-                $q->where('cabang_id', $request->cabang);
-            });
-        }
-
-        // Filter marketing.
-        if ($request->filled('marketing')) {
-            $query->whereHas('pengajuan', function ($q) use ($request) {
-                $q->where('marketing_id', $request->marketing);
-            });
-        }
-
-        // Filter status.
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $pembiayaans = $query
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 3. TOTAL PEMBIAYAAN AKTIF
-        |--------------------------------------------------------------------------
-        */
-
-        $totalAktif = Pembiayaan::where('status', 'dicairkan')
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('pengajuan', function ($p) use ($cabangId) {
-                    $p->where('cabang_id', $cabangId);
+        $query->where(function ($q) use ($search) {
+            $q->where('nomor_pembiayaan', 'like', "%{$search}%")
+                ->orWhereHas('pengajuan.nasabah', function ($nasabah) use ($search) {
+                    $nasabah->where('nama', 'like', "%{$search}%")
+                        ->orWhere('nik', 'like', "%{$search}%");
                 });
-            })
-            ->count();
+        });
+    }
 
-        /*
-        |--------------------------------------------------------------------------
-        | 4. TOTAL PEMBIAYAAN LUNAS
-        |--------------------------------------------------------------------------
-        */
+    // Filter cabang.
+    if ($cabangId !== null) {
+        $query->whereHas('pengajuan', function ($q) use ($cabangId) {
+            $q->where('cabang_id', $cabangId);
+        });
+    } elseif ($request->filled('cabang')) {
+        $query->whereHas('pengajuan', function ($q) use ($request) {
+            $q->where('cabang_id', $request->cabang);
+        });
+    }
 
-        $totalLunas = Pembiayaan::where('status', 'lunas')
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('pengajuan', function ($p) use ($cabangId) {
-                    $p->where('cabang_id', $cabangId);
-                });
-            })
-            ->count();
+    // Filter marketing.
+    if ($request->filled('marketing')) {
+        $query->whereHas('pengajuan', function ($q) use ($request) {
+            $q->where('marketing_id', $request->marketing);
+        });
+    }
 
-        /*
-        |--------------------------------------------------------------------------
-        | 5. TOTAL OUTSTANDING ANGSURAN
-        |--------------------------------------------------------------------------
-        */
+    // Filter status.
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
 
-        $totalOutstanding = Angsuran::whereIn('status', [
+    $pembiayaans = $query
+        ->latest()
+        ->paginate(20)
+        ->withQueryString();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3. TOTAL PEMBIAYAAN AKTIF
+    |--------------------------------------------------------------------------
+    */
+
+    $totalAktif = Pembiayaan::where('status', 'dicairkan')
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('pengajuan', function ($p) use ($cabangId) {
+                $p->where('cabang_id', $cabangId);
+            });
+        })
+        ->count();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 4. TOTAL PEMBIAYAAN LUNAS
+    |--------------------------------------------------------------------------
+    */
+
+    $totalLunas = Pembiayaan::where('status', 'lunas')
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('pengajuan', function ($p) use ($cabangId) {
+                $p->where('cabang_id', $cabangId);
+            });
+        })
+        ->count();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 5. TOTAL OUTSTANDING ANGSURAN
+    |--------------------------------------------------------------------------
+    */
+
+    $totalOutstanding = Angsuran::whereIn('status', [
+        'belum_jatuh_tempo',
+        'jatuh_tempo',
+    ])
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
+                $p->where('cabang_id', $cabangId);
+            });
+        })
+        ->sum('sisa_tagihan');
+
+    /*
+    |--------------------------------------------------------------------------
+    | 6. JATUH TEMPO HARI INI
+    |--------------------------------------------------------------------------
+    */
+
+    $jatuhTempoHariIni = Angsuran::whereDate(
+        'tanggal_jatuh_tempo',
+        today()
+    )
+        ->whereIn('status', [
             'belum_jatuh_tempo',
             'jatuh_tempo',
         ])
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
-                    $p->where('cabang_id', $cabangId);
-                });
-            })
-            ->sum('sisa_tagihan');
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
+                $p->where('cabang_id', $cabangId);
+            });
+        })
+        ->count();
 
-        /*
-        |--------------------------------------------------------------------------
-        | 6. JATUH TEMPO HARI INI
-        |--------------------------------------------------------------------------
-        */
+    /*
+    |--------------------------------------------------------------------------
+    | 7. JATUH TEMPO BESOK
+    |--------------------------------------------------------------------------
+    */
 
-        $jatuhTempoHariIni = Angsuran::whereDate(
-            'tanggal_jatuh_tempo',
-            today()
-        )
-            ->whereIn('status', [
-                'belum_jatuh_tempo',
-                'jatuh_tempo',
-            ])
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
-                    $p->where('cabang_id', $cabangId);
-                });
-            })
-            ->count();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 7. JATUH TEMPO BESOK
-        |--------------------------------------------------------------------------
-        */
-
-        $jatuhTempoBesok = Angsuran::whereDate(
-            'tanggal_jatuh_tempo',
-            today()->addDay()
-        )
-            ->whereIn('status', [
-                'belum_jatuh_tempo',
-                'jatuh_tempo',
-            ])
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
-                    $p->where('cabang_id', $cabangId);
-                });
-            })
-            ->count();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 8. ANGSURAN MENUNGGAK
-        |--------------------------------------------------------------------------
-        */
-
-        $menunggak = Angsuran::where('status', 'jatuh_tempo')
-            ->whereDate('tanggal_jatuh_tempo', '<', today())
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
-                    $p->where('cabang_id', $cabangId);
-                });
-            })
-            ->count();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 9. PEMBAYARAN ANGSURAN BULAN INI
-        |--------------------------------------------------------------------------
-        */
-
-        $pembayaranBulanIni = PembayaranAngsuran::whereMonth(
-            'tanggal_bayar',
-            now()->month
-        )
-            ->whereYear('tanggal_bayar', now()->year)
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('angsuran.pembiayaan.pengajuan', function ($p) use ($cabangId) {
-                    $p->where('cabang_id', $cabangId);
-                });
-            })
-            ->sum('jumlah_bayar');
-
-        /*
-        |--------------------------------------------------------------------------
-        | 10. PELUNASAN BULAN INI
-        |--------------------------------------------------------------------------
-        */
-
-        $pelunasanBulanIni = Pelunasan::whereMonth(
-            'tanggal_pelunasan',
-            now()->month
-        )
-            ->whereYear('tanggal_pelunasan', now()->year)
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
-                    $p->where('cabang_id', $cabangId);
-                });
-            })
-            ->count();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 11. OUTSTANDING PER CABANG
-        |--------------------------------------------------------------------------
-        */
-
-        $outstandingCabangQuery = DB::table('cabangs')
-            ->join('pengajuans', 'cabangs.id', '=', 'pengajuans.cabang_id')
-            ->join('pembiayaans', 'pengajuans.id', '=', 'pembiayaans.pengajuan_id')
-            ->join('angsurans', 'pembiayaans.id', '=', 'angsurans.pembiayaan_id')
-            ->whereIn('angsurans.status', [
-                'belum_jatuh_tempo',
-                'jatuh_tempo',
-            ]);
-
-        if ($cabangId !== null) {
-            $outstandingCabangQuery->where('cabangs.id', $cabangId);
-        }
-
-        $outstandingCabang = $outstandingCabangQuery
-            ->groupBy('cabangs.id', 'cabangs.nama_cabang')
-            ->selectRaw('
-                cabangs.id,
-                cabangs.nama_cabang,
-                SUM(angsurans.sisa_tagihan) as outstanding
-            ')
-            ->orderByDesc('outstanding')
-            ->get();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 12. OUTSTANDING PER MARKETING
-        |--------------------------------------------------------------------------
-        */
-
-        $outstandingMarketingQuery = DB::table('users')
-            ->join('pengajuans', 'users.id', '=', 'pengajuans.marketing_id')
-            ->join('pembiayaans', 'pengajuans.id', '=', 'pembiayaans.pengajuan_id')
-            ->join('angsurans', 'pembiayaans.id', '=', 'angsurans.pembiayaan_id')
-            ->whereIn('angsurans.status', [
-                'belum_jatuh_tempo',
-                'jatuh_tempo',
-            ]);
-
-        if ($cabangId !== null) {
-            $outstandingMarketingQuery->where(
-                'pengajuans.cabang_id',
-                $cabangId
-            );
-        }
-
-        $outstandingMarketing = $outstandingMarketingQuery
-            ->groupBy('users.id', 'users.name')
-            ->select(
-                'users.id',
-                'users.name',
-                DB::raw('SUM(angsurans.sisa_tagihan) as outstanding')
-            )
-            ->orderByDesc('outstanding')
-            ->get();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 13. DROPDOWN CABANG
-        |--------------------------------------------------------------------------
-        */
-
-        $cabangs = Cabang::when(
-            $cabangId !== null,
-            function ($q) use ($cabangId) {
-                $q->where('id', $cabangId);
-            }
-        )
-            ->orderBy('nama_cabang')
-            ->get();
-
-        /*
-        |--------------------------------------------------------------------------
-        | 14. DROPDOWN MARKETING DAN SPV MARKETING
-        |--------------------------------------------------------------------------
-        */
-
-        $marketings = User::role([
-            'marketing',
-            'spvmarketing',
+    $jatuhTempoBesok = Angsuran::whereDate(
+        'tanggal_jatuh_tempo',
+        today()->addDay()
+    )
+        ->whereIn('status', [
+            'belum_jatuh_tempo',
+            'jatuh_tempo',
         ])
-            ->when($cabangId !== null, function ($q) use ($cabangId) {
-                $q->whereHas('karyawan', function ($k) use ($cabangId) {
-                    $k->where('cabang_id', $cabangId);
-                });
-            })
-            ->orderBy('name')
-            ->get();
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
+                $p->where('cabang_id', $cabangId);
+            });
+        })
+        ->count();
 
-        /*
-        |--------------------------------------------------------------------------
-        | 15. TAMPILKAN HALAMAN
-        |--------------------------------------------------------------------------
-        */
+    /*
+    |--------------------------------------------------------------------------
+    | 8. ANGSURAN MENUNGGAK
+    |--------------------------------------------------------------------------
+    */
 
-        return view('operasional.index', compact(
-            'pembiayaans',
-            'totalAktif',
-            'totalLunas',
-            'totalOutstanding',
-            'jatuhTempoHariIni',
-            'jatuhTempoBesok',
-            'menunggak',
-            'pembayaranBulanIni',
-            'pelunasanBulanIni',
-            'outstandingCabang',
-            'outstandingMarketing',
-            'cabangs',
-            'marketings'
-        ));
+    $menunggak = Angsuran::where('status', 'jatuh_tempo')
+        ->whereDate('tanggal_jatuh_tempo', '<', today())
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
+                $p->where('cabang_id', $cabangId);
+            });
+        })
+        ->count();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 9. PEMBAYARAN ANGSURAN BULAN INI
+    |--------------------------------------------------------------------------
+    */
+
+    $pembayaranBulanIni = PembayaranAngsuran::whereMonth(
+        'tanggal_bayar',
+        now()->month
+    )
+        ->whereYear('tanggal_bayar', now()->year)
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('angsuran.pembiayaan.pengajuan', function ($p) use ($cabangId) {
+                $p->where('cabang_id', $cabangId);
+            });
+        })
+        ->sum('jumlah_bayar');
+
+    /*
+    |--------------------------------------------------------------------------
+    | 10. PELUNASAN BULAN INI
+    |--------------------------------------------------------------------------
+    */
+
+    $pelunasanBulanIni = Pelunasan::whereMonth(
+        'tanggal_pelunasan',
+        now()->month
+    )
+        ->whereYear('tanggal_pelunasan', now()->year)
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('pembiayaan.pengajuan', function ($p) use ($cabangId) {
+                $p->where('cabang_id', $cabangId);
+            });
+        })
+        ->count();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 11. OUTSTANDING PER CABANG
+    |--------------------------------------------------------------------------
+    */
+
+    $outstandingCabangQuery = DB::table('cabangs')
+        ->join('pengajuans', 'cabangs.id', '=', 'pengajuans.cabang_id')
+        ->join('pembiayaans', 'pengajuans.id', '=', 'pembiayaans.pengajuan_id')
+        ->join('angsurans', 'pembiayaans.id', '=', 'angsurans.pembiayaan_id')
+        ->whereIn('angsurans.status', [
+            'belum_jatuh_tempo',
+            'jatuh_tempo',
+        ]);
+
+    if ($cabangId !== null) {
+        $outstandingCabangQuery->where('cabangs.id', $cabangId);
     }
+
+    $outstandingCabang = $outstandingCabangQuery
+        ->groupBy('cabangs.id', 'cabangs.nama_cabang')
+        ->selectRaw('
+            cabangs.id,
+            cabangs.nama_cabang,
+            SUM(angsurans.sisa_tagihan) as outstanding
+        ')
+        ->orderByDesc('outstanding')
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 12. OUTSTANDING PER MARKETING
+    |--------------------------------------------------------------------------
+    |
+    | Hanya menampilkan user dengan role:
+    | - marketing
+    | - spvmarketing
+    |
+    | Admin cabang dan role lainnya tidak ikut ditampilkan.
+    */
+
+    $userMarketingIds = User::role([
+        'marketing',
+        'spvmarketing',
+    ])->select('users.id');
+
+    $outstandingMarketingQuery = DB::table('users')
+        ->join('pengajuans', 'users.id', '=', 'pengajuans.marketing_id')
+        ->join('pembiayaans', 'pengajuans.id', '=', 'pembiayaans.pengajuan_id')
+        ->join('angsurans', 'pembiayaans.id', '=', 'angsurans.pembiayaan_id')
+        ->whereIn('users.id', $userMarketingIds)
+        ->whereIn('angsurans.status', [
+            'belum_jatuh_tempo',
+            'jatuh_tempo',
+        ]);
+
+    // Pembatasan cabang berdasarkan akun login.
+    if ($cabangId !== null) {
+        $outstandingMarketingQuery->where(
+            'pengajuans.cabang_id',
+            $cabangId
+        );
+    }
+
+    $outstandingMarketing = $outstandingMarketingQuery
+        ->groupBy('users.id', 'users.name')
+        ->select(
+            'users.id',
+            'users.name',
+            DB::raw('SUM(angsurans.sisa_tagihan) as outstanding')
+        )
+        ->orderByDesc('outstanding')
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 13. DROPDOWN CABANG
+    |--------------------------------------------------------------------------
+    */
+
+    $cabangs = Cabang::when(
+        $cabangId !== null,
+        function ($q) use ($cabangId) {
+            $q->where('id', $cabangId);
+        }
+    )
+        ->orderBy('nama_cabang')
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 14. DROPDOWN MARKETING DAN SPV MARKETING
+    |--------------------------------------------------------------------------
+    */
+
+    $marketings = User::role([
+        'marketing',
+        'spvmarketing',
+    ])
+        ->when($cabangId !== null, function ($q) use ($cabangId) {
+            $q->whereHas('karyawan', function ($k) use ($cabangId) {
+                $k->where('cabang_id', $cabangId);
+            });
+        })
+        ->orderBy('name')
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | 15. TAMPILKAN HALAMAN
+    |--------------------------------------------------------------------------
+    */
+
+    return view('operasional.index', compact(
+        'pembiayaans',
+        'totalAktif',
+        'totalLunas',
+        'totalOutstanding',
+        'jatuhTempoHariIni',
+        'jatuhTempoBesok',
+        'menunggak',
+        'pembayaranBulanIni',
+        'pelunasanBulanIni',
+        'outstandingCabang',
+        'outstandingMarketing',
+        'cabangs',
+        'marketings'
+    ));
+}
 
 
     public function show(Pembiayaan $pembiayaan)
